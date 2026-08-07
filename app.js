@@ -688,13 +688,14 @@ function bindEvents() {
 
   $('#participantForm').addEventListener('submit', async event => {
     event.preventDefault();
-    const button = event.currentTarget.querySelector('button[type="submit"]');
+    const form = event.currentTarget;
+    const button = form.querySelector('button[type="submit"]');
     button.disabled = true;
     try {
-      const values = Object.fromEntries(new FormData(event.currentTarget).entries());
+      const values = Object.fromEntries(new FormData(form).entries());
       const participant = await apiRequest('createParticipant', values);
       updateParticipantInCache(participant);
-      event.currentTarget.reset();
+      form.reset();
       showToast(`${participant.name} 님을 ${String(participant.number).padStart(4, '0')}번으로 등록했습니다.`);
     } catch (error) {
       showToast(error.message, 4500);
