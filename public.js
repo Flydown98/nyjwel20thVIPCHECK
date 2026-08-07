@@ -2,6 +2,7 @@
 
 const PUBLIC_CONFIG = window.NYJ20_CONFIG || {};
 const API_URL = String(PUBLIC_CONFIG.appsScriptUrl || '').trim();
+const DEVICE_TICKET_STORAGE_KEY = 'nyj20.publicTicketCode.v1';
 const DEFAULT_PUBLIC_SETTINGS = Object.freeze({
   eventName: '남양주시장애인복지관 개관 20주년 기념행사',
   eventDate: '2026. 9. 17.(목) 14:00',
@@ -25,6 +26,40 @@ const $ = selector => document.querySelector(selector);
 
 function isConfiguredUrl(url) {
   return /^https:\/\/script\.google\.com\/macros\/s\/.+\/exec(?:\?.*)?$/i.test(url) && !url.includes('PASTE_YOUR');
+}
+
+function getRememberedTicketCode() {
+  try {
+    return String(localStorage.getItem(DEVICE_TICKET_STORAGE_KEY) || '').trim().toUpperCase();
+  } catch (error) {
+    return '';
+  }
+}
+
+function rememberTicketCode(code) {
+  const normalized = String(code || '').trim().toUpperCase();
+  if (!normalized) return;
+  try {
+    localStorage.setItem(DEVICE_TICKET_STORAGE_KEY, normalized);
+  } catch (error) {
+    // 시크릿 모드나 저장공간 제한 환경에서는 자동 기억만 생략합니다.
+  }
+  updateRememberedTicketUi();
+}
+
+function forgetRememberedTicket() {
+  try {
+    localStorage.removeItem(DEVICE_TICKET_STORAGE_KEY);
+  } catch (error) {
+    // 저장공간 접근이 막힌 환경에서는 별도 처리가 필요하지 않습니다.
+  }
+  updateRememberedTicketUi();
+}
+
+function updateRememberedTicketUi() {
+  const hasCode = Boolean(getRememberedTicketCode());
+  $('#rememberedTicketNotice')?.classList.toggle('hidden', !hasCode);
+  $('#forgetTicketButton')?.classList.toggle('hidden', !hasCode);
 }
 
 function showToast(message, duration = 3200) {
@@ -135,8 +170,9 @@ function clearQrContainer() {
   $('#ticketQr').innerHTML = '';
 }
 
-function renderTicket(ticket, { existing = false } = {}) {
+function renderTicket(ticket, { existing = false, remember = false, message = '' } = {}) {
   publicState.ticket = ticket;
+  if (remember) rememberTicketCode(ticket.id);
   const settings = publicState.settings;
   $('#ticketNumber').textContent = `NO. ${String(ticket.number).padStart(4, '0')}`;
   $('#ticketOrganizer').textContent = settings.eventOrganizer;
@@ -145,9 +181,9 @@ function renderTicket(ticket, { existing = false } = {}) {
   $('#ticketSeat').textContent = ticket.seat || '좌석 미정';
   $('#ticketDate').textContent = settings.eventDate;
   $('#ticketVenue').textContent = settings.eventVenue;
-  $('#ticketMessage').textContent = existing
+  $('#ticketMessage').textContent = message || (existing
     ? '이미 신청된 정보가 확인되어 기존 개인 QR을 다시 보여드립니다.'
-    : '현장에서 아래 QR을 보여주세요. 이미지로 저장해 두면 더 편리합니다.';
+    : '현장에서 아래 QR을 보여주세요. 이미지로 저장해 두면 더 편리합니다.');
 
   clearQrContainer();
   new QRCode($('#ticketQr'), {
@@ -362,6 +398,85 @@ async function copyTicketLink() {
   }
 }
 
+function clearTicketCodeFromUrl() {
+  const url = new URL(window.location.href);
+  url.searchParams.delete('code');
+  url.searchParams.delete('ticket');
+  url.hash = '';
+  history.replaceState(null, '', url.toString());
+}
+
+async function handleForgetTicket() {
+  forgetRememberedTicket();
+  clearTicketCodeFromUrl();
+  showToast('이 휴대폰에서 개인 티켓 자동 표시를 해제했습니다.');
+}
+
+function handleNewApplication(event) {
+  event.preventDefault();
+  forgetRememberedTicket();
+  clearTicketCodeFromUrl();
+  publicState.ticket = null;
+  $('#ticketSection').classList.add('hidden');
+  $('#applicationForm').reset();
+  $('#applicationForm').dataset.startedAt = String(Date.now());
+  $('#application').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  showToast('새 참가자를 신청할 수 있도록 기존 티켓 기억을 해제했습니다.');
+}
+
+async function loadRememberedTicket({ scroll = true } = {}) {
+  const code = getRememberedTicketCode();
+  if (!code) return false;
+
+  setLoading(true, '이 휴대폰에 저장된 개인 티켓을 확인하고 있습니다.');
+  try {
+    const result = await publicApiRequest('publicTicket', { code });
+    if (result.settings) publicState.settings = { ...DEFAULT_PUBLIC_SETTINGS, ...result.settings };
+    renderPublicSettings();
+    renderTicket(result.participant, {
+      existing: true,
+      remember: true,
+      message: '이 휴대폰에 저장된 신청 정보를 자동으로 불러왔습니다.'
+    });
+    if (!scroll) window.scrollTo({ top: 0, behavior: 'auto' });
+    showToast('저장된 개인 티켓을 자동으로 불러왔습니다.');
+    return true;
+  } catch (error) {
+    forgetRememberedTicket();
+    showToast('저장된 티켓 정보를 확인할 수 없어 자동 표시를 해제했습니다.', 4800);
+    return false;
+  } finally {
+    setLoading(false);
+  }
+}
+
+async function handleLookupSubmit(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  if (!form.reportValidity()) return;
+
+  const lookupButton = $('#lookupButton');
+  const values = Object.fromEntries(new FormData(form).entries());
+  lookupButton.disabled = true;
+  setLoading(true, '신청 내역을 확인하고 있습니다.');
+  try {
+    const result = await publicApiRequest('publicLookup', values);
+    if (result.settings) publicState.settings = { ...publicState.settings, ...result.settings };
+    renderPublicSettings();
+    renderTicket(result.participant, {
+      existing: true,
+      remember: true,
+      message: '접수가 정상적으로 확인되었습니다. 아래 개인 QR을 이용해 주세요.'
+    });
+    showToast('접수 완료 내역과 개인 QR을 확인했습니다.');
+  } catch (error) {
+    showToast(error.message, 5200);
+  } finally {
+    setLoading(false);
+    lookupButton.disabled = false;
+  }
+}
+
 async function loadTicketFromUrl() {
   const params = new URLSearchParams(window.location.search);
   const code = params.get('code') || params.get('ticket');
@@ -371,7 +486,7 @@ async function loadTicketFromUrl() {
     const result = await publicApiRequest('publicTicket', { code });
     if (result.settings) publicState.settings = { ...DEFAULT_PUBLIC_SETTINGS, ...result.settings };
     renderPublicSettings();
-    renderTicket(result.participant, { existing: true });
+    renderTicket(result.participant, { existing: true, message: '개인 티켓 링크로 신청 정보를 불러왔습니다.' });
     return true;
   } catch (error) {
     showToast(error.message, 5000);
@@ -401,7 +516,7 @@ async function handleApplicationSubmit(event) {
     const result = await publicApiRequest('publicRegister', values);
     if (result.settings) publicState.settings = { ...publicState.settings, ...result.settings };
     renderPublicSettings();
-    renderTicket(result.participant, { existing: result.existing });
+    renderTicket(result.participant, { existing: result.existing, remember: true });
     if (!result.existing) form.reset();
     form.dataset.startedAt = String(Date.now());
     showToast(result.existing ? '기존 신청 정보의 개인 QR을 불러왔습니다.' : '참가 신청과 개인 QR 발급이 완료되었습니다.');
@@ -417,10 +532,16 @@ async function handleApplicationSubmit(event) {
 async function initialize() {
   $('#applicationForm').dataset.startedAt = String(Date.now());
   $('#applicationForm input[name="phone"]').addEventListener('input', event => normalizePhoneInput(event.currentTarget));
+  $('#lookupForm input[name="phone"]').addEventListener('input', event => normalizePhoneInput(event.currentTarget));
   $('#applicationForm').addEventListener('submit', handleApplicationSubmit);
+  $('#lookupForm').addEventListener('submit', handleLookupSubmit);
   $('#downloadTicketButton').addEventListener('click', downloadTicketImage);
   $('#downloadQrButton').addEventListener('click', downloadQrOnly);
   $('#copyLinkButton').addEventListener('click', copyTicketLink);
+  $('#forgetTicketButton').addEventListener('click', handleForgetTicket);
+  $('#showRememberedTicketButton').addEventListener('click', () => loadRememberedTicket({ scroll: true }));
+  $('#newApplicationLink').addEventListener('click', handleNewApplication);
+  updateRememberedTicketUi();
 
   if (!isConfiguredUrl(API_URL)) {
     $('#setupWarning').classList.remove('hidden');
@@ -432,7 +553,8 @@ async function initialize() {
 
   try {
     await loadPublicBootstrap();
-    await loadTicketFromUrl();
+    const loadedFromUrl = await loadTicketFromUrl();
+    if (!loadedFromUrl) await loadRememberedTicket({ scroll: true });
   } catch (error) {
     $('#registrationStatus').className = 'registration-status closed';
     $('#registrationStatus').textContent = error.message;

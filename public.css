@@ -63,6 +63,17 @@ main { width: min(760px, 100%); margin: 0 auto; }
 .submit-button { width: 100%; padding: 17px 20px; border-radius: 16px; color: #fff; background: linear-gradient(135deg, #16253a, #355873); font-weight: 900; box-shadow: 0 14px 32px rgba(25, 44, 64, .2); }
 .submit-button:disabled { opacity: .5; cursor: not-allowed; }
 .honeypot { position: absolute !important; left: -9999px !important; width: 1px !important; height: 1px !important; overflow: hidden !important; }
+
+.lookup-section { margin: 0 16px 74px; padding: 52px 26px; background: rgba(255,255,255,.72); border: 1px solid rgba(255,255,255,.9); border-radius: 34px; box-shadow: 0 18px 50px rgba(29,45,66,.08); }
+.lookup-form { grid-template-columns: 1fr 1fr; align-items: end; }
+.lookup-form .outline-button { grid-column: 1 / -1; }
+.lookup-help { margin: 14px 0 0; color: #8b9098; font-size: 12px; text-align: center; }
+.remembered-ticket-notice { margin-bottom: 22px; padding: 16px; display: flex; align-items: center; justify-content: space-between; gap: 14px; border-radius: 18px; background: #eef5f8; border: 1px solid #dce9ef; }
+.remembered-ticket-notice strong { display: block; color: #294b5d; font-size: 14px; }
+.remembered-ticket-notice p { margin: 4px 0 0; color: #6b7f8a; font-size: 12px; }
+.compact-button { flex: 0 0 auto; padding: 10px 13px; border: 0; border-radius: 12px; color: #fff; background: #294b5d; font-weight: 800; cursor: pointer; }
+.danger-text { color: #a3453c; }
+
 .ticket-section { padding-top: 20px; }
 .mobile-ticket { position: relative; max-width: 420px; margin: 0 auto; padding: 27px; color: #fff; background: radial-gradient(circle at 16% 12%, rgba(224,191,132,.28), transparent 30%), linear-gradient(145deg, #112033 0%, #24435d 72%, #3c6276 100%); border-radius: 30px; box-shadow: 0 30px 80px rgba(19, 36, 54, .3); overflow: hidden; }
 .mobile-ticket::after { content: "20"; position: absolute; right: -18px; bottom: -80px; font: 230px/1 Georgia, serif; color: rgba(255,255,255,.035); pointer-events: none; }
@@ -99,5 +110,8 @@ footer { padding: 30px 20px 48px; text-align: center; color: #8a919a; font-size:
   .event-summary div:first-child { border-bottom: 0; }
   .info-section { grid-template-columns: 1fr; }
   .invite-section { padding-left: 20px; padding-right: 20px; }
-  .application-section { margin-left: 10px; margin-right: 10px; padding: 48px 20px; }
+  .application-section, .lookup-section { margin-left: 10px; margin-right: 10px; padding: 48px 20px; }
+  .lookup-form { grid-template-columns: 1fr; }
+  .remembered-ticket-notice { align-items: stretch; flex-direction: column; }
+  .compact-button { width: 100%; }
 }
