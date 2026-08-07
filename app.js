@@ -14,7 +14,12 @@ const DEFAULT_SETTINGS = Object.freeze({
   eventOrganizer: '남양주시장애인복지관',
   seatRows: 'A,B,C,D',
   seatsPerRow: 10,
-  autoRefreshSeconds: CONFIG.defaultAutoRefreshSeconds || 15
+  autoRefreshSeconds: CONFIG.defaultAutoRefreshSeconds || 15,
+  publicSubtitle: '스무번의 계절, 스물한번째 약속',
+  publicGreeting: '남양주시장애인복지관의 스무 해를 함께해 주신 여러분을 초대합니다.',
+  registrationOpen: true,
+  registrationCapacity: 40,
+  autoAssignSeat: true
 });
 
 let state = {
@@ -23,7 +28,7 @@ let state = {
   serverTime: null
 };
 let connection = {
-  url: localStorage.getItem(LOCAL_KEYS.URL) || '',
+  url: localStorage.getItem(LOCAL_KEYS.URL) || CONFIG.appsScriptUrl || '',
   key: localStorage.getItem(LOCAL_KEYS.ADMIN) || '',
   station: localStorage.getItem(LOCAL_KEYS.STATION) || ''
 };
@@ -331,6 +336,11 @@ function renderSettings() {
   $('#seatRows').value = state.settings.seatRows || '';
   $('#seatsPerRow').value = state.settings.seatsPerRow || 10;
   $('#autoRefreshSeconds').value = state.settings.autoRefreshSeconds || 15;
+  $('#publicSubtitle').value = state.settings.publicSubtitle || '';
+  $('#publicGreeting').value = state.settings.publicGreeting || '';
+  $('#registrationOpen').value = String(state.settings.registrationOpen !== false);
+  $('#registrationCapacity').value = state.settings.registrationCapacity || 40;
+  $('#autoAssignSeat').value = String(state.settings.autoAssignSeat !== false);
 }
 
 function findParticipantById(id) {
@@ -787,7 +797,12 @@ function bindEvents() {
       eventOrganizer: $('#eventOrganizer').value.trim(),
       seatRows: $('#seatRows').value.trim(),
       seatsPerRow: Number($('#seatsPerRow').value) || 10,
-      autoRefreshSeconds: Number($('#autoRefreshSeconds').value) || 15
+      autoRefreshSeconds: Number($('#autoRefreshSeconds').value) || 15,
+      publicSubtitle: $('#publicSubtitle').value.trim(),
+      publicGreeting: $('#publicGreeting').value.trim(),
+      registrationOpen: $('#registrationOpen').value === 'true',
+      registrationCapacity: Number($('#registrationCapacity').value) || 40,
+      autoAssignSeat: $('#autoAssignSeat').value === 'true'
     };
     try {
       state.settings = await apiRequest('saveSettings', settings);

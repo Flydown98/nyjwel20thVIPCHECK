@@ -3,195 +3,131 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#172554" />
-  <title>20주년 행사 QR 접수 시스템</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta name="theme-color" content="#152238" />
+  <title>개관 20주년 모바일 초대장</title>
+  <link rel="stylesheet" href="public.css" />
 </head>
 <body>
-  <div id="connectionOverlay" class="connection-overlay">
-    <section class="connection-card" aria-labelledby="connectionTitle">
-      <p class="eyebrow">Google Spreadsheet 연결</p>
-      <h1 id="connectionTitle">20주년 QR 접수 시스템</h1>
-      <p>처음 한 번만 Apps Script 웹 앱 주소와 관리자 키를 입력하세요. 이 정보는 현재 기기에만 저장됩니다.</p>
-      <form id="connectionForm" class="stack-form">
-        <label>Apps Script 웹 앱 주소
-          <input id="appsScriptUrlInput" type="url" required placeholder="https://script.google.com/macros/s/.../exec" />
-        </label>
-        <label>관리자 키
-          <input id="adminKeyInput" type="password" required autocomplete="current-password" placeholder="스프레드시트 초기화 때 발급된 키" />
-        </label>
-        <label>접수대 이름
-          <input id="stationNameInput" required maxlength="40" placeholder="예: 정문 1번 접수대 / 정해찬 휴대폰" />
-        </label>
-        <button id="connectButton" class="button primary" type="submit">연결하고 시작</button>
-      </form>
-      <div id="connectionMessage" class="connection-message hidden" role="alert"></div>
-      <p class="help-text">참가자 개인정보 보호를 위해 주민등록번호, 장애유형 등 불필요한 민감정보는 입력하지 마세요.</p>
-    </section>
-  </div>
+  <div class="page-glow glow-one"></div>
+  <div class="page-glow glow-two"></div>
 
-  <header class="app-header">
-    <div>
-      <p class="eyebrow">남양주시장애인복지관</p>
-      <h1 id="headerEventName">20주년 기념행사 QR 접수</h1>
+  <header class="invite-hero">
+    <div class="hero-badge">20TH ANNIVERSARY</div>
+    <p id="organizerText" class="organizer">남양주시장애인복지관</p>
+    <h1 id="eventNameText">개관 20주년 기념행사</h1>
+    <p id="subtitleText" class="hero-subtitle">스무번의 계절, 스물한번째 약속</p>
+    <div class="hero-line"></div>
+    <div class="event-summary">
+      <div><span>DATE</span><strong id="eventDateText">2026. 9. 17.(목) 14:00</strong></div>
+      <div><span>PLACE</span><strong id="eventVenueText">남양주금곡실내체육관</strong></div>
     </div>
-    <div class="header-actions">
-      <span id="storageBadge" class="badge warning">서버 연결 전</span>
-      <button id="connectionSettingsButton" class="button ghost" type="button">접속 설정</button>
-    </div>
+    <a class="primary-cta" href="#application">참가 신청하기</a>
   </header>
 
-  <div class="sync-notice">
-    <strong>실시간 공동 사용:</strong> 참가자 명단과 도착 기록은 Google 스프레드시트에 저장됩니다. 여러 휴대폰과 노트북에서 같은 현황을 확인할 수 있습니다.
-  </div>
-
-  <nav class="main-nav" aria-label="주요 메뉴">
-    <button class="nav-button active" data-view="dashboard" type="button">현황</button>
-    <button class="nav-button" data-view="participants" type="button">참가자</button>
-    <button class="nav-button" data-view="checkin" type="button">QR 접수</button>
-    <button class="nav-button" data-view="seats" type="button">좌석표</button>
-    <button class="nav-button" data-view="settings" type="button">행사 설정</button>
-  </nav>
-
-  <main class="container">
-    <section id="view-dashboard" class="view active" aria-labelledby="dashboardTitle">
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">실시간 집계</p>
-          <h2 id="dashboardTitle">행사 접수 현황</h2>
-          <p id="lastSyncLabel" class="small-text">아직 동기화되지 않았습니다.</p>
-        </div>
-        <button id="refreshDashboardButton" class="button secondary" type="button">서버 새로고침</button>
-      </div>
-
-      <div class="stats-grid">
-        <article class="stat-card"><span>전체 참가자</span><strong id="statTotal">0</strong></article>
-        <article class="stat-card success"><span>도착 완료</span><strong id="statArrived">0</strong></article>
-        <article class="stat-card muted"><span>미도착</span><strong id="statNotArrived">0</strong></article>
-        <article class="stat-card"><span>도착률</span><strong id="statRate">0%</strong></article>
-      </div>
-
-      <div class="two-column">
-        <article class="panel">
-          <div class="panel-heading"><h3>최근 도착</h3><span class="small-text">최근 8명</span></div>
-          <div id="recentCheckins" class="empty-state">아직 도착한 참가자가 없습니다.</div>
-        </article>
-        <article class="panel">
-          <div class="panel-heading"><h3>빠른 실행</h3></div>
-          <div class="quick-actions">
-            <button class="button primary" data-go="checkin" type="button">QR 스캔 시작</button>
-            <button class="button secondary" data-go="participants" type="button">참가자 등록</button>
-            <button id="exportCsvDashboardButton" class="button secondary" type="button">참석 명단 CSV</button>
-          </div>
-        </article>
-      </div>
+  <main>
+    <section class="invite-section intro-section">
+      <p class="section-kicker">INVITATION</p>
+      <h2>함께 걸어온 스무 해,<br />새로운 약속을 시작합니다.</h2>
+      <p id="greetingText" class="greeting">남양주시장애인복지관의 스무 해를 함께해 주신 여러분을 초대합니다.</p>
     </section>
 
-    <section id="view-participants" class="view" aria-labelledby="participantsTitle">
+    <section class="invite-section info-section">
+      <article class="info-card"><span>01</span><h3>행사 일시</h3><p id="detailDateText">-</p></article>
+      <article class="info-card"><span>02</span><h3>행사 장소</h3><p id="detailVenueText">-</p></article>
+      <article class="info-card"><span>03</span><h3>입장 방법</h3><p>신청 완료 후 발급되는 개인 QR을 현장에서 보여주세요.</p></article>
+    </section>
+
+    <section id="application" class="invite-section application-section">
       <div class="section-heading">
-        <div><p class="eyebrow">명단 및 QR 발급</p><h2 id="participantsTitle">참가자 관리</h2></div>
-        <div class="toolbar">
-          <button id="printAllQrButton" class="button secondary" type="button">전체 QR 인쇄</button>
-          <button id="exportCsvButton" class="button secondary" type="button">CSV 내보내기</button>
-          <label class="button secondary file-button">CSV 일괄등록<input id="csvFileInput" type="file" accept=".csv,text/csv" /></label>
-        </div>
+        <p class="section-kicker">APPLICATION</p>
+        <h2>참가 신청</h2>
+        <p>한 사람당 하나의 QR이 발급됩니다. 신청 순서대로 접수번호와 좌석이 자동 배정됩니다.</p>
       </div>
 
-      <article class="panel">
-        <h3>새 참가자 등록</h3>
-        <form id="participantForm" class="form-grid">
-          <label>이름<input name="name" required maxlength="40" placeholder="예: 홍길동" /></label>
-          <label>연락처<input name="phone" maxlength="30" placeholder="예: 010-1234-5678" /></label>
-          <label>좌석번호<input name="seat" maxlength="20" placeholder="예: A-01" /></label>
-          <label>구분<input name="group" maxlength="40" placeholder="예: 이용인 / 보호자 / 내빈" /></label>
-          <label class="wide">비고<input name="note" maxlength="200" placeholder="휠체어석 등 현장에 필요한 최소 정보" /></label>
-          <div class="form-actions wide"><button class="button primary" type="submit">스프레드시트에 등록</button></div>
-        </form>
-      </article>
+      <div id="registrationStatus" class="registration-status loading">신청 가능 여부를 확인하고 있습니다.</div>
 
-      <article class="panel">
-        <div class="filter-row">
-          <input id="participantSearch" type="search" placeholder="이름, 연락처, 좌석, 접수번호 검색" />
-          <select id="participantStatusFilter">
-            <option value="all">전체 상태</option>
-            <option value="arrived">도착 완료</option>
-            <option value="pending">미도착</option>
+      <form id="applicationForm" class="application-form" novalidate>
+        <label>
+          <span>이름 <b>*</b></span>
+          <input name="name" maxlength="40" autocomplete="name" required placeholder="참가자 이름" />
+        </label>
+        <label>
+          <span>연락처 <b>*</b></span>
+          <input name="phone" maxlength="20" inputmode="tel" autocomplete="tel" required placeholder="010-1234-5678" />
+        </label>
+        <label>
+          <span>참가 구분</span>
+          <select name="group">
+            <option value="지역주민">지역주민</option>
+            <option value="이용인">복지관 이용인</option>
+            <option value="보호자">보호자</option>
+            <option value="후원자·자원봉사자">후원자·자원봉사자</option>
+            <option value="유관기관">유관기관</option>
+            <option value="기타">기타</option>
           </select>
-          <span id="participantCountLabel" class="small-text"></span>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>번호</th><th>이름</th><th>연락처</th><th>좌석</th><th>구분</th><th>상태</th><th>관리</th></tr></thead>
-            <tbody id="participantTableBody"></tbody>
-          </table>
-        </div>
-      </article>
+        </label>
+        <label>
+          <span>요청사항</span>
+          <textarea name="note" maxlength="200" rows="3" placeholder="휠체어석 등 행사 운영에 필요한 내용만 적어주세요."></textarea>
+        </label>
+        <label class="honeypot" aria-hidden="true">웹사이트<input name="website" tabindex="-1" autocomplete="off" /></label>
+        <label class="consent-row">
+          <input name="consent" type="checkbox" value="true" required />
+          <span>행사 참가 접수와 현장 확인을 위한 이름·연락처 수집 및 이용에 동의합니다. <b>*</b></span>
+        </label>
+        <p class="privacy-note">입력 정보는 참가자 확인과 행사 운영 목적으로만 사용하도록 구성한 시제품입니다.</p>
+        <button id="submitButton" class="submit-button" type="submit">신청하고 개인 QR 받기</button>
+      </form>
     </section>
 
-    <section id="view-checkin" class="view" aria-labelledby="checkinTitle">
-      <div class="section-heading"><div><p class="eyebrow">현장 입장 처리</p><h2 id="checkinTitle">QR 접수</h2></div></div>
-      <div class="two-column checkin-layout">
-        <article class="panel">
-          <div class="panel-heading"><h3>카메라로 QR 스캔</h3><button id="toggleScannerButton" class="button primary" type="button">카메라 시작</button></div>
-          <div id="reader" class="scanner-box"><p>카메라 시작 버튼을 누르면 QR 스캐너가 열립니다.</p></div>
-          <p class="help-text">스캔 즉시 Google 스프레드시트에 도착 처리됩니다. 동일 QR은 중복 도착으로 표시됩니다.</p>
-        </article>
-        <article class="panel">
-          <h3>수동 접수</h3>
-          <form id="manualCheckinForm" class="stack-form">
-            <label>이름, 연락처, 좌석 또는 접수코드<input id="manualCheckinInput" required placeholder="예: 홍길동 또는 A-01" /></label>
-            <button class="button primary" type="submit">참가자 찾기</button>
-          </form>
-          <div id="manualSearchResults" class="search-results"></div>
-        </article>
+    <section id="ticketSection" class="invite-section ticket-section hidden" aria-live="polite">
+      <div class="section-heading centered">
+        <p class="section-kicker">MOBILE TICKET</p>
+        <h2>참가 신청이 완료되었습니다.</h2>
+        <p id="ticketMessage">현장에서 아래 QR을 보여주세요.</p>
       </div>
-      <article id="checkinResultPanel" class="panel result-panel hidden" aria-live="polite"><div id="checkinResult"></div></article>
-    </section>
 
-    <section id="view-seats" class="view" aria-labelledby="seatsTitle">
-      <div class="section-heading">
-        <div><p class="eyebrow">좌석별 입장 확인</p><h2 id="seatsTitle">좌석 현황</h2></div>
-        <div class="legend"><span><i class="legend-dot arrived"></i>도착</span><span><i class="legend-dot pending"></i>미도착</span><span><i class="legend-dot empty"></i>미배정</span></div>
-      </div>
-      <div id="seatMap" class="seat-map"></div>
-    </section>
-
-    <section id="view-settings" class="view" aria-labelledby="settingsTitle">
-      <div class="section-heading"><div><p class="eyebrow">스프레드시트 설정</p><h2 id="settingsTitle">행사 설정</h2></div></div>
-      <article class="panel">
-        <form id="eventSettingsForm" class="form-grid">
-          <label class="wide">행사명<input id="eventName" required /></label>
-          <label>행사 일시<input id="eventDate" required /></label>
-          <label>장소<input id="eventVenue" required /></label>
-          <label>주최 기관<input id="eventOrganizer" required /></label>
-          <label>좌석 행<input id="seatRows" placeholder="예: A,B,C,D" /></label>
-          <label>행당 좌석 수<input id="seatsPerRow" type="number" min="1" max="200" /></label>
-          <label>자동 새로고침(초)<input id="autoRefreshSeconds" type="number" min="5" max="300" /></label>
-          <div class="form-actions wide"><button class="button primary" type="submit">스프레드시트에 설정 저장</button></div>
-        </form>
-      </article>
-      <article class="panel">
-        <h3>접속 기기</h3>
-        <div class="detail-list">
-          <div><dt>접수대</dt><dd id="currentStationLabel">-</dd></div>
-          <div><dt>서버</dt><dd id="currentServerLabel">-</dd></div>
+      <article id="mobileTicket" class="mobile-ticket">
+        <div class="ticket-topline"><span>20TH ANNIVERSARY</span><span id="ticketNumber">NO. 0000</span></div>
+        <div class="ticket-title">
+          <p id="ticketOrganizer">남양주시장애인복지관</p>
+          <h3 id="ticketEventName">개관 20주년 기념행사</h3>
         </div>
-        <div class="toolbar modal-actions"><button id="logoutButton" class="button secondary" type="button">이 기기 접속정보 삭제</button></div>
+        <div class="ticket-person">
+          <span>INVITED GUEST</span>
+          <strong id="ticketName">참가자 님</strong>
+        </div>
+        <div class="ticket-seat-wrap">
+          <span>YOUR SEAT</span>
+          <strong id="ticketSeat">좌석 미정</strong>
+        </div>
+        <div id="ticketQr" class="ticket-qr"></div>
+        <p class="ticket-guide">행사장 입구에서 이 QR을 제시해 주세요.</p>
+        <div class="ticket-event-meta">
+          <p id="ticketDate">-</p><p id="ticketVenue">-</p>
+        </div>
       </article>
+
+      <div class="ticket-actions">
+        <button id="downloadTicketButton" class="submit-button" type="button">모바일 티켓 이미지 저장</button>
+        <button id="downloadQrButton" class="outline-button" type="button">QR만 PNG로 저장</button>
+        <button id="copyLinkButton" class="text-button" type="button">내 티켓 링크 복사</button>
+        <a id="newApplicationLink" class="text-button" href="./">다른 참가자 신청하기</a>
+      </div>
+    </section>
+
+    <section id="setupWarning" class="invite-section setup-warning hidden">
+      <h2>아직 서버 주소가 설정되지 않았습니다.</h2>
+      <p><code>config.js</code>의 <code>appsScriptUrl</code>에 Apps Script의 <code>/exec</code> 주소를 입력하세요.</p>
     </section>
   </main>
 
-  <div id="modalBackdrop" class="modal-backdrop hidden" role="presentation">
-    <section id="modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-      <div class="modal-header"><h2 id="modalTitle">상세 정보</h2><button id="closeModalButton" class="icon-button" type="button" aria-label="닫기">×</button></div>
-      <div id="modalContent"></div>
-    </section>
-  </div>
+  <footer><p>남양주시장애인복지관 개관 20주년</p></footer>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+  <div id="loadingOverlay" class="loading-overlay hidden"><div class="spinner"></div><p>처리 중입니다.</p></div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="config.js"></script>
-  <script src="app.js?v=1.1"></script>
+  <script src="public.js?v=0.1"></script>
 </body>
 </html>
