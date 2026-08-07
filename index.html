@@ -8,19 +8,41 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <div id="connectionOverlay" class="connection-overlay">
+    <section class="connection-card" aria-labelledby="connectionTitle">
+      <p class="eyebrow">Google Spreadsheet 연결</p>
+      <h1 id="connectionTitle">20주년 QR 접수 시스템</h1>
+      <p>처음 한 번만 Apps Script 웹 앱 주소와 관리자 키를 입력하세요. 이 정보는 현재 기기에만 저장됩니다.</p>
+      <form id="connectionForm" class="stack-form">
+        <label>Apps Script 웹 앱 주소
+          <input id="appsScriptUrlInput" type="url" required placeholder="https://script.google.com/macros/s/.../exec" />
+        </label>
+        <label>관리자 키
+          <input id="adminKeyInput" type="password" required autocomplete="current-password" placeholder="스프레드시트 초기화 때 발급된 키" />
+        </label>
+        <label>접수대 이름
+          <input id="stationNameInput" required maxlength="40" placeholder="예: 정문 1번 접수대 / 정해찬 휴대폰" />
+        </label>
+        <button id="connectButton" class="button primary" type="submit">연결하고 시작</button>
+      </form>
+      <div id="connectionMessage" class="connection-message hidden" role="alert"></div>
+      <p class="help-text">참가자 개인정보 보호를 위해 주민등록번호, 장애유형 등 불필요한 민감정보는 입력하지 마세요.</p>
+    </section>
+  </div>
+
   <header class="app-header">
     <div>
       <p class="eyebrow">남양주시장애인복지관</p>
       <h1 id="headerEventName">20주년 기념행사 QR 접수</h1>
     </div>
     <div class="header-actions">
-      <span id="storageBadge" class="badge warning">이 기기에만 저장됨</span>
-      <button id="installButton" class="button ghost hidden" type="button">앱처럼 설치</button>
+      <span id="storageBadge" class="badge warning">서버 연결 전</span>
+      <button id="connectionSettingsButton" class="button ghost" type="button">접속 설정</button>
     </div>
   </header>
 
-  <div class="demo-warning">
-    <strong>시제품 안내:</strong> 현재 버전은 데이터가 이 브라우저에만 저장됩니다. 여러 휴대폰에서 실시간으로 함께 쓰는 실제 행사 버전은 Google Apps Script 또는 Firebase 연결이 필요합니다.
+  <div class="sync-notice">
+    <strong>실시간 공동 사용:</strong> 참가자 명단과 도착 기록은 Google 스프레드시트에 저장됩니다. 여러 휴대폰과 노트북에서 같은 현황을 확인할 수 있습니다.
   </div>
 
   <nav class="main-nav" aria-label="주요 메뉴">
@@ -37,8 +59,9 @@
         <div>
           <p class="eyebrow">실시간 집계</p>
           <h2 id="dashboardTitle">행사 접수 현황</h2>
+          <p id="lastSyncLabel" class="small-text">아직 동기화되지 않았습니다.</p>
         </div>
-        <button id="refreshDashboardButton" class="button secondary" type="button">새로고침</button>
+        <button id="refreshDashboardButton" class="button secondary" type="button">서버 새로고침</button>
       </div>
 
       <div class="stats-grid">
@@ -50,17 +73,11 @@
 
       <div class="two-column">
         <article class="panel">
-          <div class="panel-heading">
-            <h3>최근 도착</h3>
-            <span class="small-text">최근 8명</span>
-          </div>
+          <div class="panel-heading"><h3>최근 도착</h3><span class="small-text">최근 8명</span></div>
           <div id="recentCheckins" class="empty-state">아직 도착한 참가자가 없습니다.</div>
         </article>
-
         <article class="panel">
-          <div class="panel-heading">
-            <h3>빠른 실행</h3>
-          </div>
+          <div class="panel-heading"><h3>빠른 실행</h3></div>
           <div class="quick-actions">
             <button class="button primary" data-go="checkin" type="button">QR 스캔 시작</button>
             <button class="button secondary" data-go="participants" type="button">참가자 등록</button>
@@ -72,29 +89,23 @@
 
     <section id="view-participants" class="view" aria-labelledby="participantsTitle">
       <div class="section-heading">
-        <div>
-          <p class="eyebrow">명단 및 QR 발급</p>
-          <h2 id="participantsTitle">참가자 관리</h2>
-        </div>
+        <div><p class="eyebrow">명단 및 QR 발급</p><h2 id="participantsTitle">참가자 관리</h2></div>
         <div class="toolbar">
           <button id="printAllQrButton" class="button secondary" type="button">전체 QR 인쇄</button>
           <button id="exportCsvButton" class="button secondary" type="button">CSV 내보내기</button>
-          <label class="button secondary file-button">
-            CSV 불러오기
-            <input id="csvFileInput" type="file" accept=".csv,text/csv" />
-          </label>
+          <label class="button secondary file-button">CSV 일괄등록<input id="csvFileInput" type="file" accept=".csv,text/csv" /></label>
         </div>
       </div>
 
       <article class="panel">
         <h3>새 참가자 등록</h3>
         <form id="participantForm" class="form-grid">
-          <label>이름<input id="participantName" name="name" required maxlength="30" placeholder="예: 홍길동" /></label>
-          <label>연락처<input id="participantPhone" name="phone" maxlength="20" placeholder="예: 010-1234-5678" /></label>
-          <label>좌석번호<input id="participantSeat" name="seat" maxlength="20" placeholder="예: A-01" /></label>
-          <label>구분<input id="participantGroup" name="group" maxlength="30" placeholder="예: 이용인 / 보호자 / 내빈" /></label>
-          <label class="wide">비고<input id="participantNote" name="note" maxlength="100" placeholder="필요한 지원사항 등을 입력" /></label>
-          <div class="form-actions wide"><button class="button primary" type="submit">참가자 등록</button></div>
+          <label>이름<input name="name" required maxlength="40" placeholder="예: 홍길동" /></label>
+          <label>연락처<input name="phone" maxlength="30" placeholder="예: 010-1234-5678" /></label>
+          <label>좌석번호<input name="seat" maxlength="20" placeholder="예: A-01" /></label>
+          <label>구분<input name="group" maxlength="40" placeholder="예: 이용인 / 보호자 / 내빈" /></label>
+          <label class="wide">비고<input name="note" maxlength="200" placeholder="휠체어석 등 현장에 필요한 최소 정보" /></label>
+          <div class="form-actions wide"><button class="button primary" type="submit">스프레드시트에 등록</button></div>
         </form>
       </article>
 
@@ -110,11 +121,7 @@
         </div>
         <div class="table-wrap">
           <table>
-            <thead>
-              <tr>
-                <th>번호</th><th>이름</th><th>연락처</th><th>좌석</th><th>구분</th><th>상태</th><th>관리</th>
-              </tr>
-            </thead>
+            <thead><tr><th>번호</th><th>이름</th><th>연락처</th><th>좌석</th><th>구분</th><th>상태</th><th>관리</th></tr></thead>
             <tbody id="participantTableBody"></tbody>
           </table>
         </div>
@@ -122,64 +129,35 @@
     </section>
 
     <section id="view-checkin" class="view" aria-labelledby="checkinTitle">
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">현장 입장 처리</p>
-          <h2 id="checkinTitle">QR 접수</h2>
-        </div>
-      </div>
-
+      <div class="section-heading"><div><p class="eyebrow">현장 입장 처리</p><h2 id="checkinTitle">QR 접수</h2></div></div>
       <div class="two-column checkin-layout">
         <article class="panel">
-          <div class="panel-heading">
-            <h3>카메라로 QR 스캔</h3>
-            <button id="toggleScannerButton" class="button primary" type="button">카메라 시작</button>
-          </div>
-          <div id="reader" class="scanner-box">
-            <p>카메라 시작 버튼을 누르면 QR 스캐너가 열립니다.</p>
-          </div>
-          <p class="help-text">휴대폰에서는 카메라 권한을 허용해야 합니다. GitHub Pages는 HTTPS라 카메라 사용이 가능합니다.</p>
+          <div class="panel-heading"><h3>카메라로 QR 스캔</h3><button id="toggleScannerButton" class="button primary" type="button">카메라 시작</button></div>
+          <div id="reader" class="scanner-box"><p>카메라 시작 버튼을 누르면 QR 스캐너가 열립니다.</p></div>
+          <p class="help-text">스캔 즉시 Google 스프레드시트에 도착 처리됩니다. 동일 QR은 중복 도착으로 표시됩니다.</p>
         </article>
-
         <article class="panel">
           <h3>수동 접수</h3>
           <form id="manualCheckinForm" class="stack-form">
-            <label>접수코드, 이름, 연락처 또는 좌석번호
-              <input id="manualCheckinInput" required placeholder="예: 20TH-0001-ABC123 또는 홍길동" />
-            </label>
+            <label>이름, 연락처, 좌석 또는 접수코드<input id="manualCheckinInput" required placeholder="예: 홍길동 또는 A-01" /></label>
             <button class="button primary" type="submit">참가자 찾기</button>
           </form>
           <div id="manualSearchResults" class="search-results"></div>
         </article>
       </div>
-
-      <article id="checkinResultPanel" class="panel result-panel hidden" aria-live="polite">
-        <div id="checkinResult"></div>
-      </article>
+      <article id="checkinResultPanel" class="panel result-panel hidden" aria-live="polite"><div id="checkinResult"></div></article>
     </section>
 
     <section id="view-seats" class="view" aria-labelledby="seatsTitle">
       <div class="section-heading">
-        <div>
-          <p class="eyebrow">좌석별 입장 확인</p>
-          <h2 id="seatsTitle">좌석 현황</h2>
-        </div>
-        <div class="legend">
-          <span><i class="legend-dot arrived"></i>도착</span>
-          <span><i class="legend-dot pending"></i>미도착</span>
-          <span><i class="legend-dot empty"></i>미배정</span>
-        </div>
+        <div><p class="eyebrow">좌석별 입장 확인</p><h2 id="seatsTitle">좌석 현황</h2></div>
+        <div class="legend"><span><i class="legend-dot arrived"></i>도착</span><span><i class="legend-dot pending"></i>미도착</span><span><i class="legend-dot empty"></i>미배정</span></div>
       </div>
       <div id="seatMap" class="seat-map"></div>
     </section>
 
     <section id="view-settings" class="view" aria-labelledby="settingsTitle">
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">티켓 및 화면 표시</p>
-          <h2 id="settingsTitle">행사 설정</h2>
-        </div>
-      </div>
+      <div class="section-heading"><div><p class="eyebrow">스프레드시트 설정</p><h2 id="settingsTitle">행사 설정</h2></div></div>
       <article class="panel">
         <form id="eventSettingsForm" class="form-grid">
           <label class="wide">행사명<input id="eventName" required /></label>
@@ -187,36 +165,33 @@
           <label>장소<input id="eventVenue" required /></label>
           <label>주최 기관<input id="eventOrganizer" required /></label>
           <label>좌석 행<input id="seatRows" placeholder="예: A,B,C,D" /></label>
-          <label>행당 좌석 수<input id="seatsPerRow" type="number" min="1" max="100" /></label>
-          <div class="form-actions wide"><button class="button primary" type="submit">설정 저장</button></div>
+          <label>행당 좌석 수<input id="seatsPerRow" type="number" min="1" max="200" /></label>
+          <label>자동 새로고침(초)<input id="autoRefreshSeconds" type="number" min="5" max="300" /></label>
+          <div class="form-actions wide"><button class="button primary" type="submit">스프레드시트에 설정 저장</button></div>
         </form>
       </article>
-
-      <article class="panel danger-zone">
-        <h3>데이터 관리</h3>
-        <p>현재 브라우저에 저장된 참가자와 접수 기록을 관리합니다.</p>
-        <div class="toolbar">
-          <button id="loadSampleButton" class="button secondary" type="button">예시 데이터 다시 넣기</button>
-          <button id="clearAllButton" class="button danger" type="button">전체 데이터 삭제</button>
+      <article class="panel">
+        <h3>접속 기기</h3>
+        <div class="detail-list">
+          <div><dt>접수대</dt><dd id="currentStationLabel">-</dd></div>
+          <div><dt>서버</dt><dd id="currentServerLabel">-</dd></div>
         </div>
+        <div class="toolbar modal-actions"><button id="logoutButton" class="button secondary" type="button">이 기기 접속정보 삭제</button></div>
       </article>
     </section>
   </main>
 
   <div id="modalBackdrop" class="modal-backdrop hidden" role="presentation">
     <section id="modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-      <div class="modal-header">
-        <h2 id="modalTitle">상세 정보</h2>
-        <button id="closeModalButton" class="icon-button" type="button" aria-label="닫기">×</button>
-      </div>
+      <div class="modal-header"><h2 id="modalTitle">상세 정보</h2><button id="closeModalButton" class="icon-button" type="button" aria-label="닫기">×</button></div>
       <div id="modalContent"></div>
     </section>
   </div>
-
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" integrity="sha512-CNgIRecGo7nphbeZ04Sc13ka07paqdeTu0WR1IM4kNcpmBAUSHSQX0FslNhTDadL4O5SAGapGt4FodqL8My0mA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="config.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

@@ -1,186 +1,270 @@
-"use strict";
+'use strict';
 
-const STORAGE_KEY = "nyj20_qr_checkin_mvp_v1";
-const DEFAULT_SETTINGS = {
-  eventName: "남양주시장애인복지관 개관 20주년 기념행사",
-  eventDate: "2026. 9. 17.(목) 14:00",
-  eventVenue: "남양주금곡실내체육관",
-  eventOrganizer: "남양주시장애인복지관",
-  seatRows: "A,B,C,D",
-  seatsPerRow: 10
+const CONFIG = window.NYJ20_CONFIG || {};
+const LOCAL_KEYS = Object.freeze({
+  URL: 'nyj20_apps_script_url_v2',
+  ADMIN: 'nyj20_admin_key_v2',
+  STATION: 'nyj20_station_name_v2'
+});
+
+const DEFAULT_SETTINGS = Object.freeze({
+  eventName: '남양주시장애인복지관 개관 20주년 기념행사',
+  eventDate: '2026. 9. 17.(목) 14:00',
+  eventVenue: '남양주금곡실내체육관',
+  eventOrganizer: '남양주시장애인복지관',
+  seatRows: 'A,B,C,D',
+  seatsPerRow: 10,
+  autoRefreshSeconds: CONFIG.defaultAutoRefreshSeconds || 15
+});
+
+let state = {
+  settings: { ...DEFAULT_SETTINGS },
+  participants: [],
+  serverTime: null
 };
-
-let state = loadState();
+let connection = {
+  url: localStorage.getItem(LOCAL_KEYS.URL) || '',
+  key: localStorage.getItem(LOCAL_KEYS.ADMIN) || '',
+  station: localStorage.getItem(LOCAL_KEYS.STATION) || ''
+};
 let scanner = null;
 let scannerRunning = false;
-let lastScannedText = "";
+let scanBusy = false;
+let lastScannedText = '';
 let lastScannedAt = 0;
-let deferredInstallPrompt = null;
+let refreshTimer = null;
+let currentView = 'dashboard';
 
-const $ = (selector) => document.querySelector(selector);
-const $$ = (selector) => [...document.querySelectorAll(selector)];
+const $ = selector => document.querySelector(selector);
+const $$ = selector => [...document.querySelectorAll(selector)];
 
-function loadState() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if (saved && Array.isArray(saved.participants)) {
-      return {
-        settings: { ...DEFAULT_SETTINGS, ...(saved.settings || {}) },
-        participants: saved.participants
-      };
-    }
-  } catch (error) {
-    console.error("저장 데이터 읽기 실패", error);
-  }
-  return { settings: { ...DEFAULT_SETTINGS }, participants: createSampleParticipants() };
-}
-
-function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  renderAll();
-}
-
-function createSampleParticipants() {
-  return [
-    { name: "홍길동", phone: "010-1234-1001", seat: "A-01", group: "이용인", note: "", arrived: false },
-    { name: "김복지", phone: "010-1234-1002", seat: "A-02", group: "보호자", note: "", arrived: true, checkInAt: new Date().toISOString() },
-    { name: "이남양", phone: "010-1234-1003", seat: "A-03", group: "내빈", note: "", arrived: false },
-    { name: "박스무", phone: "010-1234-1004", seat: "B-01", group: "지역주민", note: "휠체어석 확인", arrived: false },
-    { name: "최계절", phone: "010-1234-1005", seat: "B-02", group: "직원", note: "", arrived: true, checkInAt: new Date(Date.now() - 1000 * 60 * 8).toISOString() }
-  ].map((p, index) => normalizeParticipant(p, index + 1));
-}
-
-function normalizeParticipant(raw, fallbackNumber) {
-  const number = Number(raw.number) || fallbackNumber || nextNumber();
-  return {
-    id: raw.id || createParticipantId(number),
-    number,
-    name: String(raw.name || "").trim(),
-    phone: String(raw.phone || "").trim(),
-    seat: normalizeSeat(raw.seat || ""),
-    group: String(raw.group || "").trim(),
-    note: String(raw.note || "").trim(),
-    arrived: Boolean(raw.arrived),
-    checkInAt: raw.checkInAt || null,
-    ticketPrintedAt: raw.ticketPrintedAt || null
-  };
-}
-
-function nextNumber() {
-  return state.participants.length ? Math.max(...state.participants.map((p) => Number(p.number) || 0)) + 1 : 1;
-}
-
-function createParticipantId(number) {
-  const suffix = Math.random().toString(36).slice(2, 8).toUpperCase().padEnd(6, "X");
-  return `20TH-${String(number).padStart(4, "0")}-${suffix}`;
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
 }
 
 function normalizeSeat(value) {
-  const raw = String(value || "").trim().toUpperCase().replace(/\s+/g, "");
+  const raw = String(value || '').trim().toUpperCase().replace(/\s+/g, '');
   const match = raw.match(/^([A-Z가-힣]+)[-_]?(\d+)$/);
-  if (!match) return raw;
-  return `${match[1]}-${String(Number(match[2])).padStart(2, "0")}`;
+  return match ? `${match[1]}-${String(Number(match[2])).padStart(2, '0')}` : raw;
+}
+
+function parseQrPayload(text) {
+  let value = String(text || '').trim();
+  if (value.startsWith('NYJ20|') || value.startsWith('NYJ20:')) value = value.slice(6);
+  try {
+    if (/^https?:\/\//i.test(value)) {
+      const url = new URL(value);
+      value = url.searchParams.get('code') || url.searchParams.get('id') || value;
+    }
+  } catch (error) {
+    console.warn('QR URL 해석 실패', error);
+  }
+  return value.trim().toUpperCase();
 }
 
 function qrPayload(participant) {
   return `NYJ20|${participant.id}`;
 }
 
-function parseQrPayload(text) {
-  const value = String(text || "").trim();
-  if (value.startsWith("NYJ20|")) return value.split("|")[1];
-  return value;
-}
-
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
 function formatDateTime(iso) {
-  if (!iso) return "-";
+  if (!iso) return '-';
   const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "-";
-  return new Intl.DateTimeFormat("ko-KR", {
-    year: "numeric", month: "2-digit", day: "2-digit",
-    hour: "2-digit", minute: "2-digit", second: "2-digit"
+  if (Number.isNaN(date.getTime())) return '-';
+  return new Intl.DateTimeFormat('ko-KR', {
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit'
   }).format(date);
 }
 
 function maskPhone(phone) {
-  const digits = String(phone || "").replace(/\D/g, "");
-  if (digits.length < 7) return phone || "-";
+  const digits = String(phone || '').replace(/\D/g, '');
+  if (digits.length < 7) return phone || '-';
   return `${digits.slice(0, 3)}-****-${digits.slice(-4)}`;
 }
 
-function showToast(message) {
-  const toast = $("#toast");
+function showToast(message, duration = 2800) {
+  const toast = $('#toast');
   toast.textContent = message;
-  toast.classList.remove("hidden");
+  toast.classList.remove('hidden');
   clearTimeout(showToast.timer);
-  showToast.timer = setTimeout(() => toast.classList.add("hidden"), 2600);
+  showToast.timer = setTimeout(() => toast.classList.add('hidden'), duration);
+}
+
+function setConnectionStatus(type, text) {
+  const badge = $('#storageBadge');
+  badge.className = `badge ${type}`;
+  badge.textContent = text;
+}
+
+function validateWebAppUrl(url) {
+  return /^https:\/\/script\.google\.com\/macros\/s\/.+\/(exec|dev)(?:\?.*)?$/i.test(String(url || '').trim());
+}
+
+function apiRequest(action, payload = {}) {
+  return new Promise((resolve, reject) => {
+    if (!validateWebAppUrl(connection.url)) {
+      reject(new Error('Apps Script 웹 앱 주소가 올바르지 않습니다. /exec 주소를 입력하세요.'));
+      return;
+    }
+    if (!connection.key) {
+      reject(new Error('관리자 키를 입력하세요.'));
+      return;
+    }
+
+    const callbackName = `__nyj20_jsonp_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const url = new URL(connection.url);
+    url.searchParams.set('action', action);
+    url.searchParams.set('key', connection.key);
+    url.searchParams.set('station', connection.station || '미지정 접수대');
+    url.searchParams.set('payload', JSON.stringify(payload));
+    url.searchParams.set('callback', callbackName);
+    url.searchParams.set('_', String(Date.now()));
+
+    if (url.toString().length > 7500) {
+      reject(new Error('한 번에 보내는 데이터가 너무 많습니다. CSV 등록 단위를 줄여주세요.'));
+      return;
+    }
+
+    const script = document.createElement('script');
+    const timeout = setTimeout(() => {
+      cleanup();
+      reject(new Error('서버 응답 시간이 초과되었습니다. 인터넷 연결과 배포 주소를 확인하세요.'));
+    }, Number(CONFIG.requestTimeoutMs) || 25000);
+
+    function cleanup() {
+      clearTimeout(timeout);
+      script.remove();
+      try { delete window[callbackName]; } catch (error) { window[callbackName] = undefined; }
+    }
+
+    window[callbackName] = response => {
+      cleanup();
+      if (!response || response.ok !== true) {
+        reject(new Error(response?.error || '서버에서 알 수 없는 오류가 발생했습니다.'));
+        return;
+      }
+      resolve(response.data);
+    };
+
+    script.onerror = () => {
+      cleanup();
+      reject(new Error('Apps Script 서버에 연결하지 못했습니다. 배포 권한이 “모든 사용자”인지 확인하세요.'));
+    };
+    script.src = url.toString();
+    document.head.appendChild(script);
+  });
+}
+
+async function connectAndLoad() {
+  setConnectionStatus('warning', '연결 확인 중');
+  const data = await apiRequest('bootstrap');
+  state.settings = { ...DEFAULT_SETTINGS, ...(data.settings || {}) };
+  state.participants = Array.isArray(data.participants) ? data.participants : [];
+  state.serverTime = data.serverTime || new Date().toISOString();
+  localStorage.setItem(LOCAL_KEYS.URL, connection.url);
+  localStorage.setItem(LOCAL_KEYS.ADMIN, connection.key);
+  localStorage.setItem(LOCAL_KEYS.STATION, connection.station);
+  $('#connectionOverlay').classList.add('hidden');
+  setConnectionStatus('connected', '스프레드시트 연결됨');
+  renderAll();
+  scheduleAutoRefresh();
+}
+
+async function refreshFromServer({ silent = false } = {}) {
+  if (!silent) setConnectionStatus('warning', '동기화 중');
+  try {
+    const data = await apiRequest('bootstrap');
+    state.settings = { ...DEFAULT_SETTINGS, ...(data.settings || {}) };
+    state.participants = Array.isArray(data.participants) ? data.participants : [];
+    state.serverTime = data.serverTime || new Date().toISOString();
+    renderAll();
+    setConnectionStatus('connected', '스프레드시트 연결됨');
+    if (!silent) showToast('스프레드시트에서 최신 데이터를 불러왔습니다.');
+  } catch (error) {
+    setConnectionStatus('error', '연결 오류');
+    if (!silent) showToast(error.message, 4500);
+    throw error;
+  }
+}
+
+function scheduleAutoRefresh() {
+  clearInterval(refreshTimer);
+  const seconds = Math.max(5, Number(state.settings.autoRefreshSeconds) || 15);
+  refreshTimer = setInterval(() => {
+    if (document.hidden || scanBusy) return;
+    refreshFromServer({ silent: true }).catch(() => {});
+  }, seconds * 1000);
+}
+
+function updateParticipantInCache(participant) {
+  const index = state.participants.findIndex(item => item.id === participant.id);
+  if (index >= 0) state.participants[index] = participant;
+  else state.participants.push(participant);
+  state.participants.sort((a, b) => a.number - b.number);
+  renderAll();
 }
 
 function switchView(viewName) {
-  $$(".view").forEach((view) => view.classList.toggle("active", view.id === `view-${viewName}`));
-  $$(".nav-button").forEach((button) => button.classList.toggle("active", button.dataset.view === viewName));
-  if (viewName !== "checkin" && scannerRunning) stopScanner();
-  if (viewName === "seats") renderSeatMap();
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  currentView = viewName;
+  $$('.view').forEach(view => view.classList.toggle('active', view.id === `view-${viewName}`));
+  $$('.nav-button').forEach(button => button.classList.toggle('active', button.dataset.view === viewName));
+  if (viewName !== 'checkin' && scannerRunning) stopScanner();
+  if (viewName === 'seats') renderSeatMap();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function renderAll() {
-  renderHeader();
+  $('#headerEventName').textContent = state.settings.eventName;
+  $('#lastSyncLabel').textContent = `마지막 동기화: ${formatDateTime(state.serverTime)}`;
+  $('#currentStationLabel').textContent = connection.station || '-';
+  $('#currentServerLabel').textContent = connection.url ? `${connection.url.slice(0, 42)}…` : '-';
   renderDashboard();
   renderParticipants();
   renderSeatMap();
   renderSettings();
 }
 
-function renderHeader() {
-  $("#headerEventName").textContent = state.settings.eventName;
-}
-
 function renderDashboard() {
   const total = state.participants.length;
-  const arrived = state.participants.filter((p) => p.arrived).length;
+  const arrived = state.participants.filter(item => item.arrived).length;
   const pending = total - arrived;
   const rate = total ? Math.round((arrived / total) * 1000) / 10 : 0;
-  $("#statTotal").textContent = total.toLocaleString();
-  $("#statArrived").textContent = arrived.toLocaleString();
-  $("#statNotArrived").textContent = pending.toLocaleString();
-  $("#statRate").textContent = `${rate}%`;
+  $('#statTotal').textContent = total.toLocaleString();
+  $('#statArrived').textContent = arrived.toLocaleString();
+  $('#statNotArrived').textContent = pending.toLocaleString();
+  $('#statRate').textContent = `${rate}%`;
 
   const recent = state.participants
-    .filter((p) => p.arrived && p.checkInAt)
+    .filter(item => item.arrived && item.checkInAt)
     .sort((a, b) => new Date(b.checkInAt) - new Date(a.checkInAt))
     .slice(0, 8);
-  const container = $("#recentCheckins");
+  const container = $('#recentCheckins');
   if (!recent.length) {
-    container.className = "empty-state";
-    container.textContent = "아직 도착한 참가자가 없습니다.";
+    container.className = 'empty-state';
+    container.textContent = '아직 도착한 참가자가 없습니다.';
     return;
   }
-  container.className = "recent-list";
-  container.innerHTML = recent.map((p) => `
+  container.className = 'recent-list';
+  container.innerHTML = recent.map(item => `
     <div class="recent-item">
-      <div><strong>${escapeHtml(p.name)}</strong><span>${escapeHtml(p.seat || "좌석 미정")} · ${escapeHtml(p.group || "구분 없음")}</span></div>
-      <span>${escapeHtml(formatDateTime(p.checkInAt))}</span>
-    </div>`).join("");
+      <div><strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.seat || '좌석 미정')} · ${escapeHtml(item.group || '구분 없음')}</span></div>
+      <span>${escapeHtml(formatDateTime(item.checkInAt))}</span>
+    </div>`).join('');
 }
 
 function getFilteredParticipants() {
-  const query = $("#participantSearch")?.value.trim().toLowerCase() || "";
-  const status = $("#participantStatusFilter")?.value || "all";
+  const query = $('#participantSearch')?.value.trim().toLowerCase() || '';
+  const status = $('#participantStatusFilter')?.value || 'all';
   return [...state.participants]
-    .filter((p) => {
-      const haystack = [p.id, p.number, p.name, p.phone, p.seat, p.group].join(" ").toLowerCase();
+    .filter(item => {
+      const haystack = [item.id, item.number, item.name, item.phone, item.seat, item.group].join(' ').toLowerCase();
       const queryMatch = !query || haystack.includes(query);
-      const statusMatch = status === "all" || (status === "arrived" ? p.arrived : !p.arrived);
+      const statusMatch = status === 'all' || (status === 'arrived' ? item.arrived : !item.arrived);
       return queryMatch && statusMatch;
     })
     .sort((a, b) => a.number - b.number);
@@ -188,173 +272,156 @@ function getFilteredParticipants() {
 
 function renderParticipants() {
   const rows = getFilteredParticipants();
-  $("#participantCountLabel").textContent = `${rows.length}명 표시 / 전체 ${state.participants.length}명`;
-  const tbody = $("#participantTableBody");
+  $('#participantCountLabel').textContent = `${rows.length}명 표시 / 전체 ${state.participants.length}명`;
+  const tbody = $('#participantTableBody');
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state">조건에 맞는 참가자가 없습니다.</div></td></tr>`;
+    tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state">조건에 맞는 참가자가 없습니다.</div></td></tr>';
     return;
   }
-  tbody.innerHTML = rows.map((p) => `
+  tbody.innerHTML = rows.map(item => `
     <tr>
-      <td>${String(p.number).padStart(4, "0")}</td>
-      <td><strong>${escapeHtml(p.name)}</strong><br><span class="small-text">${escapeHtml(p.id)}</span></td>
-      <td>${escapeHtml(maskPhone(p.phone))}</td>
-      <td><strong>${escapeHtml(p.seat || "미정")}</strong></td>
-      <td>${escapeHtml(p.group || "-")}</td>
-      <td><span class="badge ${p.arrived ? "arrived" : "pending"}">${p.arrived ? "도착" : "미도착"}</span></td>
+      <td>${String(item.number).padStart(4, '0')}</td>
+      <td><strong>${escapeHtml(item.name)}</strong><br><span class="small-text">${escapeHtml(item.id)}</span></td>
+      <td>${escapeHtml(maskPhone(item.phone))}</td>
+      <td><strong>${escapeHtml(item.seat || '미정')}</strong></td>
+      <td>${escapeHtml(item.group || '-')}</td>
+      <td><span class="badge ${item.arrived ? 'arrived' : 'pending'}">${item.arrived ? '도착' : '미도착'}</span></td>
       <td><div class="row-actions">
-        <button class="button small secondary" data-action="qr" data-id="${escapeHtml(p.id)}" type="button">QR</button>
-        <button class="button small secondary" data-action="edit" data-id="${escapeHtml(p.id)}" type="button">수정</button>
-        <button class="button small ${p.arrived ? "secondary" : "primary"}" data-action="toggle" data-id="${escapeHtml(p.id)}" type="button">${p.arrived ? "도착 취소" : "도착 처리"}</button>
-        <button class="button small secondary" data-action="delete" data-id="${escapeHtml(p.id)}" type="button">삭제</button>
+        <button class="button small secondary" data-action="qr" data-id="${escapeHtml(item.id)}" type="button">QR</button>
+        <button class="button small secondary" data-action="edit" data-id="${escapeHtml(item.id)}" type="button">수정</button>
+        <button class="button small ${item.arrived ? 'secondary' : 'primary'}" data-action="toggle" data-id="${escapeHtml(item.id)}" type="button">${item.arrived ? '도착 취소' : '도착 처리'}</button>
+        <button class="button small secondary" data-action="delete" data-id="${escapeHtml(item.id)}" type="button">사용중지</button>
       </div></td>
-    </tr>`).join("");
+    </tr>`).join('');
 }
 
 function renderSeatMap() {
-  const container = $("#seatMap");
-  if (!container) return;
-  const rows = String(state.settings.seatRows || "").split(",").map((r) => r.trim().toUpperCase()).filter(Boolean);
+  const container = $('#seatMap');
+  const rows = String(state.settings.seatRows || '').split(',').map(value => value.trim().toUpperCase()).filter(Boolean);
   const seatsPerRow = Math.max(1, Number(state.settings.seatsPerRow) || 10);
-  const assignedBySeat = new Map(state.participants.filter((p) => p.seat).map((p) => [normalizeSeat(p.seat), p]));
-  const rowHtml = rows.map((row) => {
+  const assigned = new Map(state.participants.filter(item => item.seat).map(item => [normalizeSeat(item.seat), item]));
+
+  const panels = rows.map(rowName => {
     const seats = [];
-    for (let i = 1; i <= seatsPerRow; i += 1) {
-      const seatCode = `${row}-${String(i).padStart(2, "0")}`;
-      const participant = assignedBySeat.get(seatCode);
+    for (let index = 1; index <= seatsPerRow; index += 1) {
+      const code = `${rowName}-${String(index).padStart(2, '0')}`;
+      const participant = assigned.get(code);
       if (participant) {
-        seats.push(`<button class="seat ${participant.arrived ? "arrived" : "pending"}" data-seat-id="${escapeHtml(participant.id)}" type="button"><strong>${seatCode}</strong><span>${escapeHtml(participant.name)}</span></button>`);
+        seats.push(`<button class="seat ${participant.arrived ? 'arrived' : 'pending'}" data-seat-id="${escapeHtml(participant.id)}" type="button"><strong>${code}</strong><span>${escapeHtml(participant.name)}</span></button>`);
       } else {
-        seats.push(`<button class="seat empty" type="button" disabled><strong>${seatCode}</strong><span>미배정</span></button>`);
+        seats.push(`<button class="seat empty" type="button" disabled><strong>${code}</strong><span>미배정</span></button>`);
       }
     }
-    return `<section class="seat-row-panel"><h3>${escapeHtml(row)}구역</h3><div class="seat-row">${seats.join("")}</div></section>`;
-  }).join("");
+    return `<section class="seat-row-panel"><h3>${escapeHtml(rowName)}구역</h3><div class="seat-row">${seats.join('')}</div></section>`;
+  });
 
-  const knownSeatPattern = new RegExp(`^(${rows.map((r) => r.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})-\\d+$`);
-  const outside = state.participants.filter((p) => !p.seat || !knownSeatPattern.test(normalizeSeat(p.seat)));
-  const outsideHtml = outside.length ? `
-    <section class="seat-row-panel"><h3>좌석 미정 또는 별도 좌석</h3><div class="seat-row">
-      ${outside.map((p) => `<button class="seat ${p.arrived ? "arrived" : "pending"}" data-seat-id="${escapeHtml(p.id)}" type="button"><strong>${escapeHtml(p.seat || "미정")}</strong><span>${escapeHtml(p.name)}</span></button>`).join("")}
-    </div></section>` : "";
-  container.innerHTML = rowHtml + outsideHtml;
+  const rowPattern = rows.length ? new RegExp(`^(${rows.map(row => row.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})-\\d+$`) : null;
+  const outside = state.participants.filter(item => !item.seat || !rowPattern || !rowPattern.test(normalizeSeat(item.seat)));
+  if (outside.length) {
+    panels.push(`<section class="seat-row-panel"><h3>좌석 미정 또는 별도 좌석</h3><div class="seat-row">${outside.map(item => `<button class="seat ${item.arrived ? 'arrived' : 'pending'}" data-seat-id="${escapeHtml(item.id)}" type="button"><strong>${escapeHtml(item.seat || '미정')}</strong><span>${escapeHtml(item.name)}</span></button>`).join('')}</div></section>`);
+  }
+  container.innerHTML = panels.join('') || '<div class="empty-state">좌석 행을 행사 설정에서 입력하세요.</div>';
 }
 
 function renderSettings() {
-  $("#eventName").value = state.settings.eventName;
-  $("#eventDate").value = state.settings.eventDate;
-  $("#eventVenue").value = state.settings.eventVenue;
-  $("#eventOrganizer").value = state.settings.eventOrganizer;
-  $("#seatRows").value = state.settings.seatRows;
-  $("#seatsPerRow").value = state.settings.seatsPerRow;
-}
-
-function addParticipant(formData) {
-  const number = nextNumber();
-  const participant = normalizeParticipant({ ...formData, number, arrived: false }, number);
-  if (!participant.name) throw new Error("이름을 입력하세요.");
-  if (participant.seat && state.participants.some((p) => normalizeSeat(p.seat) === participant.seat)) {
-    throw new Error(`${participant.seat} 좌석은 이미 배정되어 있습니다.`);
-  }
-  state.participants.push(participant);
-  saveState();
-  return participant;
+  $('#eventName').value = state.settings.eventName || '';
+  $('#eventDate').value = state.settings.eventDate || '';
+  $('#eventVenue').value = state.settings.eventVenue || '';
+  $('#eventOrganizer').value = state.settings.eventOrganizer || '';
+  $('#seatRows').value = state.settings.seatRows || '';
+  $('#seatsPerRow').value = state.settings.seatsPerRow || 10;
+  $('#autoRefreshSeconds').value = state.settings.autoRefreshSeconds || 15;
 }
 
 function findParticipantById(id) {
-  return state.participants.find((p) => p.id === id);
+  return state.participants.find(item => item.id === id);
 }
 
 function findMatches(query) {
-  const value = String(query || "").trim().toLowerCase();
+  const value = String(query || '').trim().toLowerCase();
   if (!value) return [];
   const parsed = parseQrPayload(value).toLowerCase();
-  const exact = state.participants.find((p) => p.id.toLowerCase() === parsed);
+  const exact = state.participants.find(item => item.id.toLowerCase() === parsed);
   if (exact) return [exact];
-  return state.participants.filter((p) => [p.id, p.name, p.phone, p.seat, p.number]
-    .some((field) => String(field || "").toLowerCase().includes(value))).slice(0, 10);
+  return state.participants.filter(item => [item.id, item.name, item.phone, item.seat, item.number]
+    .some(field => String(field || '').toLowerCase().includes(value))).slice(0, 20);
 }
 
-function checkInParticipant(participant) {
-  if (!participant.arrived) {
-    participant.arrived = true;
-    participant.checkInAt = new Date().toISOString();
-    saveState();
-    showToast(`${participant.name} 님 도착 처리가 완료되었습니다.`);
+async function checkInParticipant(participantOrCode) {
+  const code = typeof participantOrCode === 'string' ? parseQrPayload(participantOrCode) : participantOrCode.id;
+  scanBusy = true;
+  try {
+    const result = await apiRequest('checkIn', { code });
+    updateParticipantInCache(result.participant);
+    showCheckinResult(result.participant, result.already);
+    if (navigator.vibrate) navigator.vibrate(result.already ? [100, 80, 100] : 120);
+    showToast(result.already ? '이미 도착 처리된 참가자입니다.' : `${result.participant.name} 님 도착 완료`);
+  } finally {
+    scanBusy = false;
   }
-  showCheckinResult(participant);
 }
 
-function undoCheckIn(participant) {
-  participant.arrived = false;
-  participant.checkInAt = null;
-  participant.ticketPrintedAt = null;
-  saveState();
-  showCheckinResult(participant);
-  showToast(`${participant.name} 님 도착 처리를 취소했습니다.`);
+async function undoCheckIn(participant) {
+  const updated = await apiRequest('undoCheckIn', { code: participant.id });
+  updateParticipantInCache(updated);
+  showCheckinResult(updated, false);
+  showToast(`${updated.name} 님 도착 처리를 취소했습니다.`);
 }
 
-function showCheckinResult(participant) {
-  const panel = $("#checkinResultPanel");
-  panel.classList.remove("hidden");
-  const alreadyClass = participant.arrived ? "" : "already";
-  $("#checkinResult").innerHTML = `
-    <div class="result-card ${alreadyClass}">
+function showCheckinResult(participant, already = false) {
+  const panel = $('#checkinResultPanel');
+  panel.classList.remove('hidden');
+  $('#checkinResult').innerHTML = `
+    <div class="result-card ${already ? 'already' : ''}">
       <div>
-        <span class="badge ${participant.arrived ? "arrived" : "pending"}">${participant.arrived ? "도착 완료" : "미도착"}</span>
+        <span class="badge ${participant.arrived ? 'arrived' : 'pending'}">${already ? '이미 도착 처리됨' : participant.arrived ? '도착 완료' : '미도착'}</span>
         <h3>${escapeHtml(participant.name)} 님</h3>
-        <div class="seat-large">${escapeHtml(participant.seat || "좌석 미정")}</div>
-        <p>접수번호 ${String(participant.number).padStart(4, "0")} · ${escapeHtml(participant.group || "구분 없음")}</p>
-        <p class="small-text">${participant.arrived ? `도착 시각: ${escapeHtml(formatDateTime(participant.checkInAt))}` : "아직 도착 처리되지 않았습니다."}</p>
+        <div class="seat-large">${escapeHtml(participant.seat || '좌석 미정')}</div>
+        <p>접수번호 ${String(participant.number).padStart(4, '0')} · ${escapeHtml(participant.group || '구분 없음')}</p>
+        <p class="small-text">${participant.arrived ? `도착 시각: ${escapeHtml(formatDateTime(participant.checkInAt))}` : '아직 도착 처리되지 않았습니다.'}</p>
         <div class="result-actions">
           ${participant.arrived
-            ? `<button class="button primary" data-result-action="ticket" data-id="${escapeHtml(participant.id)}" type="button">티켓 보기·인쇄</button>
-               <button class="button secondary" data-result-action="undo" data-id="${escapeHtml(participant.id)}" type="button">도착 취소</button>`
+            ? `<button class="button primary" data-result-action="ticket" data-id="${escapeHtml(participant.id)}" type="button">티켓 보기·인쇄</button><button class="button secondary" data-result-action="undo" data-id="${escapeHtml(participant.id)}" type="button">도착 취소</button>`
             : `<button class="button primary" data-result-action="checkin" data-id="${escapeHtml(participant.id)}" type="button">도착 처리</button>`}
           <button class="button secondary" data-result-action="qr" data-id="${escapeHtml(participant.id)}" type="button">QR 확인</button>
         </div>
       </div>
     </div>`;
-  panel.scrollIntoView({ behavior: "smooth", block: "center" });
+  panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
-function handleScannedText(decodedText) {
+async function handleScannedText(decodedText) {
   const now = Date.now();
-  if (decodedText === lastScannedText && now - lastScannedAt < 2500) return;
+  if (scanBusy || (decodedText === lastScannedText && now - lastScannedAt < 3000)) return;
   lastScannedText = decodedText;
   lastScannedAt = now;
-  const id = parseQrPayload(decodedText);
-  const participant = findParticipantById(id);
-  if (!participant) {
-    showToast("등록되지 않은 QR코드입니다.");
-    $("#checkinResultPanel").classList.remove("hidden");
-    $("#checkinResult").innerHTML = `<div class="empty-state"><strong>등록되지 않은 QR코드입니다.</strong><br><span class="small-text">읽은 값: ${escapeHtml(decodedText)}</span></div>`;
-    return;
+  const code = parseQrPayload(decodedText);
+  $('#checkinResultPanel').classList.remove('hidden');
+  $('#checkinResult').innerHTML = '<div class="loading-cover">스프레드시트에서 참가자를 확인하는 중입니다…</div>';
+  try {
+    await checkInParticipant(code);
+  } catch (error) {
+    showToast(error.message, 4500);
+    $('#checkinResult').innerHTML = `<div class="empty-state"><strong>${escapeHtml(error.message)}</strong><br><span class="small-text">읽은 값: ${escapeHtml(decodedText)}</span></div>`;
   }
-  if (participant.arrived) {
-    showToast("이미 도착 처리된 참가자입니다.");
-    showCheckinResult(participant);
-    return;
-  }
-  checkInParticipant(participant);
 }
 
 function startScanner() {
   if (scannerRunning) return;
-  if (typeof Html5QrcodeScanner === "undefined") {
-    showToast("QR 스캐너 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인하세요.");
+  if (typeof Html5QrcodeScanner === 'undefined') {
+    showToast('QR 스캐너 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인하세요.');
     return;
   }
-  $("#reader").innerHTML = "";
-  scanner = new Html5QrcodeScanner("reader", {
+  $('#reader').innerHTML = '';
+  scanner = new Html5QrcodeScanner('reader', {
     fps: 10,
     qrbox: { width: 230, height: 230 },
     rememberLastUsedCamera: true,
     supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA, Html5QrcodeScanType.SCAN_TYPE_FILE]
   }, false);
-  scanner.render((decodedText) => handleScannedText(decodedText), () => {});
+  scanner.render(decodedText => handleScannedText(decodedText), () => {});
   scannerRunning = true;
-  $("#toggleScannerButton").textContent = "카메라 종료";
+  $('#toggleScannerButton').textContent = '카메라 종료';
 }
 
 async function stopScanner() {
@@ -362,21 +429,21 @@ async function stopScanner() {
   try { await scanner.clear(); } catch (error) { console.warn(error); }
   scanner = null;
   scannerRunning = false;
-  $("#reader").innerHTML = "<p>카메라 시작 버튼을 누르면 QR 스캐너가 열립니다.</p>";
-  $("#toggleScannerButton").textContent = "카메라 시작";
+  $('#reader').innerHTML = '<p>카메라 시작 버튼을 누르면 QR 스캐너가 열립니다.</p>';
+  $('#toggleScannerButton').textContent = '카메라 시작';
 }
 
 function openModal(title, html) {
-  $("#modalTitle").textContent = title;
-  $("#modalContent").innerHTML = html;
-  $("#modalBackdrop").classList.remove("hidden");
-  document.body.style.overflow = "hidden";
+  $('#modalTitle').textContent = title;
+  $('#modalContent').innerHTML = html;
+  $('#modalBackdrop').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
 }
 
 function closeModal() {
-  $("#modalBackdrop").classList.add("hidden");
-  document.body.style.overflow = "";
-  document.body.classList.remove("print-ticket-mode");
+  $('#modalBackdrop').classList.add('hidden');
+  document.body.style.overflow = '';
+  document.body.classList.remove('print-ticket-mode');
 }
 
 function showQrModal(participant) {
@@ -384,9 +451,9 @@ function showQrModal(participant) {
     <div class="qr-detail">
       <div id="singleQrCode" class="qr-code-box"></div>
       <div class="detail-list">
-        <div><dt>접수번호</dt><dd>${String(participant.number).padStart(4, "0")}</dd></div>
+        <div><dt>접수번호</dt><dd>${String(participant.number).padStart(4, '0')}</dd></div>
         <div><dt>이름</dt><dd>${escapeHtml(participant.name)}</dd></div>
-        <div><dt>좌석</dt><dd>${escapeHtml(participant.seat || "미정")}</dd></div>
+        <div><dt>좌석</dt><dd>${escapeHtml(participant.seat || '미정')}</dd></div>
         <div><dt>고유코드</dt><dd>${escapeHtml(participant.id)}</dd></div>
       </div>
       <div class="toolbar modal-actions">
@@ -394,20 +461,20 @@ function showQrModal(participant) {
         <button id="showTicketFromQrButton" class="button secondary" type="button">티켓 보기</button>
       </div>
     </div>`);
-  const qrContainer = $("#singleQrCode");
-  new QRCode(qrContainer, { text: qrPayload(participant), width: 220, height: 220, correctLevel: QRCode.CorrectLevel.H });
-  $("#downloadQrButton").addEventListener("click", () => downloadQrImage(qrContainer, participant));
-  $("#showTicketFromQrButton").addEventListener("click", () => showTicketModal(participant));
+  const container = $('#singleQrCode');
+  new QRCode(container, { text: qrPayload(participant), width: 220, height: 220, correctLevel: QRCode.CorrectLevel.H });
+  $('#downloadQrButton').addEventListener('click', () => downloadQrImage(container, participant));
+  $('#showTicketFromQrButton').addEventListener('click', () => showTicketModal(participant));
 }
 
 function downloadQrImage(container, participant) {
-  const canvas = container.querySelector("canvas");
-  const image = container.querySelector("img");
-  const url = canvas ? canvas.toDataURL("image/png") : image?.src;
-  if (!url) return showToast("QR 이미지를 준비하지 못했습니다.");
-  const anchor = document.createElement("a");
+  const canvas = container.querySelector('canvas');
+  const image = container.querySelector('img');
+  const url = canvas ? canvas.toDataURL('image/png') : image?.src;
+  if (!url) return showToast('QR 이미지를 준비하지 못했습니다.');
+  const anchor = document.createElement('a');
   anchor.href = url;
-  anchor.download = `${String(participant.number).padStart(4, "0")}_${participant.name}_QR.png`;
+  anchor.download = `${String(participant.number).padStart(4, '0')}_${participant.name}_QR.png`;
   anchor.click();
 }
 
@@ -417,102 +484,96 @@ function showTicketModal(participant) {
       <p class="eyebrow">${escapeHtml(state.settings.eventOrganizer)}</p>
       <h2>${escapeHtml(state.settings.eventName)}</h2>
       <p><strong>${escapeHtml(participant.name)} 님</strong></p>
-      <p class="ticket-seat">${escapeHtml(participant.seat || "좌석 미정")}</p>
+      <p class="ticket-seat">${escapeHtml(participant.seat || '좌석 미정')}</p>
       <p>${escapeHtml(state.settings.eventDate)}</p>
       <p>${escapeHtml(state.settings.eventVenue)}</p>
-      <p class="small-text">접수번호 ${String(participant.number).padStart(4, "0")} · ${escapeHtml(participant.id)}</p>
+      <p class="small-text">접수번호 ${String(participant.number).padStart(4, '0')} · ${escapeHtml(participant.id)}</p>
     </article>
-    <div class="toolbar modal-actions" style="justify-content:center; margin-top:16px;">
-      <button id="printTicketButton" class="button primary" type="button">티켓 인쇄</button>
-    </div>`);
-  $("#printTicketButton").addEventListener("click", () => {
-    participant.ticketPrintedAt = new Date().toISOString();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    document.body.classList.add("print-ticket-mode");
-    window.print();
-    setTimeout(() => document.body.classList.remove("print-ticket-mode"), 500);
+    <div class="toolbar modal-actions" style="justify-content:center; margin-top:16px;"><button id="printTicketButton" class="button primary" type="button">티켓 인쇄</button></div>`);
+  $('#printTicketButton').addEventListener('click', async event => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    try {
+      const updated = await apiRequest('markTicketPrinted', { code: participant.id });
+      updateParticipantInCache(updated);
+      document.body.classList.add('print-ticket-mode');
+      window.print();
+      setTimeout(() => document.body.classList.remove('print-ticket-mode'), 500);
+    } catch (error) {
+      showToast(error.message, 4500);
+    } finally {
+      button.disabled = false;
+    }
   });
 }
 
 function showParticipantEditModal(participant) {
-  openModal("참가자 정보 수정", `
+  openModal('참가자 정보 수정', `
     <form id="editParticipantForm" class="form-grid">
       <label>이름<input name="name" required value="${escapeHtml(participant.name)}" /></label>
       <label>연락처<input name="phone" value="${escapeHtml(participant.phone)}" /></label>
       <label>좌석번호<input name="seat" value="${escapeHtml(participant.seat)}" /></label>
       <label>구분<input name="group" value="${escapeHtml(participant.group)}" /></label>
       <label class="wide">비고<input name="note" value="${escapeHtml(participant.note)}" /></label>
-      <div class="form-actions wide"><button class="button primary" type="submit">수정 저장</button></div>
+      <div class="form-actions wide"><button class="button primary" type="submit">스프레드시트에 저장</button></div>
     </form>`);
-  $("#editParticipantForm").addEventListener("submit", (event) => {
+  $('#editParticipantForm').addEventListener('submit', async event => {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    const newSeat = normalizeSeat(form.get("seat"));
-    const duplicate = state.participants.some((p) => p.id !== participant.id && newSeat && normalizeSeat(p.seat) === newSeat);
-    if (duplicate) return showToast(`${newSeat} 좌석은 이미 배정되어 있습니다.`);
-    participant.name = String(form.get("name") || "").trim();
-    participant.phone = String(form.get("phone") || "").trim();
-    participant.seat = newSeat;
-    participant.group = String(form.get("group") || "").trim();
-    participant.note = String(form.get("note") || "").trim();
-    saveState();
-    closeModal();
-    showToast("참가자 정보를 수정했습니다.");
+    const button = event.currentTarget.querySelector('button[type="submit"]');
+    button.disabled = true;
+    try {
+      const values = Object.fromEntries(new FormData(event.currentTarget).entries());
+      const updated = await apiRequest('updateParticipant', { code: participant.id, ...values });
+      updateParticipantInCache(updated);
+      closeModal();
+      showToast('참가자 정보를 수정했습니다.');
+    } catch (error) {
+      showToast(error.message, 4500);
+    } finally {
+      button.disabled = false;
+    }
   });
 }
 
 function showSeatParticipant(participant) {
-  openModal(`${participant.seat || "좌석 미정"} 좌석`, `
+  openModal(`${participant.seat || '좌석 미정'} 좌석`, `
     <div class="detail-list">
       <div><dt>이름</dt><dd>${escapeHtml(participant.name)}</dd></div>
-      <div><dt>상태</dt><dd>${participant.arrived ? "도착 완료" : "미도착"}</dd></div>
+      <div><dt>상태</dt><dd>${participant.arrived ? '도착 완료' : '미도착'}</dd></div>
       <div><dt>도착 시각</dt><dd>${escapeHtml(formatDateTime(participant.checkInAt))}</dd></div>
-      <div><dt>구분</dt><dd>${escapeHtml(participant.group || "-")}</dd></div>
-      <div><dt>비고</dt><dd>${escapeHtml(participant.note || "-")}</dd></div>
-    </div>
-    <div class="toolbar modal-actions" style="margin-top:16px;">
-      <button id="seatQrButton" class="button secondary" type="button">QR 보기</button>
-      <button id="seatToggleButton" class="button primary" type="button">${participant.arrived ? "도착 취소" : "도착 처리"}</button>
+      <div><dt>구분</dt><dd>${escapeHtml(participant.group || '-')}</dd></div>
+      <div><dt>비고</dt><dd>${escapeHtml(participant.note || '-')}</dd></div>
     </div>`);
-  $("#seatQrButton").addEventListener("click", () => showQrModal(participant));
-  $("#seatToggleButton").addEventListener("click", () => {
-    participant.arrived ? undoCheckIn(participant) : checkInParticipant(participant);
-    closeModal();
-  });
-}
-
-function csvEscape(value) {
-  const text = String(value ?? "");
-  return /[",\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
 }
 
 function exportCsv() {
-  const headers = ["접수번호", "고유코드", "이름", "연락처", "좌석", "구분", "비고", "도착여부", "도착시간", "티켓출력시간"];
-  const rows = [...state.participants].sort((a, b) => a.number - b.number).map((p) => [
-    String(p.number).padStart(4, "0"), p.id, p.name, p.phone, p.seat, p.group, p.note,
-    p.arrived ? "도착" : "미도착", p.checkInAt ? formatDateTime(p.checkInAt) : "", p.ticketPrintedAt ? formatDateTime(p.ticketPrintedAt) : ""
+  const headers = ['접수번호', 'QR고유코드', '이름', '연락처', '좌석번호', '구분', '비고', '도착여부', '도착시각', '티켓출력시각'];
+  const rows = [...state.participants].sort((a, b) => a.number - b.number).map(item => [
+    item.number, item.id, item.name, item.phone, item.seat, item.group, item.note,
+    item.arrived ? '도착' : '미도착', item.checkInAt || '', item.ticketPrintedAt || ''
   ]);
-  const csv = "\uFEFF" + [headers, ...rows].map((row) => row.map(csvEscape).join(",")).join("\r\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const csvEscape = value => `"${String(value ?? '').replaceAll('"', '""')}"`;
+  const csv = '\uFEFF' + [headers, ...rows].map(row => row.map(csvEscape).join(',')).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `20주년_참석자명단_${new Date().toISOString().slice(0, 10)}.csv`;
-  a.click();
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = `20주년_참석자명단_${new Date().toISOString().slice(0, 10)}.csv`;
+  anchor.click();
   URL.revokeObjectURL(url);
 }
 
 function parseCsvLine(line) {
   const cells = [];
-  let current = "";
+  let current = '';
   let quoted = false;
-  for (let i = 0; i < line.length; i += 1) {
-    const char = line[i];
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
     if (char === '"') {
-      if (quoted && line[i + 1] === '"') { current += '"'; i += 1; }
+      if (quoted && line[index + 1] === '"') { current += '"'; index += 1; }
       else quoted = !quoted;
-    } else if (char === "," && !quoted) {
-      cells.push(current.trim()); current = "";
+    } else if (char === ',' && !quoted) {
+      cells.push(current.trim()); current = '';
     } else current += char;
   }
   cells.push(current.trim());
@@ -521,178 +582,236 @@ function parseCsvLine(line) {
 
 async function importCsv(file) {
   const text = await file.text();
-  const lines = text.replace(/^\uFEFF/, "").split(/\r?\n/).filter((line) => line.trim());
-  if (lines.length < 2) throw new Error("CSV에 참가자 데이터가 없습니다.");
-  const headers = parseCsvLine(lines[0]).map((h) => h.trim());
+  const lines = text.replace(/^\uFEFF/, '').split(/\r?\n/).filter(line => line.trim());
+  if (lines.length < 2) throw new Error('CSV에 참가자 데이터가 없습니다.');
+  const headers = parseCsvLine(lines[0]).map(header => header.trim());
   const aliases = {
-    name: ["이름", "성명", "name"], phone: ["연락처", "전화번호", "phone"],
-    seat: ["좌석", "좌석번호", "seat"], group: ["구분", "분류", "group"], note: ["비고", "note"]
+    name: ['이름', '성명', 'name'], phone: ['연락처', '전화번호', 'phone'],
+    seat: ['좌석', '좌석번호', 'seat'], group: ['구분', '분류', 'group'], note: ['비고', 'note']
   };
-  const indexOfAlias = (key) => headers.findIndex((h) => aliases[key].some((a) => a.toLowerCase() === h.toLowerCase()));
-  const idx = Object.fromEntries(Object.keys(aliases).map((key) => [key, indexOfAlias(key)]));
-  if (idx.name < 0) throw new Error("첫 줄에 '이름' 열이 필요합니다.");
+  const indexOfAlias = key => headers.findIndex(header => aliases[key].some(alias => alias.toLowerCase() === header.toLowerCase()));
+  const columns = Object.fromEntries(Object.keys(aliases).map(key => [key, indexOfAlias(key)]));
+  if (columns.name < 0) throw new Error("첫 줄에 '이름' 열이 필요합니다.");
 
-  let added = 0;
-  const occupied = new Set(state.participants.map((p) => normalizeSeat(p.seat)).filter(Boolean));
-  for (const line of lines.slice(1)) {
+  const items = lines.slice(1).map(line => {
     const cells = parseCsvLine(line);
-    const name = cells[idx.name]?.trim();
-    if (!name) continue;
-    const seat = idx.seat >= 0 ? normalizeSeat(cells[idx.seat]) : "";
-    if (seat && occupied.has(seat)) continue;
-    const number = nextNumber();
-    const participant = normalizeParticipant({
-      number, name,
-      phone: idx.phone >= 0 ? cells[idx.phone] : "",
-      seat,
-      group: idx.group >= 0 ? cells[idx.group] : "",
-      note: idx.note >= 0 ? cells[idx.note] : "",
-      arrived: false
-    }, number);
-    state.participants.push(participant);
-    if (seat) occupied.add(seat);
-    added += 1;
+    return {
+      name: cells[columns.name] || '',
+      phone: columns.phone >= 0 ? cells[columns.phone] : '',
+      seat: columns.seat >= 0 ? cells[columns.seat] : '',
+      group: columns.group >= 0 ? cells[columns.group] : '',
+      note: columns.note >= 0 ? cells[columns.note] : ''
+    };
+  }).filter(item => item.name.trim());
+
+  if (!items.length) throw new Error('등록할 참가자가 없습니다.');
+  let added = 0;
+  let skipped = 0;
+  const errors = [];
+  const chunkSize = 10;
+
+  for (let index = 0; index < items.length; index += chunkSize) {
+    showToast(`CSV 등록 중 ${Math.min(index + chunkSize, items.length)} / ${items.length}`, 4000);
+    const result = await apiRequest('batchImport', { items: items.slice(index, index + chunkSize) });
+    added += result.added || 0;
+    skipped += result.skipped || 0;
+    errors.push(...(result.errors || []));
   }
-  saveState();
-  showToast(`${added}명의 참가자를 불러왔습니다.`);
+  await refreshFromServer({ silent: true });
+  alert(`CSV 등록 완료\n\n추가: ${added}명\n건너뜀: ${skipped}명${errors.length ? `\n\n사유 일부:\n- ${errors.slice(0, 10).join('\n- ')}` : ''}`);
 }
 
 function printAllQr() {
-  if (!state.participants.length) return showToast("인쇄할 참가자가 없습니다.");
-  const printWindow = window.open("", "_blank");
-  if (!printWindow) return showToast("팝업 차단을 해제한 뒤 다시 시도하세요.");
-  const participantsJson = JSON.stringify([...state.participants].sort((a, b) => a.number - b.number));
-  const settingsJson = JSON.stringify(state.settings);
+  if (!state.participants.length) return showToast('인쇄할 참가자가 없습니다.');
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) return showToast('팝업 차단을 해제한 뒤 다시 시도하세요.');
+  const participantsJson = JSON.stringify([...state.participants].sort((a, b) => a.number - b.number)).replaceAll('<', '\\u003c');
+  const settingsJson = JSON.stringify(state.settings).replaceAll('<', '\\u003c');
   printWindow.document.write(`<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>참가자 QR 일괄 인쇄</title>
     <style>body{font-family:Arial,sans-serif;margin:0}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10mm;padding:10mm}.card{break-inside:avoid;border:1px solid #bbb;padding:8mm;text-align:center;border-radius:4mm}.qr{display:grid;place-items:center;min-height:45mm}.qr img,.qr canvas{width:42mm!important;height:42mm!important}.seat{font-size:22pt;font-weight:900;margin:3mm 0}.small{font-size:9pt;color:#555}@media print{.no-print{display:none}.grid{padding:0}}</style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script></head><body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script></head><body>
     <div class="no-print" style="padding:10px;text-align:center"><button onclick="window.print()" style="padding:10px 16px">인쇄하기</button></div><main id="grid" class="grid"></main>
-    <script>const participants=${participantsJson};const settings=${settingsJson};const grid=document.getElementById('grid');participants.forEach(p=>{const card=document.createElement('article');card.className='card';card.innerHTML='<strong>'+settings.eventOrganizer+'</strong><h2>'+p.name+' 님</h2><div class="qr"></div><div class="seat">'+(p.seat||'좌석 미정')+'</div><div class="small">접수번호 '+String(p.number).padStart(4,'0')+' · '+p.id+'</div>';grid.appendChild(card);new QRCode(card.querySelector('.qr'),{text:'NYJ20|'+p.id,width:180,height:180,correctLevel:QRCode.CorrectLevel.H});});</script></body></html>`);
+    <script>const participants=${participantsJson};const settings=${settingsJson};const grid=document.getElementById('grid');participants.forEach(p=>{const card=document.createElement('article');card.className='card';card.innerHTML='<strong>'+settings.eventOrganizer+'</strong><h2>'+p.name+' 님</h2><div class="qr"></div><div class="seat">'+(p.seat||'좌석 미정')+'</div><div class="small">접수번호 '+String(p.number).padStart(4,'0')+' · '+p.id+'</div>';grid.appendChild(card);new QRCode(card.querySelector('.qr'),{text:'NYJ20|'+p.id,width:180,height:180,correctLevel:QRCode.CorrectLevel.H});});<\/script></body></html>`);
   printWindow.document.close();
 }
 
-function bindEvents() {
-  $$(".nav-button").forEach((button) => button.addEventListener("click", () => switchView(button.dataset.view)));
-  $$('[data-go]').forEach((button) => button.addEventListener("click", () => switchView(button.dataset.go)));
-  $("#refreshDashboardButton").addEventListener("click", renderDashboard);
-  $("#exportCsvButton").addEventListener("click", exportCsv);
-  $("#exportCsvDashboardButton").addEventListener("click", exportCsv);
-  $("#printAllQrButton").addEventListener("click", printAllQr);
+function showConnectionOverlay(message = '') {
+  $('#appsScriptUrlInput').value = connection.url;
+  $('#adminKeyInput').value = connection.key;
+  $('#stationNameInput').value = connection.station;
+  $('#connectionOverlay').classList.remove('hidden');
+  const messageBox = $('#connectionMessage');
+  messageBox.textContent = message;
+  messageBox.classList.toggle('hidden', !message);
+}
 
-  $("#participantForm").addEventListener("submit", (event) => {
+function bindEvents() {
+  $('#connectionForm').addEventListener('submit', async event => {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
+    const button = $('#connectButton');
+    const messageBox = $('#connectionMessage');
+    connection = {
+      url: $('#appsScriptUrlInput').value.trim(),
+      key: $('#adminKeyInput').value.trim(),
+      station: $('#stationNameInput').value.trim()
+    };
+    button.disabled = true;
+    button.textContent = '연결 확인 중…';
+    messageBox.classList.add('hidden');
     try {
-      const participant = addParticipant(Object.fromEntries(form.entries()));
-      event.currentTarget.reset();
-      showToast(`${participant.name} 님을 ${String(participant.number).padStart(4, "0")}번으로 등록했습니다.`);
-    } catch (error) { showToast(error.message); }
+      await connectAndLoad();
+    } catch (error) {
+      setConnectionStatus('error', '연결 오류');
+      messageBox.textContent = error.message;
+      messageBox.classList.remove('hidden');
+    } finally {
+      button.disabled = false;
+      button.textContent = '연결하고 시작';
+    }
   });
-  $("#participantSearch").addEventListener("input", renderParticipants);
-  $("#participantStatusFilter").addEventListener("change", renderParticipants);
-  $("#participantTableBody").addEventListener("click", (event) => {
-    const button = event.target.closest("button[data-action]");
+
+  $('#connectionSettingsButton').addEventListener('click', () => showConnectionOverlay());
+  $('#logoutButton').addEventListener('click', () => {
+    if (!confirm('이 기기에 저장된 Apps Script 주소와 관리자 키를 삭제할까요?')) return;
+    Object.values(LOCAL_KEYS).forEach(key => localStorage.removeItem(key));
+    connection = { url: '', key: '', station: '' };
+    clearInterval(refreshTimer);
+    showConnectionOverlay('접속정보가 삭제되었습니다. 다시 입력하세요.');
+  });
+
+  $$('.nav-button').forEach(button => button.addEventListener('click', () => switchView(button.dataset.view)));
+  $$('[data-go]').forEach(button => button.addEventListener('click', () => switchView(button.dataset.go)));
+  $('#refreshDashboardButton').addEventListener('click', () => refreshFromServer().catch(() => {}));
+  $('#exportCsvButton').addEventListener('click', exportCsv);
+  $('#exportCsvDashboardButton').addEventListener('click', exportCsv);
+  $('#printAllQrButton').addEventListener('click', printAllQr);
+
+  $('#participantForm').addEventListener('submit', async event => {
+    event.preventDefault();
+    const button = event.currentTarget.querySelector('button[type="submit"]');
+    button.disabled = true;
+    try {
+      const values = Object.fromEntries(new FormData(event.currentTarget).entries());
+      const participant = await apiRequest('createParticipant', values);
+      updateParticipantInCache(participant);
+      event.currentTarget.reset();
+      showToast(`${participant.name} 님을 ${String(participant.number).padStart(4, '0')}번으로 등록했습니다.`);
+    } catch (error) {
+      showToast(error.message, 4500);
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  $('#participantSearch').addEventListener('input', renderParticipants);
+  $('#participantStatusFilter').addEventListener('change', renderParticipants);
+  $('#participantTableBody').addEventListener('click', async event => {
+    const button = event.target.closest('button[data-action]');
     if (!button) return;
     const participant = findParticipantById(button.dataset.id);
     if (!participant) return;
     const action = button.dataset.action;
-    if (action === "qr") showQrModal(participant);
-    if (action === "edit") showParticipantEditModal(participant);
-    if (action === "toggle") participant.arrived ? undoCheckIn(participant) : checkInParticipant(participant);
-    if (action === "delete" && confirm(`${participant.name} 님을 삭제할까요?`)) {
-      state.participants = state.participants.filter((p) => p.id !== participant.id);
-      saveState();
-      showToast("참가자를 삭제했습니다.");
+    try {
+      if (action === 'qr') showQrModal(participant);
+      if (action === 'edit') showParticipantEditModal(participant);
+      if (action === 'toggle') participant.arrived ? await undoCheckIn(participant) : await checkInParticipant(participant);
+      if (action === 'delete' && confirm(`${participant.name} 님을 사용중지할까요? 스프레드시트 행은 보존됩니다.`)) {
+        await apiRequest('deleteParticipant', { code: participant.id });
+        state.participants = state.participants.filter(item => item.id !== participant.id);
+        renderAll();
+        showToast('참가자를 사용중지했습니다.');
+      }
+    } catch (error) {
+      showToast(error.message, 4500);
     }
   });
 
-  $("#csvFileInput").addEventListener("change", async (event) => {
+  $('#csvFileInput').addEventListener('change', async event => {
     const file = event.target.files?.[0];
+    event.target.value = '';
     if (!file) return;
-    try { await importCsv(file); } catch (error) { showToast(error.message); }
-    event.target.value = "";
+    try { await importCsv(file); } catch (error) { showToast(error.message, 5000); }
   });
 
-  $("#toggleScannerButton").addEventListener("click", () => scannerRunning ? stopScanner() : startScanner());
-  $("#manualCheckinForm").addEventListener("submit", (event) => {
+  $('#toggleScannerButton').addEventListener('click', () => scannerRunning ? stopScanner() : startScanner());
+  $('#manualCheckinForm').addEventListener('submit', event => {
     event.preventDefault();
-    const matches = findMatches($("#manualCheckinInput").value);
-    const results = $("#manualSearchResults");
+    const matches = findMatches($('#manualCheckinInput').value);
+    const results = $('#manualSearchResults');
     if (!matches.length) {
-      results.innerHTML = `<div class="empty-state">참가자를 찾지 못했습니다.</div>`;
+      results.innerHTML = '<div class="empty-state">참가자를 찾지 못했습니다. 서버 새로고침 후 다시 검색하세요.</div>';
       return;
     }
-    if (matches.length === 1) {
-      results.innerHTML = "";
-      showCheckinResult(matches[0]);
-      return;
-    }
-    results.innerHTML = matches.map((p) => `<button class="search-result-button" data-manual-id="${escapeHtml(p.id)}" type="button"><strong>${escapeHtml(p.name)}</strong><br><span>${escapeHtml(p.seat || "좌석 미정")} · ${escapeHtml(maskPhone(p.phone))} · ${p.arrived ? "도착" : "미도착"}</span></button>`).join("");
+    results.innerHTML = matches.map(item => `<button class="search-result-button" data-manual-id="${escapeHtml(item.id)}" type="button"><strong>${escapeHtml(item.name)}</strong><br><span>${escapeHtml(item.seat || '좌석 미정')} · ${escapeHtml(maskPhone(item.phone))} · ${item.arrived ? '도착' : '미도착'}</span></button>`).join('');
   });
-  $("#manualSearchResults").addEventListener("click", (event) => {
-    const button = event.target.closest("[data-manual-id]");
+  $('#manualSearchResults').addEventListener('click', event => {
+    const button = event.target.closest('[data-manual-id]');
     if (!button) return;
     const participant = findParticipantById(button.dataset.manualId);
-    if (participant) showCheckinResult(participant);
+    if (participant) showCheckinResult(participant, participant.arrived);
   });
-  $("#checkinResult").addEventListener("click", (event) => {
-    const button = event.target.closest("[data-result-action]");
+  $('#checkinResult').addEventListener('click', async event => {
+    const button = event.target.closest('[data-result-action]');
     if (!button) return;
     const participant = findParticipantById(button.dataset.id);
     if (!participant) return;
-    if (button.dataset.resultAction === "checkin") checkInParticipant(participant);
-    if (button.dataset.resultAction === "undo") undoCheckIn(participant);
-    if (button.dataset.resultAction === "ticket") showTicketModal(participant);
-    if (button.dataset.resultAction === "qr") showQrModal(participant);
+    button.disabled = true;
+    try {
+      if (button.dataset.resultAction === 'checkin') await checkInParticipant(participant);
+      if (button.dataset.resultAction === 'undo') await undoCheckIn(participant);
+      if (button.dataset.resultAction === 'ticket') showTicketModal(participant);
+      if (button.dataset.resultAction === 'qr') showQrModal(participant);
+    } catch (error) {
+      showToast(error.message, 4500);
+    } finally {
+      button.disabled = false;
+    }
   });
 
-  $("#seatMap").addEventListener("click", (event) => {
-    const button = event.target.closest("[data-seat-id]");
+  $('#seatMap').addEventListener('click', event => {
+    const button = event.target.closest('[data-seat-id]');
     if (!button) return;
     const participant = findParticipantById(button.dataset.seatId);
     if (participant) showSeatParticipant(participant);
   });
 
-  $("#eventSettingsForm").addEventListener("submit", (event) => {
+  $('#eventSettingsForm').addEventListener('submit', async event => {
     event.preventDefault();
-    state.settings = {
-      eventName: $("#eventName").value.trim(), eventDate: $("#eventDate").value.trim(),
-      eventVenue: $("#eventVenue").value.trim(), eventOrganizer: $("#eventOrganizer").value.trim(),
-      seatRows: $("#seatRows").value.trim(), seatsPerRow: Number($("#seatsPerRow").value) || 10
+    const button = event.currentTarget.querySelector('button[type="submit"]');
+    button.disabled = true;
+    const settings = {
+      eventName: $('#eventName').value.trim(),
+      eventDate: $('#eventDate').value.trim(),
+      eventVenue: $('#eventVenue').value.trim(),
+      eventOrganizer: $('#eventOrganizer').value.trim(),
+      seatRows: $('#seatRows').value.trim(),
+      seatsPerRow: Number($('#seatsPerRow').value) || 10,
+      autoRefreshSeconds: Number($('#autoRefreshSeconds').value) || 15
     };
-    saveState();
-    showToast("행사 설정을 저장했습니다.");
-  });
-  $("#loadSampleButton").addEventListener("click", () => {
-    if (!confirm("현재 참가자 명단을 지우고 예시 데이터를 다시 넣을까요?")) return;
-    state.participants = createSampleParticipants();
-    saveState();
-    showToast("예시 데이터를 다시 넣었습니다.");
-  });
-  $("#clearAllButton").addEventListener("click", () => {
-    if (!confirm("참가자와 접수 기록을 모두 삭제합니다. 되돌릴 수 없습니다.")) return;
-    state.participants = [];
-    saveState();
-    showToast("전체 데이터를 삭제했습니다.");
+    try {
+      state.settings = await apiRequest('saveSettings', settings);
+      renderAll();
+      scheduleAutoRefresh();
+      showToast('행사 설정을 스프레드시트에 저장했습니다.');
+    } catch (error) {
+      showToast(error.message, 4500);
+    } finally {
+      button.disabled = false;
+    }
   });
 
-  $("#closeModalButton").addEventListener("click", closeModal);
-  $("#modalBackdrop").addEventListener("click", (event) => { if (event.target.id === "modalBackdrop") closeModal(); });
-  document.addEventListener("keydown", (event) => { if (event.key === "Escape") closeModal(); });
-
-  window.addEventListener("beforeinstallprompt", (event) => {
-    event.preventDefault();
-    deferredInstallPrompt = event;
-    $("#installButton").classList.remove("hidden");
-  });
-  $("#installButton").addEventListener("click", async () => {
-    if (!deferredInstallPrompt) return;
-    deferredInstallPrompt.prompt();
-    await deferredInstallPrompt.userChoice;
-    deferredInstallPrompt = null;
-    $("#installButton").classList.add("hidden");
+  $('#closeModalButton').addEventListener('click', closeModal);
+  $('#modalBackdrop').addEventListener('click', event => { if (event.target.id === 'modalBackdrop') closeModal(); });
+  document.addEventListener('keydown', event => { if (event.key === 'Escape') closeModal(); });
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && connection.url && connection.key) refreshFromServer({ silent: true }).catch(() => {});
   });
 }
 
 bindEvents();
 renderAll();
+if (connection.url && connection.key && connection.station) {
+  connectAndLoad().catch(error => showConnectionOverlay(error.message));
+} else {
+  showConnectionOverlay();
+}
