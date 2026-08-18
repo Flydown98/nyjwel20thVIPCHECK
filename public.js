@@ -14,6 +14,7 @@ const DEFAULT_PUBLIC_SETTINGS = Object.freeze({
   registrationCapacity: 40,
   registeredCount: 0,
   remainingCount: 40,
+  autoAssignSeat: true
 });
 
 let publicState = {
@@ -136,9 +137,9 @@ function renderPublicSettings() {
   const open = settings.registrationOpen !== false && !full;
   status.className = `registration-status ${open ? 'open' : 'closed'}`;
   if (open) {
-    status.textContent = `현재 신청 가능 · ${Number(settings.registeredCount).toLocaleString()}명 신청 · 잔여 ${Number(settings.remainingCount).toLocaleString()}명`;
+    status.textContent = '현재 참가 신청이 가능합니다.';
   } else if (full) {
-    status.textContent = `신청 정원이 마감되었습니다. 현재 ${Number(settings.registeredCount).toLocaleString()}명이 등록되었습니다.`;
+    status.textContent = '참가 신청이 마감되었습니다.';
   } else {
     status.textContent = '현재 온라인 참가 신청이 마감되어 있습니다.';
   }
@@ -338,8 +339,8 @@ async function downloadTicketImage() {
     ctx.font = '700 56px "Noto Sans KR", Arial, sans-serif';
     ctx.fillText(`${ticket.name} 님`, 540, nextY + 125);
 
-    const passY = nextY + 185;
-    roundedRect(ctx, 125, passY, 830, 120, 32);
+    const passY = nextY + 180;
+    roundedRect(ctx, 125, passY, 830, 135, 36);
     ctx.fillStyle = 'rgba(255,255,255,.09)';
     ctx.fill();
     ctx.strokeStyle = 'rgba(255,255,255,.18)';
@@ -347,14 +348,14 @@ async function downloadTicketImage() {
     ctx.stroke();
     ctx.fillStyle = '#ead1a5';
     ctx.font = '700 22px Arial, sans-serif';
-    ctx.fillText('ADMISSION QR PASS', 540, passY + 45);
-    ctx.fillStyle = 'rgba(255,255,255,.85)';
-    ctx.font = '500 25px "Noto Sans KR", Arial, sans-serif';
-    ctx.fillText('좌석은 행사 당일 운영진이 안내합니다.', 540, passY + 84);
+    ctx.fillText('ADMISSION QR PASS', 540, passY + 48);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '500 28px "Noto Sans KR", Arial, sans-serif';
+    ctx.fillText('좌석은 행사 당일 운영진이 안내합니다.', 540, passY + 94);
 
     const qrSize = 500;
     const qrX = (1080 - qrSize) / 2;
-    const qrY = passY + 175;
+    const qrY = passY + 195;
     roundedRect(ctx, qrX - 25, qrY - 25, qrSize + 50, qrSize + 50, 38);
     ctx.fillStyle = '#ffffff';
     ctx.fill();
