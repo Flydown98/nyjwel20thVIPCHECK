@@ -3,23 +3,27 @@
 const PUBLIC_CONFIG = window.NYJ20_CONFIG || {};
 const API_URL = String(PUBLIC_CONFIG.appsScriptUrl || '').trim();
 const DEVICE_TICKET_STORAGE_KEY = 'nyj20.publicTicketCode.v1';
+const CURRENT_PRIVACY_VERSION = 'NYJWEL20-2026-08-18-v5';
 const DEFAULT_PUBLIC_SETTINGS = Object.freeze({
   eventName: '남양주시장애인복지관 개관 20주년 기념행사',
   eventDate: '2026. 9. 17.(목) 14:00',
   eventVenue: '남양주금곡실내체육관',
   eventOrganizer: '남양주시장애인복지관',
-  publicSubtitle: '스무번의 계절, 스물한번째 약속',
+  publicSubtitle: '스무번의 계절, 스물한 번째 약속',
   publicGreeting: '남양주시장애인복지관의 스무 해를 함께해 주신 여러분을 초대합니다.',
+  privacyRetentionText: '행사 종료 후 결과 정리 및 문의 대응 완료 시까지(최대 30일)',
   registrationOpen: true,
-  registrationCapacity: 40,
+  registrationCapacity: 500,
   registeredCount: 0,
-  remainingCount: 40,
-  autoAssignSeat: true
+  remainingCount: 500,
+  autoAssignSeat: true,
+  privacyConsentVersion: CURRENT_PRIVACY_VERSION
 });
 
 let publicState = {
   settings: { ...DEFAULT_PUBLIC_SETTINGS },
-  ticket: null
+  ticket: null,
+  privacyViewed: false
 };
 
 const $ = selector => document.querySelector(selector);
@@ -75,6 +79,19 @@ function setLoading(active, text = '처리 중입니다.') {
   $('#loadingOverlay').classList.toggle('hidden', !active);
 }
 
+function createBridgeRequestId(prefix = 'pub') {
+  const bytes = new Uint8Array(18);
+  if (window.crypto?.getRandomValues) {
+    window.crypto.getRandomValues(bytes);
+    return `${prefix}_${Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('')}`;
+  }
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2)}_${Math.random().toString(36).slice(2)}`;
+}
+
+/**
+ * 개인정보를 URL 쿼리스트링에 넣지 않기 위한 Apps Script POST 브리지.
+ * 실제 요청값은 숨김 form의 POST 본문으로 전송하고, URL에는 무작위 requestId만 사용합니다.
+ */
 function publicApiRequest(action, payload = {}) {
   return new Promise((resolve, reject) => {
     if (!isConfiguredUrl(API_URL)) {
@@ -82,40 +99,112 @@ function publicApiRequest(action, payload = {}) {
       return;
     }
 
-    const callbackName = `__nyj20_public_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-    const url = new URL(API_URL);
-    url.searchParams.set('action', action);
-    url.searchParams.set('payload', JSON.stringify(payload));
-    url.searchParams.set('callback', callbackName);
-    url.searchParams.set('_', String(Date.now()));
+    const requestId = createBridgeRequestId('pub');
+    const frameName = `nyj20_bridge_frame_${requestId.replace(/[^A-Za-z0-9_]/g, '')}`;
+    const iframe = document.createElement('iframe');
+    iframe.name = frameName;
+    iframe.style.display = 'none';
+    iframe.setAttribute('aria-hidden', 'true');
 
-    const script = document.createElement('script');
-    const timeout = setTimeout(() => {
-      cleanup();
-      reject(new Error('서버 응답 시간이 초과되었습니다. 잠시 후 다시 시도해 주세요.'));
-    }, Number(PUBLIC_CONFIG.requestTimeoutMs) || 25000);
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = API_URL;
+    form.target = frameName;
+    form.style.display = 'none';
+    form.acceptCharset = 'UTF-8';
 
-    function cleanup() {
-      clearTimeout(timeout);
-      script.remove();
-      try { delete window[callbackName]; } catch (error) { window[callbackName] = undefined; }
+    const fields = {
+      bridge: '1',
+      requestId,
+      action,
+      payload: JSON.stringify(payload)
+    };
+    Object.entries(fields).forEach(([name, value]) => {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = name;
+      input.value = String(value ?? '');
+      form.appendChild(input);
+    });
+
+    document.body.appendChild(iframe);
+    document.body.appendChild(form);
+
+    let finished = false;
+    let activeScript = null;
+    let activeCallback = '';
+    const deadline = Date.now() + (Number(PUBLIC_CONFIG.requestTimeoutMs) || 25000);
+
+    function clearPollScript() {
+      if (activeScript) activeScript.remove();
+      activeScript = null;
+      if (activeCallback) {
+        try { delete window[activeCallback]; } catch (error) { window[activeCallback] = undefined; }
+      }
+      activeCallback = '';
     }
 
-    window[callbackName] = response => {
+    function cleanup() {
+      if (finished) return;
+      finished = true;
+      clearPollScript();
+      form.remove();
+      setTimeout(() => iframe.remove(), 50);
+    }
+
+    function fail(error) {
       cleanup();
-      if (!response || response.ok !== true) {
-        reject(new Error(response?.error || '신청 서버에서 오류가 발생했습니다.'));
+      reject(error instanceof Error ? error : new Error(String(error || '서버 오류가 발생했습니다.')));
+    }
+
+    function poll() {
+      if (finished) return;
+      if (Date.now() > deadline) {
+        fail(new Error('서버 응답 시간이 초과되었습니다. 잠시 후 다시 시도해 주세요.'));
         return;
       }
-      resolve(response.data);
-    };
 
-    script.onerror = () => {
-      cleanup();
-      reject(new Error('신청 서버에 연결하지 못했습니다. Apps Script 배포 권한을 확인해 주세요.'));
-    };
-    script.src = url.toString();
-    document.head.appendChild(script);
+      clearPollScript();
+      const callbackName = `__nyj20_poll_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+      const url = new URL(API_URL);
+      url.searchParams.set('action', 'bridgePoll');
+      url.searchParams.set('requestId', requestId);
+      url.searchParams.set('callback', callbackName);
+      url.searchParams.set('_', String(Date.now()));
+
+      const script = document.createElement('script');
+      activeScript = script;
+      activeCallback = callbackName;
+
+      window[callbackName] = response => {
+        clearPollScript();
+        if (response?.pending === true) {
+          setTimeout(poll, 220);
+          return;
+        }
+        if (!response || response.ok !== true) {
+          fail(new Error(response?.error || '신청 서버에서 오류가 발생했습니다.'));
+          return;
+        }
+        const data = response.data;
+        cleanup();
+        resolve(data);
+      };
+
+      script.onerror = () => {
+        clearPollScript();
+        setTimeout(poll, 350);
+      };
+      script.src = url.toString();
+      document.head.appendChild(script);
+    }
+
+    try {
+      form.submit();
+      setTimeout(poll, 180);
+    } catch (error) {
+      fail(new Error('신청 서버에 요청을 보내지 못했습니다.'));
+    }
   });
 }
 
@@ -129,6 +218,8 @@ function renderPublicSettings() {
   $('#detailDateText').textContent = settings.eventDate;
   $('#detailVenueText').textContent = settings.eventVenue;
   $('#greetingText').textContent = settings.publicGreeting;
+  const retentionText = $('#privacyRetentionText');
+  if (retentionText) retentionText.textContent = settings.privacyRetentionText || DEFAULT_PUBLIC_SETTINGS.privacyRetentionText;
   document.title = `${settings.eventName} 모바일 초대장`;
 
   const status = $('#registrationStatus');
@@ -178,6 +269,9 @@ function renderTicket(ticket, { existing = false, remember = false, message = ''
   $('#ticketOrganizer').textContent = settings.eventOrganizer;
   $('#ticketEventName').textContent = settings.eventName;
   $('#ticketName').textContent = `${ticket.name} 님`;
+  const partySize = Math.max(1, Number(ticket.partySize) || 1);
+  const organization = String(ticket.organization || '').trim();
+  $('#ticketPartyInfo').textContent = `${organization ? organization + ' · ' : ''}참여 ${partySize.toLocaleString()}명`;
   $('#ticketDate').textContent = settings.eventDate;
   $('#ticketVenue').textContent = settings.eventVenue;
   $('#ticketMessage').textContent = message || (existing
@@ -338,8 +432,13 @@ async function downloadTicketImage() {
     ctx.fillStyle = '#ffffff';
     ctx.font = '700 56px "Noto Sans KR", Arial, sans-serif';
     ctx.fillText(`${ticket.name} 님`, 540, nextY + 125);
+    ctx.fillStyle = 'rgba(255,255,255,.72)';
+    ctx.font = '500 28px "Noto Sans KR", Arial, sans-serif';
+    const ticketPartySize = Math.max(1, Number(ticket.partySize) || 1);
+    const ticketOrg = String(ticket.organization || '').trim();
+    ctx.fillText(`${ticketOrg ? ticketOrg + ' · ' : ''}참여 ${ticketPartySize.toLocaleString()}명`, 540, nextY + 170);
 
-    const passY = nextY + 180;
+    const passY = nextY + 220;
     roundedRect(ctx, 125, passY, 830, 135, 36);
     ctx.fillStyle = 'rgba(255,255,255,.09)';
     ctx.fill();
@@ -419,6 +518,9 @@ function handleNewApplication(event) {
   publicState.ticket = null;
   $('#ticketSection').classList.add('hidden');
   $('#applicationForm').reset();
+  publicState.privacyViewed = false;
+  const noticeBox = $('#applicationForm input[name="privacyConsentConfirmed"]');
+  if (noticeBox) noticeBox.disabled = true;
   $('#applicationForm').dataset.startedAt = String(Date.now());
   $('#application').scrollIntoView({ behavior: 'smooth', block: 'start' });
   showToast('새 참가자를 신청할 수 있도록 기존 티켓 기억을 해제했습니다.');
@@ -508,7 +610,24 @@ async function handleApplicationSubmit(event) {
   if (!form.reportValidity()) return;
   const submitButton = $('#submitButton');
   const values = Object.fromEntries(new FormData(form).entries());
-  values.consent = form.elements.consent.checked;
+  values.privacyConsentConfirmed = form.elements.privacyConsentConfirmed.checked;
+  values.ageConfirmed = form.elements.ageConfirmed.checked;
+  values.optionalConsent = form.elements.optionalConsent.checked;
+  values.privacyVersion = publicState.settings.privacyConsentVersion || CURRENT_PRIVACY_VERSION;
+  const hasOptionalData = Boolean(String(values.organization || '').trim());
+  if (hasOptionalData && !values.optionalConsent) {
+    showToast('소속기관·단체명을 입력한 경우 선택정보 수집·이용 동의가 필요합니다. 동의하지 않으려면 소속기관·단체명을 비워 주세요.', 6200);
+    form.elements.optionalConsent?.focus();
+    return;
+  }
+  if (!publicState.privacyViewed) {
+    showToast('개인정보 수집·이용 동의서 전문을 열어 내용을 확인해 주세요.', 5200);
+    $('#privacyDetailsButton')?.focus();
+    return;
+  }
+  if (!values.optionalConsent) values.organization = '';
+  values.group = '';
+  values.note = '';
   values.startedAt = Number(form.dataset.startedAt || Date.now());
   submitButton.disabled = true;
   setLoading(true, '참가 신청을 등록하고 개인 QR을 발급하고 있습니다.');
@@ -517,7 +636,12 @@ async function handleApplicationSubmit(event) {
     if (result.settings) publicState.settings = { ...publicState.settings, ...result.settings };
     renderPublicSettings();
     renderTicket(result.participant, { existing: result.existing, remember: true });
-    if (!result.existing) form.reset();
+    if (!result.existing) {
+      form.reset();
+      publicState.privacyViewed = false;
+      if (form.elements.privacyConsentConfirmed) form.elements.privacyConsentConfirmed.disabled = true;
+      if (form.elements.partySize) form.elements.partySize.value = '1';
+    }
     form.dataset.startedAt = String(Date.now());
     showToast(result.existing ? '기존 신청 정보의 개인 QR을 불러왔습니다.' : '참가 신청과 개인 QR 발급이 완료되었습니다.');
   } catch (error) {
@@ -527,6 +651,48 @@ async function handleApplicationSubmit(event) {
     const canSubmit = publicState.settings.registrationOpen !== false && Number(publicState.settings.remainingCount) > 0;
     submitButton.disabled = !canSubmit;
   }
+}
+
+
+function updatePrivacyConfirmAvailability() {
+  const body = document.querySelector('.privacy-modal-body');
+  const button = $('#privacyModalConfirmButton');
+  if (!body || !button) return;
+  const reachedBottom = body.scrollTop + body.clientHeight >= body.scrollHeight - 24;
+  button.disabled = !(publicState.privacyViewed || reachedBottom || body.scrollHeight <= body.clientHeight + 24);
+}
+
+function openPrivacyModal() {
+  const backdrop = $('#privacyModalBackdrop');
+  if (!backdrop) return;
+  backdrop.classList.remove('hidden');
+  backdrop.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('modal-open');
+  const body = document.querySelector('.privacy-modal-body');
+  if (body && !publicState.privacyViewed) body.scrollTop = 0;
+  requestAnimationFrame(updatePrivacyConfirmAvailability);
+  $('#privacyModalCloseButton')?.focus();
+}
+
+function closePrivacyModal() {
+  const backdrop = $('#privacyModalBackdrop');
+  if (!backdrop) return;
+  backdrop.classList.add('hidden');
+  backdrop.setAttribute('aria-hidden', 'true');
+  document.body.classList.remove('modal-open');
+  $('#privacyDetailsButton')?.focus();
+}
+
+function confirmPrivacyViewed() {
+  publicState.privacyViewed = true;
+  const consentBox = $('#applicationForm input[name="privacyConsentConfirmed"]');
+  if (consentBox) {
+    consentBox.disabled = false;
+    consentBox.checked = true;
+    consentBox.focus();
+  }
+  closePrivacyModal();
+  showToast('필수 개인정보 수집·이용에 동의했습니다. 신청을 완료해 주세요.');
 }
 
 async function initialize() {
@@ -541,6 +707,12 @@ async function initialize() {
   $('#forgetTicketButton').addEventListener('click', handleForgetTicket);
   $('#showRememberedTicketButton').addEventListener('click', () => loadRememberedTicket({ scroll: true }));
   $('#newApplicationLink').addEventListener('click', handleNewApplication);
+  $('#privacyDetailsButton')?.addEventListener('click', openPrivacyModal);
+  $('#privacyModalCloseButton')?.addEventListener('click', closePrivacyModal);
+  $('#privacyModalConfirmButton')?.addEventListener('click', confirmPrivacyViewed);
+  document.querySelector('.privacy-modal-body')?.addEventListener('scroll', updatePrivacyConfirmAvailability, { passive: true });
+  $('#privacyModalBackdrop')?.addEventListener('click', event => { if (event.target === event.currentTarget) closePrivacyModal(); });
+  document.addEventListener('keydown', event => { if (event.key === 'Escape' && !$('#privacyModalBackdrop')?.classList.contains('hidden')) closePrivacyModal(); });
   updateRememberedTicketUi();
 
   if (!isConfiguredUrl(API_URL)) {

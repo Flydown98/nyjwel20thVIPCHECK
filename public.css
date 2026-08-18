@@ -113,3 +113,32 @@ footer { padding: 30px 20px 48px; text-align: center; color: #8a919a; font-size:
   .remembered-ticket-notice { align-items: stretch; flex-direction: column; }
   .compact-button { width: 100%; }
 }
+
+
+/* 운영본 개인정보 동의 UI */
+.field-help{display:block;margin-top:7px;color:#7a838f;font-size:12px;line-height:1.55}
+.inline-privacy-button{display:inline;padding:0;border:0;background:transparent;color:#1e4f86;font:inherit;font-weight:800;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.inline-privacy-button:hover{color:#15395f}
+.consent-row input:disabled{opacity:.5;cursor:not-allowed}
+.privacy-modal-backdrop{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:20px;background:rgba(8,17,30,.68);backdrop-filter:blur(5px)}
+.privacy-modal-backdrop.hidden{display:none}
+.privacy-modal{width:min(760px,100%);max-height:min(90vh,920px);display:flex;flex-direction:column;background:#fff;border-radius:24px;box-shadow:0 28px 90px rgba(0,0,0,.35);overflow:hidden}
+.privacy-modal-header{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;padding:25px 28px 19px;border-bottom:1px solid #e8e7e3}
+.privacy-modal-header h2{margin:4px 0 0;font-size:1.55rem;color:#17263a}
+.privacy-modal-close{width:40px;height:40px;border:0;border-radius:50%;background:#f0f2f5;color:#344257;font-size:28px;line-height:1;cursor:pointer}
+.privacy-modal-body{padding:24px 28px;overflow:auto;color:#374151;line-height:1.7}
+.privacy-lead{margin:0 0 20px;padding:16px 18px;border-radius:16px;background:#f5f7fa;color:#334155}
+.privacy-clause{padding:18px 0;border-bottom:1px solid #eceae6}
+.privacy-clause:last-of-type{border-bottom:0}
+.privacy-clause h3{margin:0 0 10px;color:#172554;font-size:1rem}
+.privacy-clause p{margin:0}.privacy-clause ul{margin:0;padding-left:20px}.privacy-clause li+li{margin-top:5px}
+.privacy-data-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.privacy-data-grid>div{padding:14px;border:1px solid #e1e5ea;border-radius:14px;background:#fafbfc}.privacy-data-grid strong{color:#172554}.privacy-data-grid p{margin-top:5px;font-size:13px}
+.privacy-caution{margin-top:12px!important;padding:12px 14px;border-radius:12px;background:#fff7ed;color:#9a4d12;font-size:13px}
+.law-reference a{display:inline-block;margin-top:10px;color:#1e4f86;font-weight:800}
+.privacy-confirm-box{margin-top:20px;padding:16px 18px;border-radius:15px;background:#eef5ff;color:#274567}.privacy-confirm-box p{margin:5px 0 0;font-size:13px}
+.privacy-modal-actions{padding:16px 28px 24px;background:#fff;border-top:1px solid #eceae6}.privacy-modal-actions .submit-button{width:100%}
+body.modal-open{overflow:hidden}
+.ticket-party-info{margin:8px 0 0;color:rgba(255,255,255,.72);font-size:13px;font-weight:600}
+@media(max-width:640px){.privacy-modal-backdrop{padding:8px}.privacy-modal{max-height:94vh;border-radius:18px}.privacy-modal-header,.privacy-modal-body{padding-left:18px;padding-right:18px}.privacy-modal-actions{padding:14px 18px 18px}.privacy-data-grid{grid-template-columns:1fr}}
+
+.privacy-scroll-guide{margin:0 0 10px;text-align:center;color:#667085;font-size:.8rem;line-height:1.45}.privacy-modal-actions .submit-button:disabled{opacity:.45;cursor:not-allowed;filter:grayscale(.2)}
