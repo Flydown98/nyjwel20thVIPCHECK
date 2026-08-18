@@ -104,7 +104,18 @@
     </section>
 
     <section id="view-seats" class="view">
-      <div class="section-heading"><div><p class="eyebrow">RUNWAY SEATING · 500</p><h2>좌석 배치도</h2><p class="small-text"><strong>A~O 15줄 × 30석 = 450석 + 후면 X 추가석 50석</strong><br>A줄 30석은 VIP 기본구역이며 일반 자동배정에서 제외됩니다. 기본 휠체어 자동배정 위치는 전면 바깥 통로측 AL-01, AR-15입니다.</p></div><div class="legend"><span><i class="legend-dot vip"></i>VIP</span><span><i class="legend-dot wheelchair"></i>휠체어</span><span><i class="legend-dot arrived"></i>도착</span><span><i class="legend-dot pending"></i>배정</span><span><i class="legend-dot empty"></i>빈 좌석</span></div></div>
+      <div class="section-heading"><div><p class="eyebrow">RUNWAY SEATING · 500</p><h2>좌석 배치도</h2><p class="small-text"><strong>A~O 15줄 × 30석 = 450석 + 후면 X 추가석 50석</strong><br>A줄 30석은 VIP 기본구역이며 일반 자동배정에서 제외됩니다.</p></div><div class="legend"><span><i class="legend-dot vip"></i>VIP</span><span><i class="legend-dot wheelchair"></i>휠체어 요청/석</span><span><i class="legend-dot arrived"></i>도착</span><span><i class="legend-dot pending"></i>배정</span><span><i class="legend-dot empty"></i>빈 좌석</span></div></div>
+      <div class="wheelchair-location-banner"><strong>♿ 기본 휠체어 자동배정 좌석</strong><span>AL-01 · AR-15</span><small>관리자에서 다른 좌석을 휠체어 자동배정 위치로 지정하거나 기존 위치를 해제할 수 있습니다.</small></div>
+
+      <article class="panel seat-person-search-panel">
+        <div class="panel-heading"><div><h3>사람을 먼저 찾아 좌석 지정</h3><span class="small-text">500명 명단을 스크롤하지 않고 이름·전화번호·기관명으로 검색합니다.</span></div></div>
+        <form id="seatParticipantSearchForm" class="seat-person-search-form">
+          <input id="seatParticipantSearchInput" autocomplete="off" placeholder="이름 / 전화번호 / 기관명 검색 (예: 홍길동, 010-1234-5678)" />
+          <button class="button primary" type="submit">검색</button>
+        </form>
+        <div id="seatParticipantSearchResults" class="seat-person-search-results"><div class="empty-state compact">검색어를 입력하면 참가자가 표시됩니다.</div></div>
+        <div id="seatSelectedPersonBanner" class="seat-selected-person hidden"></div>
+      </article>
       <article class="panel seat-zone-editor"><div class="panel-heading"><h3>좌석 구역 일괄 변경</h3><span class="small-text">VIP·관계자·휠체어 자동배정 위치 등을 직접 지정</span></div><form id="seatZoneForm" class="form-grid"><label class="wide">좌석 범위<input id="seatZoneSeats" required placeholder="예: AL-01~AL-15,AR-01~AR-15" /></label><label>구역명<input id="seatZoneCategory" list="seatCategoryPresets" value="VIP" maxlength="40" /><datalist id="seatCategoryPresets"><option value="일반"><option value="VIP"><option value="관계자"><option value="휠체어"><option value="예비"><option value="추가석"><option value="사용안함"></datalist></label><label>일반 자동배정<select id="seatZoneAuto"><option value="false">제외</option><option value="true">허용</option></select></label><label>좌석 사용<select id="seatZoneEnabled"><option value="true">사용</option><option value="false">사용안함</option></select></label><label>휠체어 자동배정 위치<select id="seatZoneWheelchair"><option value="false">아님</option><option value="true">휠체어 위치로 지정</option></select></label><label class="wide">메모<input id="seatZoneNote" maxlength="120" placeholder="예: 주요 내빈 / 출입구 가까운 휠체어석" /></label><div class="form-actions wide"><button class="button primary" type="submit">구역 설정 저장</button></div></form></article>
       <article class="auditorium-panel runway-auditorium"><div class="stage-visual runway-stage"><div class="stage-light left"></div><div class="stage-light right"></div><span>MAIN STAGE</span><strong>무대 · 단상</strong><div class="stage-edge"></div></div><div class="runway-head">RUNWAY</div><div id="seatMap" class="runway-seat-map"></div><div class="rear-extra-label">후면 추가석 · X구역 50석</div><div id="extraSeatMap" class="runway-seat-map extra-seat-map"></div></article>
     </section>
@@ -138,6 +149,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="config.js"></script>
-  <script src="admin.js?v=1.6"></script>
+  <script src="admin.js?v=1.7"></script>
 </body>
 </html>

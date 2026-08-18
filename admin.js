@@ -1,6 +1,6 @@
 'use strict';
 
-const ADMIN_UI_VERSION = '1.6-RUNWAY500';
+const ADMIN_UI_VERSION = '1.7-SEARCHABLE-RUNWAY500';
 
 const CONFIG = window.NYJ20_CONFIG || {};
 const API_URL = String(CONFIG.appsScriptUrl || '').trim();
@@ -41,6 +41,7 @@ let scannerRunning = false;
 let scanBusy = false;
 let lastScannedText = '';
 let lastScannedAt = 0;
+let selectedSeatParticipantId = '';
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -379,7 +380,7 @@ function renderParticipants() {
 function seatMetaByCode(){const m=new Map();state.seatMeta.forEach(s=>m.set(normalizeSeat(s.code),s));return m}
 function seatOccupantMap(){const m=new Map();state.participants.forEach(p=>parseSeatList(p.seat).forEach(c=>m.set(normalizeSeat(c),p)));return m}
 function zoneClass(c){const v=String(c||'').toLowerCase();if(v.includes('vip'))return'zone-vip';if(v.includes('휠체어'))return'zone-wheelchair';if(v.includes('관계자'))return'zone-staff';if(v.includes('추가')||v.includes('예비'))return'zone-extra';if(v.includes('사용안함'))return'zone-disabled';return'zone-general'}
-function seatButton(code,meta,p){const cls=['runway-seat',zoneClass(meta?.category)];if(meta?.wheelchairEligible)cls.push('wheelchair-anchor');if(p?.wheelchairRequired)cls.push('wheelchair-person');if(meta?.enabled===false)cls.push('disabled-seat');else if(p?.arrived)cls.push('arrived');else if(p)cls.push('pending');else cls.push('empty');return `<button class="${cls.join(' ')}" type="button" data-seat-code="${escapeHtml(code)}" title="${escapeHtml(code+' · '+(meta?.category||'일반')+(meta?.wheelchairEligible?' · 휠체어 자동배정':'')+(p?' · '+p.name:''))}"><strong>${code.split('-')[1]}</strong>${p?`<span>${escapeHtml(p.name)}</span>`:''}</button>`}
+function seatButton(code,meta,p){const cls=['runway-seat',zoneClass(meta?.category)];if(meta?.wheelchairEligible)cls.push('wheelchair-anchor');if(p?.wheelchairRequired)cls.push('wheelchair-person');if(meta?.enabled===false)cls.push('disabled-seat');else if(p?.arrived)cls.push('arrived');else if(p)cls.push('pending');else cls.push('empty');return `<button class="${cls.join(' ')}" type="button" data-seat-code="${escapeHtml(code)}" title="${escapeHtml(code+' · '+(meta?.category||'일반')+(meta?.wheelchairEligible?' · 휠체어 자동배정':'')+(p?' · '+p.name:''))}">${meta?.wheelchairEligible?'<i class="wheelchair-seat-icon">♿</i>':''}<strong>${code.split('-')[1]}</strong>${p?`<span>${escapeHtml(p.name)}</span>`:''}</button>`}
 function runwayRow(row,leftN,rightN,mm,om){let l='',r='';for(let i=1;i<=leftN;i++){const c=`${row}L-${String(i).padStart(2,'0')}`;l+=seatButton(c,mm.get(c),om.get(c))}for(let i=1;i<=rightN;i++){const c=`${row}R-${String(i).padStart(2,'0')}`;r+=seatButton(c,mm.get(c),om.get(c))}return `<div class="runway-row"><div class="runway-side runway-left"><span class="runway-row-label">${row}L</span><div class="runway-side-seats">${l}</div></div><div class="runway-spine"><span>${row}</span></div><div class="runway-side runway-right"><div class="runway-side-seats">${r}</div><span class="runway-row-label">${row}R</span></div></div>`}
 function renderSeatMap(){const mm=seatMetaByCode(),om=seatOccupantMap();$('#seatMap').innerHTML='ABCDEFGHIJKLMNO'.split('').map(r=>runwayRow(r,15,15,mm,om)).join('');$('#extraSeatMap').innerHTML=runwayRow('X',25,25,mm,om)}
 function renderSettings(){
@@ -405,11 +406,82 @@ function startScanner(){if(scannerRunning)return;if(typeof Html5QrcodeScanner===
 async function stopScanner(){if(!scannerRunning||!scanner)return;try{await scanner.clear()}catch(_){}scanner=null;scannerRunning=false;$('#reader').innerHTML='<p>카메라 시작 버튼을 눌러주세요.</p>';$('#toggleScannerButton').textContent='카메라 시작'}
 function openModal(title,html){$('#modalTitle').textContent=title;$('#modalContent').innerHTML=html;$('#modalBackdrop').classList.remove('hidden');document.body.style.overflow='hidden'}
 function closeModal(){$('#modalBackdrop').classList.add('hidden');document.body.style.overflow=''}
-function participantSelectOptions(selectedId=''){return [...state.participants].sort((a,b)=>a.number-b.number).map(p=>`<option value="${escapeHtml(p.id)}" ${p.id===selectedId?'selected':''}>${String(p.number).padStart(4,'0')} · ${escapeHtml(p.name)}${p.wheelchairRequired?' [휠체어]':''} · ${Math.max(1,Number(p.partySize)||1)}명 · ${escapeHtml(p.seat||'미배정')}</option>`).join('')}
-function showSeatAssignmentModal(seatCode){const code=normalizeSeat(seatCode),meta=state.seatMeta.find(s=>normalizeSeat(s.code)===code)||{},occupant=state.participants.find(p=>parseSeatList(p.seat).includes(code));openModal(`${code} 좌석 관리`,`<div class="seat-manage-summary"><div><span>좌석</span><strong>${escapeHtml(code)}</strong></div><div><span>구역</span><strong>${escapeHtml(meta.category||'일반')}</strong></div><div><span>현재 배정</span><strong>${occupant?escapeHtml(occupant.name):'빈 좌석'}</strong></div></div><form id="seatAssignForm" class="stack-form"><label>배정/이동할 참가자<select id="seatAssignParticipant" required><option value="">참가자 선택</option>${participantSelectOptions(occupant?.id||'')}</select></label><p class="help-text">이미 다른 좌석에 있는 참가자를 고르면 기존 좌석은 자동으로 비우고 이 자리부터 참여인원만큼 연속 좌석으로 이동합니다.</p><div class="form-actions"><button class="button primary" type="submit">이 자리로 배정/이동</button>${occupant?`<button id="unassignCurrentSeatButton" class="button secondary" type="button">현재 참가자 좌석 비우기</button>`:''}</div></form><hr class="modal-separator"><form id="singleSeatZoneForm" class="stack-form"><h3>이 좌석 속성</h3><label>구역명<input id="singleSeatCategory" list="seatCategoryPresets" value="${escapeHtml(meta.category||'일반')}"></label><label>일반 자동배정<select id="singleSeatAuto"><option value="true" ${meta.autoAssignable?'selected':''}>허용</option><option value="false" ${!meta.autoAssignable?'selected':''}>제외</option></select></label><label>좌석 사용<select id="singleSeatEnabled"><option value="true" ${meta.enabled!==false?'selected':''}>사용</option><option value="false" ${meta.enabled===false?'selected':''}>사용안함</option></select></label><label>휠체어 자동배정 위치<select id="singleSeatWheelchair"><option value="false" ${!meta.wheelchairEligible?'selected':''}>아님</option><option value="true" ${meta.wheelchairEligible?'selected':''}>휠체어 위치</option></select></label><label>메모<input id="singleSeatNote" value="${escapeHtml(meta.note||'')}"></label><button class="button secondary" type="submit">좌석 속성 저장</button></form>`);
-$('#seatAssignForm')?.addEventListener('submit',async e=>{e.preventDefault();const pid=$('#seatAssignParticipant').value;if(!pid)return;const selected=findById(pid),replace=Boolean(occupant&&occupant.id!==pid);if(replace&&!confirm(`${code}은 현재 ${occupant.name} 님 좌석입니다.\n${selected.name} 님을 이 자리로 옮기면 ${occupant.name} 님은 미배정 상태가 됩니다. 계속할까요?`))return;try{await jsonpRequest('assignSeatFromMap',{participantCode:pid,targetSeat:code,replaceCurrent:replace});await refreshFromServer({silent:true});closeModal();showToast(`${selected.name} 님 좌석을 이동했습니다.`)}catch(err){showToast(err.message,5200)}});
-$('#unassignCurrentSeatButton')?.addEventListener('click',async()=>{if(!occupant||!confirm(`${occupant.name} 님 좌석 전체를 비울까요?`))return;try{await jsonpRequest('unassignSeat',{participantCode:occupant.id});await refreshFromServer({silent:true});closeModal();showToast('좌석을 비웠습니다.')}catch(err){showToast(err.message,5000)}});
-$('#singleSeatZoneForm')?.addEventListener('submit',async e=>{e.preventDefault();try{state.seatMeta=await jsonpRequest('saveSeatMeta',{seats:code,category:$('#singleSeatCategory').value.trim()||'일반',autoAssignable:$('#singleSeatAuto').value==='true',enabled:$('#singleSeatEnabled').value==='true',wheelchairEligible:$('#singleSeatWheelchair').value==='true',note:$('#singleSeatNote').value.trim()});renderSeatMap();closeModal();showToast('좌석 속성을 저장했습니다.')}catch(err){showToast(err.message,5000)}})}
+
+function seatPersonMatches(query){
+  const q=String(query||'').trim().toLowerCase();
+  if(!q)return[];
+  const digits=q.replace(/\D/g,'');
+  return state.participants.filter(p=>{
+    const phoneDigits=String(p.phone||'').replace(/\D/g,'');
+    const hay=[p.name,p.organization,p.group,p.phone,p.id,p.number,p.seat,p.wheelchairRequired?'휠체어':''].join(' ').toLowerCase();
+    return hay.includes(q)||(digits.length>=3&&phoneDigits.includes(digits));
+  }).sort((a,b)=>{
+    const aq=String(a.name||'').toLowerCase().startsWith(q)?0:1;
+    const bq=String(b.name||'').toLowerCase().startsWith(q)?0:1;
+    return aq-bq||a.number-b.number;
+  }).slice(0,30);
+}
+function seatPersonResultHtml(p,action='seat-search-pick'){
+  return `<button class="seat-person-result ${p.wheelchairRequired?'wheelchair-requester':''}" type="button" data-${action}="${escapeHtml(p.id)}">
+    <div class="seat-person-main">
+      <strong>${escapeHtml(p.name)} ${p.wheelchairRequired?'<span class="wheelchair-badge">♿ 휠체어</span>':''}</strong>
+      <span>${escapeHtml(maskPhone(p.phone))}${p.organization?' · '+escapeHtml(p.organization):''}</span>
+    </div>
+    <div class="seat-person-meta">
+      <b>${Math.max(1,Number(p.partySize)||1)}명</b>
+      <span>${escapeHtml(p.seat||'미배정')}</span>
+    </div>
+  </button>`;
+}
+function renderSeatSearchResults(query,host,action='seat-search-pick'){
+  const matches=seatPersonMatches(query);
+  host.innerHTML=matches.length?matches.map(p=>seatPersonResultHtml(p,action)).join(''):'<div class="empty-state compact">일치하는 참가자가 없습니다.</div>';
+}
+function updateSeatSelectedPersonBanner(){
+  const host=$('#seatSelectedPersonBanner');
+  if(!host)return;
+  const p=findById(selectedSeatParticipantId);
+  if(!p){host.classList.add('hidden');host.innerHTML='';return;}
+  host.classList.remove('hidden');
+  host.innerHTML=`<div><strong>${escapeHtml(p.name)} ${p.wheelchairRequired?'<span class="wheelchair-badge">♿ 휠체어</span>':''}</strong><span>${escapeHtml(maskPhone(p.phone))} · ${Math.max(1,Number(p.partySize)||1)}명 · 현재 ${escapeHtml(p.seat||'미배정')}</span></div><div><b>배정할 좌석을 지도에서 클릭하세요.</b><button id="clearSeatSelectedPerson" class="button small secondary" type="button">선택 해제</button></div>`;
+  $('#clearSeatSelectedPerson')?.addEventListener('click',()=>{selectedSeatParticipantId='';updateSeatSelectedPersonBanner();});
+}
+async function assignSelectedPersonToSeat(p,code){
+  const occupant=state.participants.find(x=>x.id!==p.id&&parseSeatList(x.seat).includes(code));
+  const replace=Boolean(occupant);
+  if(replace&&!confirm(`${code}은 현재 ${occupant.name} 님 좌석입니다.\n${p.name} 님을 이 자리로 옮기면 ${occupant.name} 님은 좌석 미배정 상태가 됩니다.\n계속할까요?`))return;
+  await jsonpRequest('assignSeatFromMap',{participantCode:p.id,targetSeat:code,replaceCurrent:replace});
+  await refreshFromServer({silent:true});
+  selectedSeatParticipantId='';
+  updateSeatSelectedPersonBanner();
+  showToast(`${p.name} 님을 ${code}부터 배정/이동했습니다.`);
+}
+function showSeatAssignmentModal(seatCode){
+  const code=normalizeSeat(seatCode),meta=state.seatMeta.find(s=>normalizeSeat(s.code)===code)||{},occupant=state.participants.find(p=>parseSeatList(p.seat).includes(code));
+  openModal(`${code} 좌석 관리`,`<div class="seat-manage-summary"><div><span>좌석</span><strong>${escapeHtml(code)}</strong></div><div><span>구역</span><strong>${escapeHtml(meta.category||'일반')}${meta.wheelchairEligible?' · ♿':''}</strong></div><div><span>현재 배정</span><strong>${occupant?escapeHtml(occupant.name):'빈 좌석'}</strong></div></div>
+  <div class="stack-form seat-modal-search">
+    <label>참가자 검색<input id="seatModalPersonSearch" autocomplete="off" placeholder="이름 / 전화번호 / 기관명"></label>
+    <div id="seatModalPersonResults" class="seat-person-search-results"><div class="empty-state compact">검색해서 참가자를 선택하세요.</div></div>
+    <p class="help-text">이미 다른 좌석에 있는 참가자를 선택해도 됩니다. 기존 좌석은 자동으로 비우고 이 자리부터 참여인원만큼 함께 이동합니다.</p>
+    ${occupant?`<button id="unassignCurrentSeatButton" class="button secondary" type="button">현재 ${escapeHtml(occupant.name)} 님 좌석 전체 비우기</button>`:''}
+  </div>
+  <hr class="modal-separator">
+  <form id="singleSeatZoneForm" class="stack-form"><h3>이 좌석 속성</h3><label>구역명<input id="singleSeatCategory" list="seatCategoryPresets" value="${escapeHtml(meta.category||'일반')}"></label><label>일반 자동배정<select id="singleSeatAuto"><option value="true" ${meta.autoAssignable?'selected':''}>허용</option><option value="false" ${!meta.autoAssignable?'selected':''}>제외</option></select></label><label>좌석 사용<select id="singleSeatEnabled"><option value="true" ${meta.enabled!==false?'selected':''}>사용</option><option value="false" ${meta.enabled===false?'selected':''}>사용안함</option></select></label><label>휠체어 자동배정 위치<select id="singleSeatWheelchair"><option value="false" ${!meta.wheelchairEligible?'selected':''}>아님</option><option value="true" ${meta.wheelchairEligible?'selected':''}>휠체어 위치</option></select></label><label>메모<input id="singleSeatNote" value="${escapeHtml(meta.note||'')}"></label><button class="button secondary" type="submit">좌석 속성 저장</button></form>`);
+  const search=$('#seatModalPersonSearch'),results=$('#seatModalPersonResults');
+  search?.addEventListener('input',()=>renderSeatSearchResults(search.value,results,'seat-modal-pick'));
+  results?.addEventListener('click',async e=>{
+    const b=e.target.closest('[data-seat-modal-pick]');if(!b)return;
+    const p=findById(b.dataset.seatModalPick);if(!p)return;
+    try{await assignSelectedPersonToSeat(p,code);closeModal();}catch(err){showToast(err.message,5200)}
+  });
+  $('#unassignCurrentSeatButton')?.addEventListener('click',async ()=>{
+    if(!occupant)return;if(!confirm(`${occupant.name} 님의 현재 좌석 전체를 비울까요?`))return;
+    try{await jsonpRequest('unassignSeat',{participantCode:occupant.id});await refreshFromServer({silent:true});closeModal();showToast(`${occupant.name} 님 좌석을 미배정으로 변경했습니다.`)}catch(err){showToast(err.message,5000)}
+  });
+  $('#singleSeatZoneForm')?.addEventListener('submit',async e=>{
+    e.preventDefault();try{state.seatMeta=await jsonpRequest('saveSeatMeta',{seats:code,category:$('#singleSeatCategory').value.trim()||'일반',autoAssignable:$('#singleSeatAuto').value==='true',enabled:$('#singleSeatEnabled').value==='true',wheelchairEligible:$('#singleSeatWheelchair').value==='true',note:$('#singleSeatNote').value.trim()});renderSeatMap();closeModal();showToast('좌석 속성을 저장했습니다.')}catch(err){showToast(err.message,5000)}
+  });
+}
 
 function showQr(p){
   openModal(`${p.name} 님 QR`,`<div class="qr-detail"><div id="singleQrCode" class="qr-code-box"></div><div class="detail-list"><div><dt>접수번호</dt><dd>${String(p.number).padStart(4,'0')}</dd></div><div><dt>대표 신청자</dt><dd>${escapeHtml(p.name)}</dd></div><div><dt>소속</dt><dd>${escapeHtml(p.organization||'-')}</dd></div><div><dt>연락처</dt><dd>${escapeHtml(maskPhone(p.phone))}</dd></div><div><dt>참여인원</dt><dd>${Math.max(1,Number(p.partySize)||1)}명</dd></div><div><dt>휠체어석</dt><dd>${p.wheelchairRequired?'요청':'해당 없음'}</dd></div><div><dt>좌석</dt><dd>${escapeHtml(p.seat||'미배정')}</dd></div><div><dt>상태</dt><dd>${p.arrived?'도착':'미도착'}</dd></div></div></div>`);
@@ -433,10 +505,13 @@ function exportCsv(){
 
 function bindEvents(){
   $('#loginForm').addEventListener('submit',async e=>{e.preventDefault();const b=$('#loginButton');b.disabled=true;$('#loginMessage').classList.add('hidden');try{await login($('#adminUsername').value.trim(),$('#adminPassword').value)}catch(err){showLogin(err.message)}finally{b.disabled=false}});$$('.nav-button').forEach(b=>b.addEventListener('click',()=>switchView(b.dataset.view)));$$('[data-go]').forEach(b=>b.addEventListener('click',()=>switchView(b.dataset.go)));$('#refreshDashboardButton').addEventListener('click',()=>refreshFromServer().catch(()=>{}));$('#exportCsvButton').addEventListener('click',exportCsv);$('#exportCsvDashboardButton').addEventListener('click',exportCsv);$('#participantSearch').addEventListener('input',renderParticipants);$('#participantStatusFilter').addEventListener('change',renderParticipants);
+  $('#seatParticipantSearchForm').addEventListener('submit',e=>{e.preventDefault();renderSeatSearchResults($('#seatParticipantSearchInput').value,$('#seatParticipantSearchResults'),'seat-search-pick')});
+  $('#seatParticipantSearchInput').addEventListener('input',e=>{const q=e.currentTarget.value.trim();if(q.length>=2)renderSeatSearchResults(q,$('#seatParticipantSearchResults'),'seat-search-pick');else $('#seatParticipantSearchResults').innerHTML='<div class="empty-state compact">두 글자 이상 입력하세요.</div>'});
+  $('#seatParticipantSearchResults').addEventListener('click',e=>{const b=e.target.closest('[data-seat-search-pick]');if(!b)return;selectedSeatParticipantId=b.dataset.seatSearchPick;updateSeatSelectedPersonBanner();const p=findById(selectedSeatParticipantId);showToast(`${p?.name||'참가자'} 선택됨. 배정할 좌석을 클릭하세요.`);});
   $('#participantForm').addEventListener('submit',async e=>{e.preventDefault();const form=e.currentTarget,b=form.querySelector('button');b.disabled=true;try{const v=Object.fromEntries(new FormData(form).entries());v.wheelchairRequired=form.elements.wheelchairRequired?.checked||false;const p=await jsonpRequest('createParticipant',v);updateCache(p);form.reset();if(form.elements.partySize)form.elements.partySize.value='1';showToast('참가자를 등록했습니다.')}catch(err){showToast(err.message,4500)}finally{b.disabled=false}});
   $('#participantTableBody').addEventListener('click',async e=>{const b=e.target.closest('[data-action]');if(!b)return;const p=findById(b.dataset.id);if(!p)return;try{if(b.dataset.action==='qr')showQr(p);if(b.dataset.action==='edit')showEdit(p);if(b.dataset.action==='toggle')p.arrived?await undoCheckIn(p):await checkIn(p);if(b.dataset.action==='delete'&&confirm(`${p.name} 님 신청을 사용중지할까요?`)){await jsonpRequest('deleteParticipant',{code:p.id});state.participants=state.participants.filter(x=>x.id!==p.id);renderAll();showToast('사용중지했습니다.')}}catch(err){showToast(err.message,4500)}});
   $('#toggleScannerButton').addEventListener('click',()=>scannerRunning?stopScanner():startScanner());$('#manualCheckinForm').addEventListener('submit',e=>{e.preventDefault();const m=findMatches($('#manualCheckinInput').value);$('#manualSearchResults').innerHTML=m.length?m.map(p=>`<button class="search-result-button" data-manual-id="${escapeHtml(p.id)}"><strong>${escapeHtml(p.name)}${p.wheelchairRequired?' · 휠체어':''}</strong><br><span>${escapeHtml(p.organization||'소속 없음')} · ${Math.max(1,Number(p.partySize)||1)}명 · ${escapeHtml(p.seat||'미배정')} · ${escapeHtml(maskPhone(p.phone))}</span></button>`).join(''):'<div class="empty-state">찾지 못했습니다.</div>'});$('#manualSearchResults').addEventListener('click',e=>{const b=e.target.closest('[data-manual-id]');if(!b)return;const p=findById(b.dataset.manualId);if(p)showCheckinResult(p,p.arrived)});$('#checkinResult').addEventListener('click',async e=>{const b=e.target.closest('[data-result]');if(!b)return;const p=findById(b.dataset.id);if(!p)return;try{if(b.dataset.result==='checkin')await checkIn(p);if(b.dataset.result==='undo')await undoCheckIn(p);if(b.dataset.result==='qr')showQr(p)}catch(err){showToast(err.message,4500)}});
-  const seatClick=e=>{const b=e.target.closest('[data-seat-code]');if(b)showSeatAssignmentModal(b.dataset.seatCode)};$('#seatMap').addEventListener('click',seatClick);$('#extraSeatMap').addEventListener('click',seatClick);
+  const seatClick=async e=>{const b=e.target.closest('[data-seat-code]');if(!b)return;const code=b.dataset.seatCode;if(selectedSeatParticipantId){const p=findById(selectedSeatParticipantId);if(!p){selectedSeatParticipantId='';updateSeatSelectedPersonBanner();return;}try{await assignSelectedPersonToSeat(p,code)}catch(err){showToast(err.message,5200)}return;}showSeatAssignmentModal(code)};$('#seatMap').addEventListener('click',seatClick);$('#extraSeatMap').addEventListener('click',seatClick);
   $('#seatZoneForm').addEventListener('submit',async e=>{e.preventDefault();try{state.seatMeta=await jsonpRequest('saveSeatMeta',{seats:$('#seatZoneSeats').value.trim(),category:$('#seatZoneCategory').value.trim()||'일반',autoAssignable:$('#seatZoneAuto').value==='true',enabled:$('#seatZoneEnabled').value==='true',wheelchairEligible:$('#seatZoneWheelchair').value==='true',note:$('#seatZoneNote').value.trim()});renderSeatMap();showToast('좌석 구역을 저장했습니다.')}catch(err){showToast(err.message,5200)}});
   $('#eventSettingsForm').addEventListener('submit',async e=>{e.preventDefault();const b=e.currentTarget.querySelector('button');b.disabled=true;session.station=$('#stationName').value.trim()||'관리자 웹';localStorage.setItem(STORAGE.STATION,session.station);const s={eventName:$('#eventName').value.trim(),eventDate:$('#eventDate').value.trim(),eventVenue:$('#eventVenue').value.trim(),eventOrganizer:$('#eventOrganizer').value.trim(),autoRefreshSeconds:Number($('#autoRefreshSeconds').value)||15,publicSubtitle:$('#publicSubtitle').value.trim(),publicGreeting:$('#publicGreeting').value.trim(),privacyRetentionText:$('#privacyRetentionText').value.trim(),registrationOpen:$('#registrationOpen').value==='true',registrationCapacity:Math.min(500,Number($('#registrationCapacity').value)||500),autoAssignSeat:$('#autoAssignSeat').value==='true',introVideoEnabled:$('#introVideoEnabled').value==='true',introVideoUrl:$('#introVideoUrl').value.trim()||'assets/intro.mp4',ticketRefreshSeconds:Number($('#ticketRefreshSeconds').value)||15};try{state.settings=await jsonpRequest('saveSettings',s);renderAll();scheduleRefresh();showToast('설정을 저장했습니다.')}catch(err){showToast(err.message,4500)}finally{b.disabled=false}});
   $('#logoutButton').addEventListener('click',logout);$('#logoutButtonTop').addEventListener('click',logout);$('#closeModalButton').addEventListener('click',closeModal);$('#modalBackdrop').addEventListener('click',e=>{if(e.target.id==='modalBackdrop')closeModal()});document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
