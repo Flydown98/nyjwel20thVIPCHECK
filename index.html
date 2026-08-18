@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="public.css?v=1.1" />
 </head>
 <body>
+  <section id="introOverlay" class="intro-overlay hidden" aria-label="행사 인트로 영상"><video id="introVideo" class="intro-video" playsinline preload="metadata"></video><div class="intro-shade"></div><div class="intro-controls"><span id="introTimeLabel">INTRO</span><div class="intro-progress"><i id="introProgressBar"></i></div><button id="introSoundButton" type="button">소리 켜기</button><button id="introSkipButton" type="button">건너뛰기</button></div></section>
   <div class="page-glow glow-one"></div>
   <div class="page-glow glow-two"></div>
 
@@ -64,7 +65,7 @@
           <input name="partySize" type="number" min="1" max="500" value="1" required inputmode="numeric" />
           <small class="field-help">대표 신청자를 포함한 총 참여인원입니다. 전체 행사 수용인원 범위에서 한 신청으로 여러 명을 등록할 수 있습니다.</small>
         </label>
-        <label class="honeypot" aria-hidden="true">웹사이트<input name="website" tabindex="-1" autocomplete="off" /></label>
+        <label class="wheelchair-request-row"><span>휠체어석</span><div class="wheelchair-request-box"><label class="consent-row"><input name="wheelchairRequired" type="checkbox" value="true" /><span>휠체어석이 필요합니다. <em>(선택)</em></span></label><small>전면에서 이동이 쉬운 통로측 좌석을 우선 자동 배정합니다. 지정 위치가 모두 사용 중이면 관리자가 별도로 배정합니다.</small></div></label><label id="sensitiveConsentRow" class="consent-row sensitive-consent-row hidden"><input name="sensitiveConsent" type="checkbox" value="true" /><span>휠체어석 배정을 위해 휠체어 이용 여부를 처리하는 데 동의합니다. <button id="sensitiveDetailsButton" class="inline-privacy-button" type="button">민감정보 처리 안내</button> <b>*</b></span></label><label class="honeypot" aria-hidden="true">웹사이트<input name="website" tabindex="-1" autocomplete="off" /></label>
         <label class="consent-row age-consent-row">
           <input name="ageConfirmed" type="checkbox" value="true" required />
           <span>신청자는 만 14세 이상이며, 단체·가족 신청 시 대표 신청자로서 신청합니다. <b>*</b></span>
@@ -129,14 +130,14 @@
           <strong id="ticketName">참가자 님</strong>
           <p id="ticketPartyInfo" class="ticket-party-info">참여 1명</p>
         </div>
-        <div id="ticketQr" class="ticket-qr"></div>
+        <div class="ticket-seat-box"><span>YOUR SEAT</span><strong id="ticketSeat">좌석 배정 중</strong><p id="ticketSeatSync">관리자 변경 시 자동으로 갱신됩니다.</p></div><div id="ticketQr" class="ticket-qr"></div>
         <p class="ticket-guide">행사장 입구에서 이 QR을 제시해 주세요.</p>
         <div class="ticket-event-meta">
           <p id="ticketDate">-</p><p id="ticketVenue">-</p>
         </div>
       </article>
 
-      <div class="ticket-actions">
+      <section id="publicSeatGuide" class="public-seat-guide"><div class="section-heading centered compact-heading"><p class="section-kicker">SEAT MAP</p><h3>내 좌석 위치</h3><p>파란색과 노란 테두리로 표시된 자리가 현재 배정 좌석입니다.</p></div><div class="public-stage">무대 · 단상</div><div class="public-runway-head">RUNWAY</div><div id="publicSeatMap" class="public-runway-map"></div><div class="public-extra-label">후면 추가석 X구역</div><div id="publicExtraSeatMap" class="public-runway-map public-extra-map"></div></section><div class="ticket-actions">
         <button id="downloadTicketButton" class="submit-button" type="button">모바일 티켓 이미지 저장</button>
         <button id="downloadQrButton" class="outline-button" type="button">QR만 PNG로 저장</button>
         <button id="copyLinkButton" class="text-button" type="button">내 티켓 링크 복사</button>
@@ -145,6 +146,8 @@
       </div>
     </section>
 
+
+    <div id="sensitiveModalBackdrop" class="privacy-modal-backdrop hidden" aria-hidden="true"><section class="privacy-modal" role="dialog" aria-modal="true"><div class="privacy-modal-header"><div><p class="section-kicker">SENSITIVE INFORMATION</p><h2>휠체어석 배정을 위한 민감정보 처리 안내</h2></div><button id="sensitiveModalCloseButton" class="privacy-modal-close" type="button">×</button></div><div class="privacy-modal-body"><section class="privacy-clause"><h3>처리 목적</h3><p>휠체어 이용 참가자의 좌석 자동 배정, 이동 동선 확보 및 현장 안내를 위해 사용합니다.</p></section><section class="privacy-clause"><h3>처리 항목</h3><p><strong>휠체어석 요청 여부</strong>만 처리하며 진단명·장애유형·장애등급 등 추가 건강정보는 입력받지 않습니다.</p></section><section class="privacy-clause"><h3>보유 기간</h3><p>행사 참가 접수 개인정보와 동일한 기간 동안 보유한 뒤 파기합니다.</p></section><section class="privacy-clause"><h3>동의 거부</h3><p>동의를 거부할 수 있으며 일반 참가 신청에는 영향이 없습니다. 다만 동의하지 않으면 온라인에서 휠체어석 자동 배정을 요청할 수 없습니다.</p></section></div><div class="privacy-modal-actions"><button id="sensitiveModalConfirmButton" class="submit-button" type="button">확인하고 닫기</button></div></section></div>
 
     <div id="privacyModalBackdrop" class="privacy-modal-backdrop hidden" aria-hidden="true">
       <section class="privacy-modal" role="dialog" aria-modal="true" aria-labelledby="privacyModalTitle">
@@ -182,7 +185,7 @@
               <div><strong>필수</strong><p>대표 신청자 이름, 연락처, 참여인원, 필수 수집·이용 동의 여부·동의일시·동의서 버전</p></div>
               <div><strong>선택</strong><p>소속기관·단체명</p></div>
             </div>
-            <p class="privacy-caution">건강·장애·진단정보 등 민감정보는 이 온라인 신청서에서 수집하지 않습니다. 휠체어석 등 편의지원이 필요한 경우 복지관(031-592-7150)으로 별도 문의해 주세요.</p>
+            <p class="privacy-caution">건강·진단정보 등 불필요한 민감정보는 수집하지 않습니다. 다만 신청자가 휠체어석을 선택한 경우에 한해 좌석 배정을 위한 최소한의 휠체어석 요청 여부를 별도 동의를 받아 처리합니다.</p>
           </section>
 
           <section class="privacy-clause">
@@ -245,6 +248,6 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="config.js"></script>
-  <script src="public.js?v=1.4"></script>
+  <script src="public.js?v=1.6"></script>
 </body>
 </html>

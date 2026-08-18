@@ -17,13 +17,14 @@ const DEFAULT_PUBLIC_SETTINGS = Object.freeze({
   registeredCount: 0,
   remainingCount: 500,
   autoAssignSeat: true,
+  introVideoEnabled: false,
+  introVideoUrl: 'assets/intro.mp4',
+  ticketRefreshSeconds: 15,
   privacyConsentVersion: CURRENT_PRIVACY_VERSION
 });
 
-let publicState = {
-  settings: { ...DEFAULT_PUBLIC_SETTINGS },
-  ticket: null
-};
+let publicState = { settings: { ...DEFAULT_PUBLIC_SETTINGS }, ticket: null, seatMeta: [] };
+let ticketRefreshTimer=null, seatLayoutRefreshTimer=null, introFinished=false;
 
 const $ = selector => document.querySelector(selector);
 
@@ -260,35 +261,8 @@ function clearQrContainer() {
   $('#ticketQr').innerHTML = '';
 }
 
-function renderTicket(ticket, { existing = false, remember = false, message = '' } = {}) {
-  publicState.ticket = ticket;
-  if (remember) rememberTicketCode(ticket.id);
-  const settings = publicState.settings;
-  $('#ticketNumber').textContent = `NO. ${String(ticket.number).padStart(4, '0')}`;
-  $('#ticketOrganizer').textContent = settings.eventOrganizer;
-  $('#ticketEventName').textContent = settings.eventName;
-  $('#ticketName').textContent = `${ticket.name} 님`;
-  const partySize = Math.max(1, Number(ticket.partySize) || 1);
-  const organization = String(ticket.organization || '').trim();
-  $('#ticketPartyInfo').textContent = `${organization ? organization + ' · ' : ''}참여 ${partySize.toLocaleString()}명`;
-  $('#ticketDate').textContent = settings.eventDate;
-  $('#ticketVenue').textContent = settings.eventVenue;
-  $('#ticketMessage').textContent = message || (existing
-    ? '이미 신청된 정보가 확인되어 기존 개인 QR을 다시 보여드립니다.'
-    : '현장에서 아래 QR을 보여주세요. 이미지로 저장해 두면 더 편리합니다.');
-
-  clearQrContainer();
-  new QRCode($('#ticketQr'), {
-    text: qrPayload(ticket),
-    width: 192,
-    height: 192,
-    correctLevel: QRCode.CorrectLevel.H
-  });
-
-  $('#ticketSection').classList.remove('hidden');
-  history.replaceState(null, '', ticketLink(ticket.id));
-  setTimeout(() => $('#ticketSection').scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
-}
+function compactSeatLabel(value){const seats=String(value||'').split(',').map(v=>v.trim()).filter(Boolean);if(!seats.length)return'좌석 배정 중';return seats.length<=4?seats.join(' · '):`${seats[0]} ~ ${seats[seats.length-1]} (${seats.length}석)`}
+function renderTicket(ticket,{existing=false,remember=false,message='',scroll=true}={}){publicState.ticket=ticket;if(remember)rememberTicketCode(ticket.id);const s=publicState.settings;$('#ticketNumber').textContent=`NO. ${String(ticket.number).padStart(4,'0')}`;$('#ticketOrganizer').textContent=s.eventOrganizer;$('#ticketEventName').textContent=s.eventName;$('#ticketName').textContent=`${ticket.name} 님${ticket.wheelchairRequired?' · 휠체어석':''}`;const party=Math.max(1,Number(ticket.partySize)||1),org=String(ticket.organization||'').trim();$('#ticketPartyInfo').textContent=`${org?org+' · ':''}참여 ${party.toLocaleString()}명`;$('#ticketSeat').textContent=compactSeatLabel(ticket.seat);$('#ticketDate').textContent=s.eventDate;$('#ticketVenue').textContent=s.eventVenue;$('#ticketMessage').textContent=message||(existing?'신청 정보를 확인했습니다. 현재 좌석과 개인 QR을 확인해 주세요.':'현장에서 아래 QR을 보여주세요. 좌석 변경은 자동으로 반영됩니다.');clearQrContainer();new QRCode($('#ticketQr'),{text:qrPayload(ticket),width:192,height:192,correctLevel:QRCode.CorrectLevel.H});$('#ticketSection').classList.remove('hidden');history.replaceState(null,'',ticketLink(ticket.id));renderPublicSeatMap();startTicketLiveSync();if(scroll)setTimeout(()=>$('#ticketSection').scrollIntoView({behavior:'smooth',block:'start'}),100)}
 
 function getDisplayedQrDataUrl() {
   const canvas = $('#ticketQr canvas');
@@ -446,10 +420,11 @@ async function downloadTicketImage() {
     ctx.stroke();
     ctx.fillStyle = '#ead1a5';
     ctx.font = '700 22px Arial, sans-serif';
-    ctx.fillText('ADMISSION QR PASS', 540, passY + 48);
+    ctx.fillText('YOUR SEAT', 540, passY + 42);
     ctx.fillStyle = '#ffffff';
-    ctx.font = '500 28px "Noto Sans KR", Arial, sans-serif';
-    ctx.fillText('좌석은 행사 당일 운영진이 안내합니다.', 540, passY + 94);
+    ctx.font = '700 31px "Noto Sans KR", Arial, sans-serif';
+    const seatLabel = compactSeatLabel(ticket.seat);
+    ctx.fillText(seatLabel.length>44?seatLabel.slice(0,41)+'…':seatLabel, 540, passY + 94);
 
     const qrSize = 500;
     const qrX = (1080 - qrSize) / 2;
@@ -607,6 +582,8 @@ async function handleApplicationSubmit(event) {
   const submitButton = $('#submitButton');
   const values = Object.fromEntries(new FormData(form).entries());
   values.privacyConsentConfirmed = form.elements.privacyConsentConfirmed.checked;
+  values.wheelchairRequired = Boolean(form.elements.wheelchairRequired?.checked);
+  values.sensitiveConsent = Boolean(form.elements.sensitiveConsent?.checked);
   values.ageConfirmed = form.elements.ageConfirmed.checked;
   values.optionalConsent = form.elements.optionalConsent.checked;
   values.privacyVersion = publicState.settings.privacyConsentVersion || CURRENT_PRIVACY_VERSION;
@@ -644,6 +621,19 @@ async function handleApplicationSubmit(event) {
 
 
 
+function defaultPublicSeatMeta(){const out=[];let order=1;'ABCDEFGHIJKLMNO'.split('').forEach(row=>['L','R'].forEach(side=>{for(let n=1;n<=15;n++){const code=`${row}${side}-${String(n).padStart(2,'0')}`;out.push({code,row,side,number:n,category:row==='A'?'VIP':'일반',enabled:true,wheelchairEligible:code==='AL-01'||code==='AR-15',order:order++})}}));['L','R'].forEach(side=>{for(let n=1;n<=25;n++)out.push({code:`X${side}-${String(n).padStart(2,'0')}`,row:'X',side,number:n,category:'추가석',enabled:true,wheelchairEligible:false,order:order++})});return out}
+function publicSeatDot(code,m,selected){const cls=['public-seat-dot'];if(String(m?.category||'').toLowerCase().includes('vip'))cls.push('public-vip');if(m?.wheelchairEligible)cls.push('public-wheelchair');if(selected)cls.push('my-seat');return `<span class="${cls.join(' ')}" title="${code}${selected?' · 내 좌석':''}"></span>`}
+function publicRow(row,lN,rN,map,selected){let l='',r='';for(let i=1;i<=lN;i++){const c=`${row}L-${String(i).padStart(2,'0')}`;l+=publicSeatDot(c,map.get(c),selected.has(c))}for(let i=1;i<=rN;i++){const c=`${row}R-${String(i).padStart(2,'0')}`;r+=publicSeatDot(c,map.get(c),selected.has(c))}return `<div class="public-runway-row"><div class="public-side">${l}</div><div class="public-runway-spine">${row}</div><div class="public-side">${r}</div></div>`}
+function renderPublicSeatMap(){const a=$('#publicSeatMap'),x=$('#publicExtraSeatMap');if(!a||!x)return;const src=publicState.seatMeta.length?publicState.seatMeta:defaultPublicSeatMeta(),map=new Map(src.map(s=>[String(s.code).toUpperCase(),s])),selected=new Set(String(publicState.ticket?.seat||'').split(',').map(v=>v.trim().toUpperCase()).filter(Boolean));a.innerHTML='ABCDEFGHIJKLMNO'.split('').map(r=>publicRow(r,15,15,map,selected)).join('');x.innerHTML=publicRow('X',25,25,map,selected)}
+async function loadPublicSeatLayout(){try{const r=await publicApiRequest('publicSeatLayout');publicState.seatMeta=Array.isArray(r?.seats)?r.seats:[];}catch(_){if(!publicState.seatMeta.length)publicState.seatMeta=defaultPublicSeatMeta()}renderPublicSeatMap()}
+async function syncCurrentTicket(){if(!publicState.ticket?.id||document.hidden)return;try{const before=String(publicState.ticket.seat||''),r=await publicApiRequest('publicTicket',{code:publicState.ticket.id});if(r.settings)publicState.settings={...publicState.settings,...r.settings};if(r.participant){const changed=before!==String(r.participant.seat||'');renderTicket(r.participant,{existing:true,scroll:false,message:changed?'관리자가 좌석을 변경했습니다. 최신 좌석으로 갱신했습니다.':'현재 좌석 정보가 최신 상태입니다.'});if(changed)showToast('좌석 변경사항이 반영되었습니다.',4200)}}catch(_){}}
+function startTicketLiveSync(){clearInterval(ticketRefreshTimer);ticketRefreshTimer=setInterval(syncCurrentTicket,Math.max(5,Number(publicState.settings.ticketRefreshSeconds)||15)*1000);clearInterval(seatLayoutRefreshTimer);seatLayoutRefreshTimer=setInterval(loadPublicSeatLayout,60000)}
+function hideIntro(){if(introFinished)return;introFinished=true;const o=$('#introOverlay'),v=$('#introVideo');try{v?.pause()}catch(_){}o?.classList.add('intro-leaving');setTimeout(()=>o?.classList.add('hidden'),450);document.body.classList.remove('intro-playing')}
+function setupIntroVideo(){const o=$('#introOverlay'),v=$('#introVideo');if(!o||!v||publicState.settings.introVideoEnabled!==true)return;const src=String(publicState.settings.introVideoUrl||'').trim();if(!src)return;introFinished=false;o.classList.remove('hidden','intro-leaving');document.body.classList.add('intro-playing');v.src=src;v.muted=true;v.addEventListener('timeupdate',()=>{const d=Number(v.duration)||30,c=Number(v.currentTime)||0;$('#introProgressBar').style.width=`${Math.min(100,c/d*100)}%`;$('#introTimeLabel').textContent=`${Math.ceil(Math.max(0,d-c))}초`});v.addEventListener('ended',hideIntro,{once:true});v.addEventListener('error',hideIntro,{once:true});$('#introSkipButton')?.addEventListener('click',hideIntro,{once:true});$('#introSoundButton')?.addEventListener('click',()=>{v.muted=!v.muted;$('#introSoundButton').textContent=v.muted?'소리 켜기':'음소거'});v.play()?.catch(()=>{});setTimeout(()=>{if(!introFinished&&(Number(v.currentTime)||0)===0)hideIntro()},3500)}
+function updateWheelchairConsentUi(){const checked=Boolean($('#applicationForm input[name="wheelchairRequired"]')?.checked),row=$('#sensitiveConsentRow'),box=$('#applicationForm input[name="sensitiveConsent"]');row?.classList.toggle('hidden',!checked);if(box){box.required=checked;if(!checked)box.checked=false}}
+function openSensitiveModal(){$('#sensitiveModalBackdrop')?.classList.remove('hidden');$('#sensitiveModalBackdrop')?.setAttribute('aria-hidden','false');document.body.classList.add('modal-open')}
+function closeSensitiveModal(){$('#sensitiveModalBackdrop')?.classList.add('hidden');$('#sensitiveModalBackdrop')?.setAttribute('aria-hidden','true');document.body.classList.remove('modal-open')}
+
 function openPrivacyModal() {
   const backdrop = $('#privacyModalBackdrop');
   if (!backdrop) return;
@@ -669,6 +659,12 @@ async function initialize() {
   $('#applicationForm input[name="phone"]').addEventListener('input', event => normalizePhoneInput(event.currentTarget));
   $('#lookupForm input[name="phone"]').addEventListener('input', event => normalizePhoneInput(event.currentTarget));
   $('#applicationForm').addEventListener('submit', handleApplicationSubmit);
+  $('#applicationForm input[name="wheelchairRequired"]')?.addEventListener('change', updateWheelchairConsentUi);
+  updateWheelchairConsentUi();
+  $('#sensitiveDetailsButton')?.addEventListener('click', openSensitiveModal);
+  $('#sensitiveModalCloseButton')?.addEventListener('click', closeSensitiveModal);
+  $('#sensitiveModalConfirmButton')?.addEventListener('click', closeSensitiveModal);
+  $('#sensitiveModalBackdrop')?.addEventListener('click',e=>{if(e.target===e.currentTarget)closeSensitiveModal()});
   $('#lookupForm').addEventListener('submit', handleLookupSubmit);
   $('#downloadTicketButton').addEventListener('click', downloadTicketImage);
   $('#downloadQrButton').addEventListener('click', downloadQrOnly);
@@ -693,8 +689,12 @@ async function initialize() {
 
   try {
     await loadPublicBootstrap();
+    setupIntroVideo();
+    await loadPublicSeatLayout();
     const loadedFromUrl = await loadTicketFromUrl();
     if (!loadedFromUrl) await loadRememberedTicket({ scroll: true });
+    window.addEventListener('focus',()=>syncCurrentTicket());
+    document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncCurrentTicket()});
   } catch (error) {
     $('#registrationStatus').className = 'registration-status closed';
     $('#registrationStatus').textContent = error.message;
