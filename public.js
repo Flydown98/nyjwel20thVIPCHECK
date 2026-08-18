@@ -14,7 +14,6 @@ const DEFAULT_PUBLIC_SETTINGS = Object.freeze({
   registrationCapacity: 40,
   registeredCount: 0,
   remainingCount: 40,
-  autoAssignSeat: true
 });
 
 let publicState = {
@@ -178,7 +177,6 @@ function renderTicket(ticket, { existing = false, remember = false, message = ''
   $('#ticketOrganizer').textContent = settings.eventOrganizer;
   $('#ticketEventName').textContent = settings.eventName;
   $('#ticketName').textContent = `${ticket.name} 님`;
-  $('#ticketSeat').textContent = ticket.seat || '좌석 미정';
   $('#ticketDate').textContent = settings.eventDate;
   $('#ticketVenue').textContent = settings.eventVenue;
   $('#ticketMessage').textContent = message || (existing
@@ -340,8 +338,8 @@ async function downloadTicketImage() {
     ctx.font = '700 56px "Noto Sans KR", Arial, sans-serif';
     ctx.fillText(`${ticket.name} 님`, 540, nextY + 125);
 
-    const seatY = nextY + 180;
-    roundedRect(ctx, 125, seatY, 830, 185, 36);
+    const passY = nextY + 185;
+    roundedRect(ctx, 125, passY, 830, 120, 32);
     ctx.fillStyle = 'rgba(255,255,255,.09)';
     ctx.fill();
     ctx.strokeStyle = 'rgba(255,255,255,.18)';
@@ -349,13 +347,14 @@ async function downloadTicketImage() {
     ctx.stroke();
     ctx.fillStyle = '#ead1a5';
     ctx.font = '700 22px Arial, sans-serif';
-    ctx.fillText('YOUR SEAT', 540, seatY + 52);
-    ctx.font = '700 82px Georgia, "Noto Sans KR", serif';
-    ctx.fillText(ticket.seat || '좌석 미정', 540, seatY + 139);
+    ctx.fillText('ADMISSION QR PASS', 540, passY + 45);
+    ctx.fillStyle = 'rgba(255,255,255,.85)';
+    ctx.font = '500 25px "Noto Sans KR", Arial, sans-serif';
+    ctx.fillText('좌석은 행사 당일 운영진이 안내합니다.', 540, passY + 84);
 
     const qrSize = 500;
     const qrX = (1080 - qrSize) / 2;
-    const qrY = seatY + 240;
+    const qrY = passY + 175;
     roundedRect(ctx, qrX - 25, qrY - 25, qrSize + 50, qrSize + 50, 38);
     ctx.fillStyle = '#ffffff';
     ctx.fill();
