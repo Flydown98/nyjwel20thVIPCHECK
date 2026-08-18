@@ -1,5 +1,7 @@
 'use strict';
 
+const ADMIN_UI_VERSION = '1.4-500SEAT';
+
 const CONFIG = window.NYJ20_CONFIG || {};
 const API_URL = String(CONFIG.appsScriptUrl || '').trim();
 const STORAGE = Object.freeze({

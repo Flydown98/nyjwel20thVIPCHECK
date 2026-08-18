@@ -22,8 +22,7 @@ const DEFAULT_PUBLIC_SETTINGS = Object.freeze({
 
 let publicState = {
   settings: { ...DEFAULT_PUBLIC_SETTINGS },
-  ticket: null,
-  privacyViewed: false
+  ticket: null
 };
 
 const $ = selector => document.querySelector(selector);
@@ -518,9 +517,6 @@ function handleNewApplication(event) {
   publicState.ticket = null;
   $('#ticketSection').classList.add('hidden');
   $('#applicationForm').reset();
-  publicState.privacyViewed = false;
-  const noticeBox = $('#applicationForm input[name="privacyConsentConfirmed"]');
-  if (noticeBox) noticeBox.disabled = true;
   $('#applicationForm').dataset.startedAt = String(Date.now());
   $('#application').scrollIntoView({ behavior: 'smooth', block: 'start' });
   showToast('새 참가자를 신청할 수 있도록 기존 티켓 기억을 해제했습니다.');
@@ -620,11 +616,6 @@ async function handleApplicationSubmit(event) {
     form.elements.optionalConsent?.focus();
     return;
   }
-  if (!publicState.privacyViewed) {
-    showToast('개인정보 수집·이용 동의서 전문을 열어 내용을 확인해 주세요.', 5200);
-    $('#privacyDetailsButton')?.focus();
-    return;
-  }
   if (!values.optionalConsent) values.organization = '';
   values.group = '';
   values.note = '';
@@ -638,8 +629,6 @@ async function handleApplicationSubmit(event) {
     renderTicket(result.participant, { existing: result.existing, remember: true });
     if (!result.existing) {
       form.reset();
-      publicState.privacyViewed = false;
-      if (form.elements.privacyConsentConfirmed) form.elements.privacyConsentConfirmed.disabled = true;
       if (form.elements.partySize) form.elements.partySize.value = '1';
     }
     form.dataset.startedAt = String(Date.now());
@@ -654,13 +643,6 @@ async function handleApplicationSubmit(event) {
 }
 
 
-function updatePrivacyConfirmAvailability() {
-  const body = document.querySelector('.privacy-modal-body');
-  const button = $('#privacyModalConfirmButton');
-  if (!body || !button) return;
-  const reachedBottom = body.scrollTop + body.clientHeight >= body.scrollHeight - 24;
-  button.disabled = !(publicState.privacyViewed || reachedBottom || body.scrollHeight <= body.clientHeight + 24);
-}
 
 function openPrivacyModal() {
   const backdrop = $('#privacyModalBackdrop');
@@ -669,8 +651,7 @@ function openPrivacyModal() {
   backdrop.setAttribute('aria-hidden', 'false');
   document.body.classList.add('modal-open');
   const body = document.querySelector('.privacy-modal-body');
-  if (body && !publicState.privacyViewed) body.scrollTop = 0;
-  requestAnimationFrame(updatePrivacyConfirmAvailability);
+  if (body) body.scrollTop = 0;
   $('#privacyModalCloseButton')?.focus();
 }
 
@@ -681,18 +662,6 @@ function closePrivacyModal() {
   backdrop.setAttribute('aria-hidden', 'true');
   document.body.classList.remove('modal-open');
   $('#privacyDetailsButton')?.focus();
-}
-
-function confirmPrivacyViewed() {
-  publicState.privacyViewed = true;
-  const consentBox = $('#applicationForm input[name="privacyConsentConfirmed"]');
-  if (consentBox) {
-    consentBox.disabled = false;
-    consentBox.checked = true;
-    consentBox.focus();
-  }
-  closePrivacyModal();
-  showToast('필수 개인정보 수집·이용에 동의했습니다. 신청을 완료해 주세요.');
 }
 
 async function initialize() {
@@ -709,8 +678,7 @@ async function initialize() {
   $('#newApplicationLink').addEventListener('click', handleNewApplication);
   $('#privacyDetailsButton')?.addEventListener('click', openPrivacyModal);
   $('#privacyModalCloseButton')?.addEventListener('click', closePrivacyModal);
-  $('#privacyModalConfirmButton')?.addEventListener('click', confirmPrivacyViewed);
-  document.querySelector('.privacy-modal-body')?.addEventListener('scroll', updatePrivacyConfirmAvailability, { passive: true });
+  $('#privacyModalConfirmButton')?.addEventListener('click', closePrivacyModal);
   $('#privacyModalBackdrop')?.addEventListener('click', event => { if (event.target === event.currentTarget) closePrivacyModal(); });
   document.addEventListener('keydown', event => { if (event.key === 'Escape' && !$('#privacyModalBackdrop')?.classList.contains('hidden')) closePrivacyModal(); });
   updateRememberedTicketUi();
