@@ -621,7 +621,7 @@ async function handleApplicationSubmit(event) {
 
 
 
-function defaultPublicSeatMeta(){const out=[];let order=1;const vip=new Set(['AL-10','AL-11','AL-12','AL-13','AL-14','AL-15','AR-01','AR-02','AR-03','AR-04','AR-05','AR-06','BL-10','BL-11','BL-12','BL-13','BL-14','BL-15','BR-01','BR-02','BR-03','BR-04','BR-05','BR-06']);const wc=new Set(['AL-01','AL-02','AR-14','AR-15']);'ABCDEFGHIJKLMNO'.split('').forEach(row=>['L','R'].forEach(side=>{for(let n=1;n<=15;n++){const code=`${row}${side}-${String(n).padStart(2,'0')}`;out.push({code,row,side,number:n,category:wc.has(code)?'휠체어':vip.has(code)?'VIP':'일반',enabled:true,wheelchairEligible:wc.has(code),order:order++})}}));return out}
+function defaultPublicSeatMeta(){const out=[];let order=1;const vip=new Set(['AL-13','AL-14','AL-15','AR-01','AR-02','AR-03','BL-13','BL-14','BL-15','BR-01','BR-02','BR-03','CL-13','CL-14','CL-15','CR-01','CR-02','CR-03','DL-13','DL-14','DL-15','DR-01','DR-02','DR-03']);const wc=new Set(['AL-01','AL-02','AR-14','AR-15']);'ABCDEFGHIJKLMNO'.split('').forEach(row=>['L','R'].forEach(side=>{for(let n=1;n<=15;n++){const code=`${row}${side}-${String(n).padStart(2,'0')}`;out.push({code,row,side,number:n,category:wc.has(code)?'휠체어':vip.has(code)?'VIP':'일반',enabled:true,wheelchairEligible:wc.has(code),order:order++})}}));return out}
 function publicSeatDot(code,m,selected){const cls=['public-seat-dot'];if(String(m?.category||'').toLowerCase().includes('vip'))cls.push('public-vip');if(m?.wheelchairEligible)cls.push('public-wheelchair');if(selected)cls.push('my-seat');return `<span class="${cls.join(' ')}" title="${code}${selected?' · 내 좌석':''}"></span>`}
 function publicRow(row,lN,rN,map,selected){let l='',r='';for(let i=1;i<=lN;i++){const c=`${row}L-${String(i).padStart(2,'0')}`;l+=publicSeatDot(c,map.get(c),selected.has(c))}for(let i=1;i<=rN;i++){const c=`${row}R-${String(i).padStart(2,'0')}`;r+=publicSeatDot(c,map.get(c),selected.has(c))}return `<div class="public-runway-row"><div class="public-side">${l}</div><div class="public-runway-spine">${row}</div><div class="public-side">${r}</div></div>`}
 function renderPublicSeatMap(){const a=$('#publicSeatMap');if(!a)return;const src=publicState.seatMeta.length?publicState.seatMeta:defaultPublicSeatMeta(),map=new Map(src.map(s=>[String(s.code).toUpperCase(),s])),selected=new Set(String(publicState.ticket?.seat||'').split(',').map(v=>v.trim().toUpperCase()).filter(Boolean));a.innerHTML='ABCDEFGHIJKLMNO'.split('').map(r=>publicRow(r,15,15,map,selected)).join('');if($('#publicExtraSeatMap'))$('#publicExtraSeatMap').innerHTML=''}
@@ -692,19 +692,56 @@ function finishIntro() {
   }, 520);
 }
 
+function formatIntroTime(seconds) {
+  const safe = Math.max(0, Number(seconds) || 0);
+  const minutes = Math.floor(safe / 60);
+  const secs = Math.floor(safe % 60);
+  return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+}
+
 function updateIntroProgress() {
   const video = $('#introVideo');
   if (!video) return;
 
-  const duration = Number(video.duration) || 30;
+  const duration = Number.isFinite(video.duration) ? video.duration : 0;
   const current = Number(video.currentTime) || 0;
-  const remaining = Math.max(0, Math.ceil(duration - current));
 
-  const bar = $('#introProgressBar');
-  const label = $('#introTimeLabel');
+  const currentLabel = $('#introCurrentTime');
+  const durationLabel = $('#introDurationTime');
+  const seekBar = $('#introSeekBar');
 
-  if (bar) bar.style.width = `${Math.min(100, current / duration * 100)}%`;
-  if (label) label.textContent = remaining > 0 ? `${remaining}초` : 'INTRO';
+  if (currentLabel) currentLabel.textContent = formatIntroTime(current);
+  if (durationLabel) durationLabel.textContent = duration > 0 ? formatIntroTime(duration) : '00:00';
+
+  if (seekBar && !seekBar.matches(':active') && document.activeElement !== seekBar) {
+    seekBar.value = duration > 0 ? String(Math.round((current / duration) * 1000)) : '0';
+  }
+
+  updateIntroPlayPauseButton();
+}
+
+function updateIntroPlayPauseButton() {
+  const video = $('#introVideo');
+  const button = $('#introPlayPauseButton');
+  if (!video || !button) return;
+
+  const paused = video.paused;
+  button.innerHTML = paused
+    ? '▶ <span>재생</span>'
+    : '❚❚ <span>일시정지</span>';
+  button.setAttribute('aria-label', paused ? '영상 재생' : '영상 일시정지');
+}
+
+function updateIntroSoundButton() {
+  const video = $('#introVideo');
+  const button = $('#introSoundButton');
+  if (!video || !button) return;
+
+  const muted = video.muted || Number(video.volume) === 0;
+  button.innerHTML = muted
+    ? '🔇 <span>소리 켜기</span>'
+    : '🔊 <span>음소거</span>';
+  button.setAttribute('aria-label', muted ? '영상 소리 켜기' : '영상 음소거');
 }
 
 function showIntroStartPanel() {
@@ -729,8 +766,11 @@ async function startIntroMuted() {
     video.currentTime = 0;
     video.muted = true;
     await video.play();
+    updateIntroSoundButton();
+    updateIntroPlayPauseButton();
   } catch (_) {
     showIntroStartPanel();
+    updateIntroPlayPauseButton();
   }
 }
 
@@ -779,20 +819,74 @@ function setupIntroVideo() {
   overlay.setAttribute('aria-hidden', 'false');
   document.body.classList.add('intro-playing');
 
+  const seekBar = $('#introSeekBar');
+
+  const seekBySeconds = seconds => {
+    if (!Number.isFinite(video.duration)) return;
+    video.currentTime = Math.max(0, Math.min(video.duration, video.currentTime + seconds));
+    updateIntroProgress();
+  };
+
+  const togglePlayPause = async () => {
+    if (video.paused) {
+      try {
+        await video.play();
+      } catch (_) {
+        showIntroStartPanel();
+      }
+    } else {
+      video.pause();
+    }
+    updateIntroPlayPauseButton();
+  };
+
+  video.addEventListener('loadedmetadata', () => {
+    updateIntroProgress();
+    updateIntroSoundButton();
+  });
+
+  video.addEventListener('durationchange', updateIntroProgress);
   video.addEventListener('timeupdate', updateIntroProgress);
+  video.addEventListener('play', updateIntroPlayPauseButton);
+  video.addEventListener('pause', updateIntroPlayPauseButton);
+  video.addEventListener('volumechange', updateIntroSoundButton);
   video.addEventListener('ended', finishIntro, { once: true });
 
   video.addEventListener('error', () => {
-    // 영상 파일이 없거나 오류가 나도 홈페이지가 막히지 않게 초대장으로 전환
     finishIntro();
   }, { once: true });
 
+  // 영상 자체를 눌러도 재생/일시정지.
+  video.addEventListener('click', togglePlayPause);
+
+  $('#introPlayPauseButton')?.addEventListener('click', togglePlayPause);
+  $('#introBack10Button')?.addEventListener('click', () => seekBySeconds(-10));
+  $('#introForward10Button')?.addEventListener('click', () => seekBySeconds(10));
   $('#introSkipButton')?.addEventListener('click', finishIntro);
 
-  $('#introSoundButton')?.addEventListener('click', () => {
+  seekBar?.addEventListener('input', event => {
+    if (!Number.isFinite(video.duration) || video.duration <= 0) return;
+    const ratio = Math.max(0, Math.min(1000, Number(event.currentTarget.value) || 0)) / 1000;
+    const previewSeconds = video.duration * ratio;
+    $('#introCurrentTime').textContent = formatIntroTime(previewSeconds);
+  });
+
+  seekBar?.addEventListener('change', event => {
+    if (!Number.isFinite(video.duration) || video.duration <= 0) return;
+    const ratio = Math.max(0, Math.min(1000, Number(event.currentTarget.value) || 0)) / 1000;
+    video.currentTime = video.duration * ratio;
+    updateIntroProgress();
+  });
+
+  $('#introSoundButton')?.addEventListener('click', async () => {
+    // 사용자 클릭이므로 모바일 브라우저에서도 오디오 활성화가 가능.
     video.muted = !video.muted;
-    const button = $('#introSoundButton');
-    if (button) button.textContent = video.muted ? '소리 켜기' : '음소거';
+
+    if (!video.muted && video.paused) {
+      try { await video.play(); } catch (_) {}
+    }
+
+    updateIntroSoundButton();
   });
 
   $('#introStartButton')?.addEventListener('click', async () => {
@@ -801,19 +895,22 @@ function setupIntroVideo() {
     try {
       video.muted = false;
       await video.play();
-      const button = $('#introSoundButton');
-      if (button) button.textContent = '음소거';
     } catch (_) {
       video.muted = true;
       await video.play().catch(finishIntro);
     }
+
+    updateIntroSoundButton();
+    updateIntroPlayPauseButton();
   });
 
   window.addEventListener('orientationchange', () => {
     if (introFinished) return;
+
     window.setTimeout(() => {
       const before = video.getAttribute('data-selected-source') || '';
       const after = preferredIntroSource();
+
       if (before !== after) {
         applyResponsiveIntroSource();
         startIntroMuted();
@@ -821,6 +918,9 @@ function setupIntroVideo() {
     }, 250);
   }, { once: true });
 
+  updateIntroProgress();
+  updateIntroSoundButton();
+  updateIntroPlayPauseButton();
   startIntroMuted();
 
   window.setTimeout(() => {

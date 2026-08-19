@@ -310,3 +310,142 @@ body.intro-playing{
     object-fit:cover;
   }
 }
+
+
+/* v2.3 full intro player controls */
+.intro-player-shell{
+  position:absolute;
+  left:18px;
+  right:18px;
+  bottom:max(18px,env(safe-area-inset-bottom));
+  z-index:10;
+  padding:12px;
+  border:1px solid rgba(255,255,255,.18);
+  border-radius:18px;
+  background:rgba(4,10,18,.62);
+  backdrop-filter:blur(12px);
+  box-shadow:0 12px 34px rgba(0,0,0,.28);
+}
+.intro-seek-row{
+  display:grid;
+  grid-template-columns:48px minmax(0,1fr) 48px;
+  align-items:center;
+  gap:9px;
+}
+.intro-time-code{
+  color:#fff;
+  font-size:11px;
+  font-variant-numeric:tabular-nums;
+  font-weight:800;
+  text-align:center;
+}
+.intro-seek-bar{
+  width:100%;
+  min-width:0;
+  height:20px;
+  margin:0;
+  cursor:pointer;
+  accent-color:#ead1a5;
+  touch-action:pan-x;
+}
+.intro-player-buttons{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-wrap:wrap;
+  gap:7px;
+  margin-top:8px;
+}
+.intro-player-button{
+  min-height:39px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:5px;
+  padding:0 12px;
+  border:1px solid rgba(255,255,255,.2);
+  border-radius:12px;
+  background:rgba(0,0,0,.38);
+  color:#fff;
+  font-size:12px;
+  font-weight:850;
+  cursor:pointer;
+}
+.intro-player-button:hover{
+  background:rgba(255,255,255,.14);
+}
+.intro-player-button.primary{
+  min-width:108px;
+  background:rgba(255,255,255,.94);
+  color:#172554;
+}
+.intro-player-button.skip{
+  margin-left:auto;
+  border-color:rgba(234,209,165,.42);
+  color:#f7ddb0;
+}
+.intro-controls{
+  display:none!important;
+}
+
+/* v1.9에서 모바일 소리 버튼을 숨기던 규칙을 무효화 */
+.intro-player-shell #introSoundButton{
+  display:inline-flex!important;
+}
+
+@media(max-width:820px) and (orientation:portrait){
+  .intro-player-shell{
+    left:8px;
+    right:8px;
+    bottom:max(8px,env(safe-area-inset-bottom));
+    padding:9px 8px;
+    border-radius:15px;
+  }
+  .intro-seek-row{
+    grid-template-columns:42px minmax(0,1fr) 42px;
+    gap:5px;
+  }
+  .intro-time-code{
+    font-size:10px;
+  }
+  .intro-seek-bar{
+    height:26px;
+  }
+  .intro-player-buttons{
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:5px;
+    margin-top:5px;
+  }
+  .intro-player-button{
+    width:100%;
+    min-width:0;
+    min-height:40px;
+    padding:0 5px;
+    border-radius:10px;
+    font-size:11px;
+  }
+  .intro-player-button.primary{
+    min-width:0;
+  }
+  .intro-player-button.skip{
+    grid-column:1/-1;
+    margin-left:0;
+    min-height:36px;
+  }
+  .intro-player-button span{
+    white-space:nowrap;
+  }
+}
+
+@media(max-width:390px) and (orientation:portrait){
+  .intro-player-button{
+    font-size:10px;
+  }
+  .intro-player-button span{
+    display:none;
+  }
+  .intro-player-button.skip span{
+    display:inline;
+  }
+}
