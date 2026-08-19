@@ -24,7 +24,7 @@ const DEFAULT_PUBLIC_SETTINGS = Object.freeze({
 });
 
 let publicState = { settings: { ...DEFAULT_PUBLIC_SETTINGS }, ticket: null, seatMeta: [] };
-let ticketRefreshTimer=null, seatLayoutRefreshTimer=null, introFinished=false;
+let ticketRefreshTimer=null, seatLayoutRefreshTimer=null;
 
 const $ = selector => document.querySelector(selector);
 
@@ -628,8 +628,8 @@ function renderPublicSeatMap(){const a=$('#publicSeatMap');if(!a)return;const sr
 async function loadPublicSeatLayout(){try{const r=await publicApiRequest('publicSeatLayout');publicState.seatMeta=Array.isArray(r?.seats)?r.seats:[];}catch(_){if(!publicState.seatMeta.length)publicState.seatMeta=defaultPublicSeatMeta()}renderPublicSeatMap()}
 async function syncCurrentTicket(){if(!publicState.ticket?.id||document.hidden)return;try{const before=String(publicState.ticket.seat||''),r=await publicApiRequest('publicTicket',{code:publicState.ticket.id});if(r.settings)publicState.settings={...publicState.settings,...r.settings};if(r.participant){const changed=before!==String(r.participant.seat||'');renderTicket(r.participant,{existing:true,scroll:false,message:changed?'관리자가 좌석을 변경했습니다. 최신 좌석으로 갱신했습니다.':'현재 좌석 정보가 최신 상태입니다.'});if(changed)showToast('좌석 변경사항이 반영되었습니다.',4200)}}catch(_){}}
 function startTicketLiveSync(){clearInterval(ticketRefreshTimer);ticketRefreshTimer=setInterval(syncCurrentTicket,Math.max(5,Number(publicState.settings.ticketRefreshSeconds)||15)*1000);clearInterval(seatLayoutRefreshTimer);seatLayoutRefreshTimer=setInterval(loadPublicSeatLayout,60000)}
-function hideIntro(){if(introFinished)return;introFinished=true;const o=$('#introOverlay'),v=$('#introVideo');try{v?.pause()}catch(_){}o?.classList.add('intro-leaving');setTimeout(()=>o?.classList.add('hidden'),450);document.body.classList.remove('intro-playing')}
-function setupIntroVideo(){const o=$('#introOverlay'),v=$('#introVideo');if(!o||!v||publicState.settings.introVideoEnabled!==true)return;const src=String(publicState.settings.introVideoUrl||'').trim();if(!src)return;introFinished=false;o.classList.remove('hidden','intro-leaving');document.body.classList.add('intro-playing');v.src=src;v.muted=true;v.addEventListener('timeupdate',()=>{const d=Number(v.duration)||30,c=Number(v.currentTime)||0;$('#introProgressBar').style.width=`${Math.min(100,c/d*100)}%`;$('#introTimeLabel').textContent=`${Math.ceil(Math.max(0,d-c))}초`});v.addEventListener('ended',hideIntro,{once:true});v.addEventListener('error',hideIntro,{once:true});$('#introSkipButton')?.addEventListener('click',hideIntro,{once:true});$('#introSoundButton')?.addEventListener('click',()=>{v.muted=!v.muted;$('#introSoundButton').textContent=v.muted?'소리 켜기':'음소거'});v.play()?.catch(()=>{});setTimeout(()=>{if(!introFinished&&(Number(v.currentTime)||0)===0)hideIntro()},3500)}
+
+
 function updateWheelchairConsentUi(){const checked=Boolean($('#applicationForm input[name="wheelchairRequired"]')?.checked),row=$('#sensitiveConsentRow'),box=$('#applicationForm input[name="sensitiveConsent"]');row?.classList.toggle('hidden',!checked);if(box){box.required=checked;if(!checked)box.checked=false}}
 function openSensitiveModal(){$('#sensitiveModalBackdrop')?.classList.remove('hidden');$('#sensitiveModalBackdrop')?.setAttribute('aria-hidden','false');document.body.classList.add('modal-open')}
 function closeSensitiveModal(){$('#sensitiveModalBackdrop')?.classList.add('hidden');$('#sensitiveModalBackdrop')?.setAttribute('aria-hidden','true');document.body.classList.remove('modal-open')}
@@ -670,7 +670,123 @@ async function copyVenueAddress() {
   catch (error) { window.prompt('아래 주소를 복사해 주세요.', address); }
 }
 
+
+let introFinished = false;
+
+function finishIntro() {
+  if (introFinished) return;
+  introFinished = true;
+
+  const overlay = $('#introOverlay');
+  const video = $('#introVideo');
+
+  try { video?.pause(); } catch (_) {}
+
+  overlay?.classList.add('intro-leaving');
+  document.body.classList.remove('intro-playing');
+
+  window.setTimeout(() => {
+    overlay?.classList.add('hidden');
+    overlay?.setAttribute('aria-hidden', 'true');
+    window.scrollTo(0, 0);
+  }, 520);
+}
+
+function updateIntroProgress() {
+  const video = $('#introVideo');
+  if (!video) return;
+
+  const duration = Number(video.duration) || 30;
+  const current = Number(video.currentTime) || 0;
+  const remaining = Math.max(0, Math.ceil(duration - current));
+
+  const bar = $('#introProgressBar');
+  const label = $('#introTimeLabel');
+
+  if (bar) bar.style.width = `${Math.min(100, current / duration * 100)}%`;
+  if (label) label.textContent = remaining > 0 ? `${remaining}초` : 'INTRO';
+}
+
+function showIntroStartPanel() {
+  $('#introStartPanel')?.classList.remove('hidden');
+}
+
+function hideIntroStartPanel() {
+  $('#introStartPanel')?.classList.add('hidden');
+}
+
+async function startIntroMuted() {
+  const video = $('#introVideo');
+
+  if (!video) {
+    finishIntro();
+    return;
+  }
+
+  hideIntroStartPanel();
+
+  try {
+    video.currentTime = 0;
+    video.muted = true;
+    await video.play();
+  } catch (_) {
+    showIntroStartPanel();
+  }
+}
+
+function setupIntroVideo() {
+  const overlay = $('#introOverlay');
+  const video = $('#introVideo');
+
+  if (!overlay || !video) return;
+
+  introFinished = false;
+  overlay.classList.remove('hidden', 'intro-leaving');
+  overlay.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('intro-playing');
+
+  video.addEventListener('timeupdate', updateIntroProgress);
+  video.addEventListener('ended', finishIntro, { once: true });
+
+  video.addEventListener('error', () => {
+    // 영상 파일이 없거나 오류가 나도 홈페이지가 막히지 않게 초대장으로 전환
+    finishIntro();
+  }, { once: true });
+
+  $('#introSkipButton')?.addEventListener('click', finishIntro);
+
+  $('#introSoundButton')?.addEventListener('click', () => {
+    video.muted = !video.muted;
+    const button = $('#introSoundButton');
+    if (button) button.textContent = video.muted ? '소리 켜기' : '음소거';
+  });
+
+  $('#introStartButton')?.addEventListener('click', async () => {
+    hideIntroStartPanel();
+
+    try {
+      video.muted = false;
+      await video.play();
+      const button = $('#introSoundButton');
+      if (button) button.textContent = '음소거';
+    } catch (_) {
+      video.muted = true;
+      await video.play().catch(finishIntro);
+    }
+  });
+
+  startIntroMuted();
+
+  window.setTimeout(() => {
+    if (!introFinished && video.paused && Number(video.currentTime || 0) < 0.2) {
+      showIntroStartPanel();
+    }
+  }, 1500);
+}
+
+
 async function initialize() {
+  setupIntroVideo();
   $('#applicationForm').dataset.startedAt = String(Date.now());
   $('#applicationForm input[name="phone"]').addEventListener('input', event => normalizePhoneInput(event.currentTarget));
   $('#lookupForm input[name="phone"]').addEventListener('input', event => normalizePhoneInput(event.currentTarget));
@@ -707,7 +823,7 @@ async function initialize() {
 
   try {
     await loadPublicBootstrap();
-    setupIntroVideo();
+    
     await loadPublicSeatLayout();
     const loadedFromUrl = await loadTicketFromUrl();
     if (!loadedFromUrl) await loadRememberedTicket({ scroll: true });
