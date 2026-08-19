@@ -62,3 +62,99 @@
   .seat-person-meta{text-align:left;display:flex;gap:10px}
   .seat-selected-person{top:58px;align-items:flex-start;flex-direction:column}
 }
+
+
+/* v2.0 — 450석 한눈에 보기 */
+.runway-auditorium{
+  overflow-x:hidden!important;
+  padding:22px 16px!important;
+}
+.runway-stage{
+  width:min(780px,80%)!important;
+  height:105px!important;
+  margin-bottom:10px!important;
+}
+.runway-head{
+  width:52px!important;
+  padding:6px 3px!important;
+  font-size:.58rem!important;
+}
+.runway-seat-map{
+  width:100%!important;
+  min-width:0!important;
+  gap:3px!important;
+  padding:0 2px 8px!important;
+}
+.runway-row{
+  width:100%!important;
+  min-width:0!important;
+  grid-template-columns:minmax(0,1fr) 48px minmax(0,1fr)!important;
+  gap:4px!important;
+}
+.runway-side{
+  min-width:0!important;
+  gap:3px!important;
+}
+.runway-side-seats{
+  flex:1 1 auto!important;
+  min-width:0!important;
+  display:grid!important;
+  grid-template-columns:repeat(15,minmax(0,1fr))!important;
+  gap:2px!important;
+}
+.runway-row-label{
+  width:22px!important;
+  font-size:.56rem!important;
+}
+.runway-spine{
+  min-height:25px!important;
+  font-size:.52rem!important;
+}
+.runway-seat{
+  width:100%!important;
+  min-width:0!important;
+  height:25px!important;
+  min-height:25px!important;
+  border-radius:5px!important;
+  padding:1px!important;
+  font-size:.52rem!important;
+  box-shadow:inset 0 -3px 0 rgba(15,23,42,.07)!important;
+}
+.runway-seat strong{
+  font-size:clamp(6px,.55vw,9px)!important;
+}
+.runway-seat:hover{
+  transform:scale(1.15)!important;
+  z-index:8!important;
+}
+.wheelchair-seat-icon{
+  width:14px!important;
+  height:14px!important;
+  top:-8px!important;
+  font-size:8px!important;
+}
+.runway-seat.zone-vip{
+  background:#f7d96b!important;
+  color:#5b4300!important;
+  border-color:#d7aa16!important;
+}
+.runway-seat.zone-wheelchair,
+.runway-seat.wheelchair-anchor{
+  background:#bae6fd!important;
+  color:#075985!important;
+  border-color:#0ea5e9!important;
+}
+.rear-extra-label,.extra-seat-map{display:none!important}
+
+@media(max-width:900px){
+  .runway-row{
+    grid-template-columns:minmax(0,1fr) 38px minmax(0,1fr)!important;
+  }
+  .runway-seat{
+    height:21px!important;
+    min-height:21px!important;
+  }
+  .runway-row-label{display:none!important}
+  .runway-side{gap:1px!important}
+  .runway-side-seats{gap:1px!important}
+}

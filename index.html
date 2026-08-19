@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#152238" />
   <title>개관 20주년 모바일 초대장</title>
-  <link rel="stylesheet" href="public.css?v=1.8" />
+  <link rel="stylesheet" href="public.css?v=2.0" />
 </head>
 <body>
   <section id="introOverlay" class="intro-overlay hidden" aria-label="행사 인트로 영상"><video id="introVideo" class="intro-video" playsinline preload="metadata"></video><div class="intro-shade"></div><div class="intro-controls"><span id="introTimeLabel">INTRO</span><div class="intro-progress"><i id="introProgressBar"></i></div><button id="introSoundButton" type="button">소리 켜기</button><button id="introSkipButton" type="button">건너뛰기</button></div></section>
@@ -63,17 +63,11 @@
         <h2>오시는 길</h2>
         <p>남양주금곡실내체육관에서 만나요.</p>
       </div>
-      <a class="venue-map-card" href="https://map.naver.com/p/search/%EB%82%A8%EC%96%91%EC%A3%BC%EA%B8%88%EA%B3%A1%EC%8B%A4%EB%82%B4%EC%B2%B4%EC%9C%A1%EA%B4%80%20%EA%B2%BD%EA%B8%B0%20%EB%82%A8%EC%96%91%EC%A3%BC%EC%8B%9C%20%EA%B2%BD%EC%B6%98%EB%A1%9C990%EB%B2%88%EA%B8%B8%2037" target="_blank" rel="noopener noreferrer" aria-label="네이버지도에서 남양주금곡실내체육관 보기">
-        <div class="map-schematic" aria-hidden="true">
-          <div class="map-road road-main"><span>경춘로</span></div>
-          <div class="map-road road-entry"><span>경춘로990번길</span></div>
-          <div class="map-block block-one"></div><div class="map-block block-two"></div>
-          <div class="map-tree tree-one">●</div><div class="map-tree tree-two">●</div>
-          <div class="venue-pin"><i></i><div><strong>남양주금곡실내체육관</strong><span>행사장</span></div></div>
-          <div class="map-compass"><b>N</b><span>↑</span></div>
-        </div>
+      <a class="venue-map-card custom-map-card" href="https://map.naver.com/p/search/%EB%82%A8%EC%96%91%EC%A3%BC%EA%B8%88%EA%B3%A1%EC%8B%A4%EB%82%B4%EC%B2%B4%EC%9C%A1%EA%B4%80%20%EA%B2%BD%EA%B8%B0%20%EB%82%A8%EC%96%91%EC%A3%BC%EC%8B%9C%20%EA%B2%BD%EC%B6%98%EB%A1%9C990%EB%B2%88%EA%B8%B8%2037" target="_blank" rel="noopener noreferrer" aria-label="네이버지도에서 남양주금곡실내체육관 보기">
+        <img class="venue-map-image" src="assets/venue_map_custom.png" alt="남양주금곡실내체육관 찾아오시는 길 안내지도" />
         <div class="map-open-hint">지도를 누르면 네이버지도로 연결됩니다 →</div>
       </a>
+
       <article class="venue-detail-card">
         <div class="venue-icon">20</div>
         <div class="venue-copy"><span class="venue-label">VENUE</span><h3>남양주금곡실내체육관</h3><p id="venueAddressText">경기 남양주시 경춘로990번길 37</p></div>
@@ -105,7 +99,7 @@
         </label>
         <label>
           <span>참여인원 <b>*</b></span>
-          <input name="partySize" type="number" min="1" max="500" value="1" required inputmode="numeric" />
+          <input name="partySize" type="number" min="1" max="450" value="1" required inputmode="numeric" />
           <small class="field-help">대표 신청자를 포함한 총 참여인원입니다. 전체 행사 수용인원 범위에서 한 신청으로 여러 명을 등록할 수 있습니다.</small>
         </label>
         <label class="wheelchair-request-row"><span>휠체어석</span><div class="wheelchair-request-box"><label class="consent-row"><input name="wheelchairRequired" type="checkbox" value="true" /><span>휠체어석이 필요합니다. <em>(선택)</em></span></label><small>전면에서 이동이 쉬운 통로측 좌석을 우선 자동 배정합니다. 지정 위치가 모두 사용 중이면 관리자가 별도로 배정합니다.</small></div></label><label id="sensitiveConsentRow" class="consent-row sensitive-consent-row hidden"><input name="sensitiveConsent" type="checkbox" value="true" /><span>휠체어석 배정을 위해 휠체어 이용 여부를 처리하는 데 동의합니다. <button id="sensitiveDetailsButton" class="inline-privacy-button" type="button">민감정보 처리 안내</button> <b>*</b></span></label><label class="honeypot" aria-hidden="true">웹사이트<input name="website" tabindex="-1" autocomplete="off" /></label>
@@ -180,7 +174,7 @@
         </div>
       </article>
 
-      <section id="publicSeatGuide" class="public-seat-guide"><div class="section-heading centered compact-heading"><p class="section-kicker">SEAT MAP</p><h3>내 좌석 위치</h3><p>파란색과 노란 테두리로 표시된 자리가 현재 배정 좌석입니다.</p></div><div class="public-stage">무대 · 단상</div><div class="public-runway-head">RUNWAY</div><div id="publicSeatMap" class="public-runway-map"></div><div class="public-extra-label">후면 추가석 X구역</div><div id="publicExtraSeatMap" class="public-runway-map public-extra-map"></div></section><div class="ticket-actions">
+      <section id="publicSeatGuide" class="public-seat-guide"><div class="section-heading centered compact-heading"><p class="section-kicker">SEAT MAP</p><h3>내 좌석 위치</h3><p>파란색과 노란 테두리로 표시된 자리가 현재 배정 좌석입니다.</p></div><div class="public-stage">무대 · 단상</div><div class="public-runway-head">RUNWAY</div><div id="publicSeatMap" class="public-runway-map"></div><div id="publicExtraSeatMap" class="hidden"></div></section><div class="ticket-actions">
         <button id="downloadTicketButton" class="submit-button" type="button">모바일 티켓 이미지 저장</button>
         <button id="downloadQrButton" class="outline-button" type="button">QR만 PNG로 저장</button>
         <button id="copyLinkButton" class="text-button" type="button">내 티켓 링크 복사</button>
@@ -291,6 +285,6 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="config.js"></script>
-  <script src="public.js?v=1.8"></script>
+  <script src="public.js?v=2.0"></script>
 </body>
 </html>

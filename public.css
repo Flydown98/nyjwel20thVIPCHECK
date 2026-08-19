@@ -171,3 +171,31 @@ body.modal-open{overflow:hidden}
 .venue-detail-card{max-width:920px;margin:16px auto 0;padding:22px;display:grid;grid-template-columns:auto 1fr auto;gap:18px;align-items:center;border:1px solid #e1ddd3;border-radius:24px;background:#fff}.venue-icon{width:58px;height:58px;display:grid;place-items:center;border-radius:18px;background:#172554;color:#ead1a5;font-family:Georgia,serif;font-size:25px;font-weight:900}.venue-label{color:#b68847;font-size:10px;font-weight:950;letter-spacing:.15em}.venue-copy h3{margin:4px 0 5px;font-size:20px}.venue-copy p{margin:0;color:#667085;font-size:13px}
 .venue-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.venue-map-button,.venue-copy-button{display:inline-flex;align-items:center;justify-content:center;min-height:43px;padding:0 14px;border-radius:13px;font-size:12px;font-weight:900;text-decoration:none;cursor:pointer}.venue-map-button{background:#03c75a;color:#fff}.venue-copy-button{border:1px solid #d8dce2;background:#fff;color:#344054}
 @media(max-width:700px){.trailer-section,.location-section{padding:42px 17px}.trailer-frame{border-radius:19px}.map-schematic{min-height:290px}.venue-pin{left:38%;top:38%;transform:none}.venue-detail-card{grid-template-columns:auto 1fr}.venue-actions{grid-column:1/-1;justify-content:stretch}.venue-map-button,.venue-copy-button{flex:1}}
+
+
+/* v1.6 uploaded venue map image */
+.custom-map-card{background:#fff}
+.venue-map-image{display:block;width:100%;height:auto}
+
+
+/* v2.0 public 450-seat compact map */
+.public-runway-map{
+  min-width:0!important;
+  width:100%!important;
+}
+.public-runway-row{
+  grid-template-columns:minmax(0,1fr) 34px minmax(0,1fr)!important;
+  gap:2px!important;
+}
+.public-side{
+  display:grid!important;
+  grid-template-columns:repeat(15,minmax(0,1fr))!important;
+  gap:1px!important;
+}
+.public-seat-dot{
+  width:100%!important;
+  aspect-ratio:1/1!important;
+  height:auto!important;
+  min-width:0!important;
+}
+.public-extra-label,.public-extra-map{display:none!important}
