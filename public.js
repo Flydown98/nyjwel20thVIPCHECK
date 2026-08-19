@@ -654,6 +654,22 @@ function closePrivacyModal() {
   $('#privacyDetailsButton')?.focus();
 }
 
+
+function setupAnniversaryTrailer() {
+  const video = $('#anniversaryTrailer');
+  const fallback = $('#trailerFallback');
+  if (!video || !fallback) return;
+  video.addEventListener('error', () => {
+    video.classList.add('hidden');
+    fallback.classList.remove('hidden');
+  });
+}
+async function copyVenueAddress() {
+  const address = '경기 남양주시 경춘로990번길 37';
+  try { await navigator.clipboard.writeText(address); showToast('행사장 주소를 복사했습니다.'); }
+  catch (error) { window.prompt('아래 주소를 복사해 주세요.', address); }
+}
+
 async function initialize() {
   $('#applicationForm').dataset.startedAt = String(Date.now());
   $('#applicationForm input[name="phone"]').addEventListener('input', event => normalizePhoneInput(event.currentTarget));
@@ -672,6 +688,8 @@ async function initialize() {
   $('#forgetTicketButton').addEventListener('click', handleForgetTicket);
   $('#showRememberedTicketButton').addEventListener('click', () => loadRememberedTicket({ scroll: true }));
   $('#newApplicationLink').addEventListener('click', handleNewApplication);
+  $('#copyVenueAddressButton')?.addEventListener('click', copyVenueAddress);
+  setupAnniversaryTrailer();
   $('#privacyDetailsButton')?.addEventListener('click', openPrivacyModal);
   $('#privacyModalCloseButton')?.addEventListener('click', closePrivacyModal);
   $('#privacyModalConfirmButton')?.addEventListener('click', closePrivacyModal);

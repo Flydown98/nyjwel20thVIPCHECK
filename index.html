@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#152238" />
   <title>개관 20주년 모바일 초대장</title>
-  <link rel="stylesheet" href="public.css?v=1.1" />
+  <link rel="stylesheet" href="public.css?v=1.8" />
 </head>
 <body>
   <section id="introOverlay" class="intro-overlay hidden" aria-label="행사 인트로 영상"><video id="introVideo" class="intro-video" playsinline preload="metadata"></video><div class="intro-shade"></div><div class="intro-controls"><span id="introTimeLabel">INTRO</span><div class="intro-progress"><i id="introProgressBar"></i></div><button id="introSoundButton" type="button">소리 켜기</button><button id="introSkipButton" type="button">건너뛰기</button></div></section>
@@ -20,7 +20,7 @@
     <div class="hero-line"></div>
     <div class="event-summary">
       <div><span>DATE</span><strong id="eventDateText">2026. 9. 17.(목) 14:00</strong></div>
-      <div><span>PLACE</span><strong id="eventVenueText">남양주금곡실내체육관</strong></div>
+      <div><span>PLACE</span><strong id="eventVenueText">남양주금곡실내체육관</strong><small class="hero-address">경기 남양주시 경춘로990번길 37</small></div>
     </div>
     <a class="primary-cta" href="#application">참가 신청하기</a>
   </header>
@@ -36,6 +36,49 @@
       <article class="info-card"><span>01</span><h3>행사 일시</h3><p id="detailDateText">-</p></article>
       <article class="info-card"><span>02</span><h3>행사 장소</h3><p id="detailVenueText">-</p></article>
       <article class="info-card"><span>03</span><h3>입장 방법</h3><p>신청 완료 후 발급되는 개인 QR을 현장에서 보여주세요.</p></article>
+    </section>
+
+        <section id="trailer" class="invite-section trailer-section">
+      <div class="section-heading centered">
+        <p class="section-kicker">20TH ANNIVERSARY FILM</p>
+        <h2>스무 해의 이야기를<br />영상으로 먼저 만나보세요.</h2>
+        <p>남양주시장애인복지관 개관 20주년 행사 예고편입니다.</p>
+      </div>
+      <div class="trailer-frame">
+        <video id="anniversaryTrailer" controls playsinline preload="metadata">
+          <source src="assets/20th_trailer.mp4" type="video/mp4" />
+          사용 중인 브라우저에서는 영상을 재생할 수 없습니다.
+        </video>
+        <div id="trailerFallback" class="trailer-fallback hidden">
+          <strong>20주년 행사 예고편</strong>
+          <p><code>assets/20th_trailer.mp4</code> 파일을 업로드하면 이곳에서 재생됩니다.</p>
+        </div>
+      </div>
+      <p class="trailer-caption">※ 영상 재생 버튼을 누르면 소리와 함께 감상할 수 있습니다.</p>
+    </section>
+
+    <section id="location" class="invite-section location-section">
+      <div class="section-heading centered">
+        <p class="section-kicker">LOCATION</p>
+        <h2>오시는 길</h2>
+        <p>남양주금곡실내체육관에서 만나요.</p>
+      </div>
+      <a class="venue-map-card" href="https://map.naver.com/p/search/%EB%82%A8%EC%96%91%EC%A3%BC%EA%B8%88%EA%B3%A1%EC%8B%A4%EB%82%B4%EC%B2%B4%EC%9C%A1%EA%B4%80%20%EA%B2%BD%EA%B8%B0%20%EB%82%A8%EC%96%91%EC%A3%BC%EC%8B%9C%20%EA%B2%BD%EC%B6%98%EB%A1%9C990%EB%B2%88%EA%B8%B8%2037" target="_blank" rel="noopener noreferrer" aria-label="네이버지도에서 남양주금곡실내체육관 보기">
+        <div class="map-schematic" aria-hidden="true">
+          <div class="map-road road-main"><span>경춘로</span></div>
+          <div class="map-road road-entry"><span>경춘로990번길</span></div>
+          <div class="map-block block-one"></div><div class="map-block block-two"></div>
+          <div class="map-tree tree-one">●</div><div class="map-tree tree-two">●</div>
+          <div class="venue-pin"><i></i><div><strong>남양주금곡실내체육관</strong><span>행사장</span></div></div>
+          <div class="map-compass"><b>N</b><span>↑</span></div>
+        </div>
+        <div class="map-open-hint">지도를 누르면 네이버지도로 연결됩니다 →</div>
+      </a>
+      <article class="venue-detail-card">
+        <div class="venue-icon">20</div>
+        <div class="venue-copy"><span class="venue-label">VENUE</span><h3>남양주금곡실내체육관</h3><p id="venueAddressText">경기 남양주시 경춘로990번길 37</p></div>
+        <div class="venue-actions"><a class="venue-map-button" href="https://map.naver.com/p/search/%EB%82%A8%EC%96%91%EC%A3%BC%EA%B8%88%EA%B3%A1%EC%8B%A4%EB%82%B4%EC%B2%B4%EC%9C%A1%EA%B4%80%20%EA%B2%BD%EA%B8%B0%20%EB%82%A8%EC%96%91%EC%A3%BC%EC%8B%9C%20%EA%B2%BD%EC%B6%98%EB%A1%9C990%EB%B2%88%EA%B8%B8%2037" target="_blank" rel="noopener noreferrer">네이버지도 열기</a><button id="copyVenueAddressButton" class="venue-copy-button" type="button">주소 복사</button></div>
+      </article>
     </section>
 
     <section id="application" class="invite-section application-section">
@@ -248,6 +291,6 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="config.js"></script>
-  <script src="public.js?v=1.6"></script>
+  <script src="public.js?v=1.8"></script>
 </body>
 </html>
