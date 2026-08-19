@@ -449,3 +449,5 @@ body.intro-playing{
     display:inline;
   }
 }
+
+.wheelchair-count-box{display:grid;gap:8px}.wheelchair-number-line{display:flex;align-items:center;gap:9px}.wheelchair-number-line input{width:110px;min-height:48px;border:1px solid #cbd5e1;border-radius:13px;padding:0 14px;font-size:18px;font-weight:900}.wheelchair-number-line strong{font-size:15px}

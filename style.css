@@ -232,3 +232,5 @@
 .legend-dot.pending{background:#86efac!important;border:1px solid #22c55e}
 .legend-dot.arrived{background:#c4b5fd!important;border:1px solid #8b5cf6}
 .legend-dot.wheelchair{background:#bae6fd!important;border:1px solid #0ea5e9}
+
+.runway-auditorium{position:relative}.auditorium-entry-marker{position:absolute;top:12px;right:12px;z-index:12;display:flex;align-items:center;gap:7px;padding:8px 11px;border:2px solid #0ea5e9;border-radius:12px;background:#ecfeff;color:#075985;box-shadow:0 5px 18px rgba(14,165,233,.18)}.auditorium-entry-marker span{font-size:11px;font-weight:950}.auditorium-entry-marker strong{font-size:20px;line-height:1}.wheelchair-stat{border-color:#7dd3fc!important;background:#f0f9ff!important}.wheelchair-stat strong{color:#0369a1!important}.runway-seat.wheelchair-anchor.empty{background:#bae6fd!important;color:#075985!important;border-color:#0ea5e9!important}.runway-seat.wheelchair-person.pending{background:#86efac!important;color:#14532d!important;border-color:#22c55e!important}.runway-seat.wheelchair-person.arrived{background:#c4b5fd!important;color:#4c1d95!important;border-color:#8b5cf6!important}
