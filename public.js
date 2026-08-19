@@ -3,7 +3,7 @@
 const PUBLIC_CONFIG = window.NYJ20_CONFIG || {};
 const API_URL = String(PUBLIC_CONFIG.appsScriptUrl || '').trim();
 const DEVICE_TICKET_STORAGE_KEY = 'nyj20.publicTicketCode.v1';
-const CURRENT_PRIVACY_VERSION = 'NYJWEL20-2026-08-18-v5';
+const CURRENT_PRIVACY_VERSION = 'NYJWEL20-2026-08-19-v6';
 const DEFAULT_PUBLIC_SETTINGS = Object.freeze({
   eventName: '남양주시장애인복지관 개관 20주년 기념행사',
   eventDate: '2026. 9. 17.(목) 14:00',
@@ -15,7 +15,7 @@ const DEFAULT_PUBLIC_SETTINGS = Object.freeze({
   registrationOpen: true,
   registrationCapacity: 450,
   registeredCount: 0,
-  remainingCount: 500,
+  remainingCount: 450,
   autoAssignSeat: true,
   introVideoEnabled: false,
   introVideoUrl: 'assets/intro.mp4',
@@ -586,19 +586,11 @@ async function handleApplicationSubmit(event) {
   values.wheelchairRequired = values.wheelchairCount > 0;
   values.sensitiveConsent = Boolean(form.elements.sensitiveConsent?.checked);
   values.ageConfirmed = form.elements.ageConfirmed.checked;
-  values.optionalConsent = form.elements.optionalConsent.checked;
   values.privacyVersion = publicState.settings.privacyConsentVersion || CURRENT_PRIVACY_VERSION;
   const totalParty = Math.max(1, Number(values.partySize) || 1);
   if (values.wheelchairCount > totalParty) { showToast('휠체어 이용인원은 총 참여인원보다 많을 수 없습니다.', 5200); form.elements.wheelchairCount?.focus(); return; }
   if (values.wheelchairCount > 15) { showToast('휠체어 이용인원은 최대 15명까지 입력할 수 있습니다.', 5200); form.elements.wheelchairCount?.focus(); return; }
-  const hasOptionalData = Boolean(String(values.organization || '').trim());
-  if (hasOptionalData && !values.optionalConsent) {
-    showToast('소속기관·단체명을 입력한 경우 선택정보 수집·이용 동의가 필요합니다. 동의하지 않으려면 소속기관·단체명을 비워 주세요.', 6200);
-    form.elements.optionalConsent?.focus();
-    return;
-  }
-  if (!values.optionalConsent) values.organization = '';
-  values.group = '';
+values.group = '';
   values.note = '';
   values.startedAt = Number(form.dataset.startedAt || Date.now());
   submitButton.disabled = true;
@@ -626,7 +618,7 @@ async function handleApplicationSubmit(event) {
 
 
 
-function defaultPublicSeatMeta(){const out=[];let order=1;const vip=new Set(['AL-13','AL-14','AL-15','AR-01','AR-02','AR-03','BL-13','BL-14','BL-15','BR-01','BR-02','BR-03','CL-13','CL-14','CL-15','CR-01','CR-02','CR-03','DL-13','DL-14','DL-15','DR-01','DR-02','DR-03']);const wc=new Set(['AL-01','AL-02','AR-14','AR-15']);'ABCDEFGHIJKLMNO'.split('').forEach(row=>['L','R'].forEach(side=>{for(let n=1;n<=15;n++){const code=`${row}${side}-${String(n).padStart(2,'0')}`;out.push({code,row,side,number:n,category:wc.has(code)?'휠체어':vip.has(code)?'VIP':'일반',enabled:true,wheelchairEligible:wc.has(code),order:order++})}}));return out}
+function defaultPublicSeatMeta(){const out=[];let order=1;const vip=new Set(['AL-13','AL-14','AL-15','AR-01','AR-02','AR-03','BL-13','BL-14','BL-15','BR-01','BR-02','BR-03','CL-13','CL-14','CL-15','CR-01','CR-02','CR-03','DL-13','DL-14','DL-15','DR-01','DR-02','DR-03']);const wc=new Set('ABCDEFGHIJKLMNO'.split('').map(row=>`${row}R-15`));'ABCDEFGHIJKLMNO'.split('').forEach(row=>['L','R'].forEach(side=>{for(let n=1;n<=15;n++){const code=`${row}${side}-${String(n).padStart(2,'0')}`;out.push({code,row,side,number:n,category:wc.has(code)?'휠체어':vip.has(code)?'VIP':'일반',enabled:true,wheelchairEligible:wc.has(code),order:order++})}}));return out}
 function publicSeatDot(code,m,selected){const cls=['public-seat-dot'];if(String(m?.category||'').toLowerCase().includes('vip'))cls.push('public-vip');if(m?.wheelchairEligible)cls.push('public-wheelchair');if(selected)cls.push('my-seat');return `<span class="${cls.join(' ')}" title="${code}${selected?' · 내 좌석':''}"></span>`}
 function publicRow(row,lN,rN,map,selected){let l='',r='';for(let i=1;i<=lN;i++){const c=`${row}L-${String(i).padStart(2,'0')}`;l+=publicSeatDot(c,map.get(c),selected.has(c))}for(let i=1;i<=rN;i++){const c=`${row}R-${String(i).padStart(2,'0')}`;r+=publicSeatDot(c,map.get(c),selected.has(c))}return `<div class="public-runway-row"><div class="public-side">${l}</div><div class="public-runway-spine">${row}</div><div class="public-side">${r}</div></div>`}
 function renderPublicSeatMap(){const a=$('#publicSeatMap');if(!a)return;const src=publicState.seatMeta.length?publicState.seatMeta:defaultPublicSeatMeta(),map=new Map(src.map(s=>[String(s.code).toUpperCase(),s])),selected=new Set(String(publicState.ticket?.seat||'').split(',').map(v=>v.trim().toUpperCase()).filter(Boolean));a.innerHTML='ABCDEFGHIJKLMNO'.split('').map(r=>publicRow(r,15,15,map,selected)).join('');if($('#publicExtraSeatMap'))$('#publicExtraSeatMap').innerHTML=''}

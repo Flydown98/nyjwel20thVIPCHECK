@@ -1,6 +1,6 @@
 'use strict';
 
-const ADMIN_UI_VERSION = '2.2-WHEEL15-MIXED';
+const ADMIN_UI_VERSION = '2.3-ORG-INTEGRATED';
 
 const CONFIG = window.NYJ20_CONFIG || {};
 const API_URL = String(CONFIG.appsScriptUrl || '').trim();
@@ -426,7 +426,7 @@ function seatPersonMatches(query){
 function seatPersonResultHtml(p,action='seat-search-pick'){
   return `<button class="seat-person-result ${p.wheelchairRequired?'wheelchair-requester':''}" type="button" data-${action}="${escapeHtml(p.id)}">
     <div class="seat-person-main">
-      <strong>${escapeHtml(p.name)} ${p.wheelchairRequired?'<span class="wheelchair-badge">♿ 휠체어</span>':''}</strong>
+      <strong>${escapeHtml(p.name)} ${Number(p.wheelchairCount||0)>0?`<span class="wheelchair-badge">♿ ${Number(p.wheelchairCount)}명</span>`:''}</strong>
       <span>${escapeHtml(maskPhone(p.phone))}${p.organization?' · '+escapeHtml(p.organization):''}</span>
     </div>
     <div class="seat-person-meta">
@@ -445,7 +445,7 @@ function updateSeatSelectedPersonBanner(){
   const p=findById(selectedSeatParticipantId);
   if(!p){host.classList.add('hidden');host.innerHTML='';return;}
   host.classList.remove('hidden');
-  host.innerHTML=`<div><strong>${escapeHtml(p.name)} ${p.wheelchairRequired?'<span class="wheelchair-badge">♿ 휠체어</span>':''}</strong><span>${escapeHtml(maskPhone(p.phone))} · ${Math.max(1,Number(p.partySize)||1)}명 · 현재 ${escapeHtml(p.seat||'미배정')}</span></div><div><b>배정할 좌석을 지도에서 클릭하세요.</b><button id="clearSeatSelectedPerson" class="button small secondary" type="button">선택 해제</button></div>`;
+  host.innerHTML=`<div><strong>${escapeHtml(p.name)} ${Number(p.wheelchairCount||0)>0?`<span class="wheelchair-badge">♿ ${Number(p.wheelchairCount)}명</span>`:''}</strong><span>${escapeHtml(maskPhone(p.phone))} · ${Math.max(1,Number(p.partySize)||1)}명 · 현재 ${escapeHtml(p.seat||'미배정')}</span></div><div><b>배정할 좌석을 지도에서 클릭하세요.</b><button id="clearSeatSelectedPerson" class="button small secondary" type="button">선택 해제</button></div>`;
   $('#clearSeatSelectedPerson')?.addEventListener('click',()=>{selectedSeatParticipantId='';updateSeatSelectedPersonBanner();});
 }
 async function assignSelectedPersonToSeat(p,code){
@@ -490,19 +490,35 @@ function showQr(p){
   new QRCode($('#singleQrCode'),{text:qrPayload(p),width:220,height:220,correctLevel:QRCode.CorrectLevel.H})
 }
 function showSeatDetail(p){
-  openModal(`${p.name} 님 좌석`,`<div class="detail-list"><div><dt>대표 신청자</dt><dd>${escapeHtml(p.name)}</dd></div><div><dt>소속기관</dt><dd>${escapeHtml(p.organization||'-')}</dd></div><div><dt>참여인원</dt><dd>${Math.max(1,Number(p.partySize)||1)}명</dd></div><div><dt>휠체어석</dt><dd>${p.wheelchairRequired?'요청':'해당 없음'}</dd></div><div><dt>좌석</dt><dd>${escapeHtml(p.seat||'미배정')}</dd></div><div><dt>상태</dt><dd>${p.arrived?'도착 완료':'미도착'}</dd></div><div><dt>연락처</dt><dd>${escapeHtml(maskPhone(p.phone))}</dd></div><div><dt>도착 시각</dt><dd>${escapeHtml(formatDateTime(p.checkInAt))}</dd></div><div><dt>개인정보 동의</dt><dd>${p.privacyConsentConfirmed?'필수 수집·이용 동의 완료':'온라인 동의 기록 없음'}${p.privacyConsentConfirmedAt?' · '+escapeHtml(formatDateTime(p.privacyConsentConfirmedAt)):''}</dd></div><div><dt>비고</dt><dd>${escapeHtml(p.note||'-')}</dd></div></div><div class="form-actions" style="margin-top:16px"><button id="seatDetailEditButton" class="button primary" type="button">좌석·인원 수정</button></div>`);
+  openModal(`${p.name} 님 좌석`,`<div class="detail-list"><div><dt>대표 신청자</dt><dd>${escapeHtml(p.name)}</dd></div><div><dt>소속기관</dt><dd>${escapeHtml(p.organization||'-')}</dd></div><div><dt>참여인원</dt><dd>${Math.max(1,Number(p.partySize)||1)}명</dd></div><div><dt>휠체어 이용인원</dt><dd>${Number(p.wheelchairCount||0)>0?`♿ ${Number(p.wheelchairCount)}명`:'해당 없음'}</dd></div><div><dt>좌석</dt><dd>${escapeHtml(p.seat||'미배정')}</dd></div><div><dt>상태</dt><dd>${p.arrived?'도착 완료':'미도착'}</dd></div><div><dt>연락처</dt><dd>${escapeHtml(maskPhone(p.phone))}</dd></div><div><dt>도착 시각</dt><dd>${escapeHtml(formatDateTime(p.checkInAt))}</dd></div><div><dt>개인정보 동의</dt><dd>${p.privacyConsentConfirmed?'필수 수집·이용 동의 완료':'온라인 동의 기록 없음'}${p.privacyConsentConfirmedAt?' · '+escapeHtml(formatDateTime(p.privacyConsentConfirmedAt)):''}</dd></div><div><dt>비고</dt><dd>${escapeHtml(p.note||'-')}</dd></div></div><div class="form-actions" style="margin-top:16px"><button id="seatDetailEditButton" class="button primary" type="button">좌석·인원 수정</button></div>`);
   $('#seatDetailEditButton')?.addEventListener('click',()=>showEdit(p));
 }
 function showEdit(p){
-  openModal('참가자 정보 수정',`<form id="editParticipantForm" class="form-grid"><label>대표 신청자<input name="name" required value="${escapeHtml(p.name)}"></label><label>연락처<input name="phone" value="${escapeHtml(p.phone||'')}"></label><label>소속기관·단체명<input name="organization" value="${escapeHtml(p.organization||'')}"></label><label>참여인원<input name="partySize" type="number" min="1" max="500" required value="${Math.max(1,Number(p.partySize)||1)}"></label><label class="wide">좌석번호<input name="seat" maxlength="5000" value="${escapeHtml(p.seat||'')}" placeholder="예: C-01,C-02,C-03 또는 A-01~A-03"></label><label>구분<input name="group" value="${escapeHtml(p.group||'')}"></label><label><span>휠체어 이용인원</span><input name="wheelchairCount" type="number" min="0" max="15" value="${Math.max(0,Number(p.wheelchairCount)||0)}"></label><label class="wide">비고<input name="note" value="${escapeHtml((p.note||'').replace(/^\[휠체어\s*\d+명\]\s*/,'').replace(/^\[휠체어석 요청\]\s*/,''))}"></label><div class="form-actions wide"><button class="button primary" type="submit">저장</button></div></form>`);
+  openModal('참가자 정보 수정',`<form id="editParticipantForm" class="form-grid"><label>대표 신청자<input name="name" required value="${escapeHtml(p.name)}"></label><label>연락처<input name="phone" value="${escapeHtml(p.phone||'')}"></label><label>소속기관·단체명<input name="organization" value="${escapeHtml(p.organization||'')}"></label><label>참여인원<input name="partySize" type="number" min="1" max="450" required value="${Math.max(1,Number(p.partySize)||1)}"></label><label class="wide">좌석번호<input name="seat" maxlength="5000" value="${escapeHtml(p.seat||'')}" placeholder="예: CL-01,CL-02,CL-03"></label><label>구분<input name="group" value="${escapeHtml(p.group||'')}"></label><label><span>휠체어 이용인원</span><input name="wheelchairCount" type="number" min="0" max="15" value="${Math.max(0,Number(p.wheelchairCount)||0)}"></label><label class="wide">비고<input name="note" value="${escapeHtml((p.note||'').replace(/^\[휠체어\s*\d+명\]\s*/,'').replace(/^\[휠체어석 요청\]\s*/,''))}"></label><div class="form-actions wide"><button class="button primary" type="submit">저장</button></div></form>`);
   $('#editParticipantForm').addEventListener('submit',async e=>{e.preventDefault();const b=e.currentTarget.querySelector('button');b.disabled=true;try{const v=Object.fromEntries(new FormData(e.currentTarget).entries());const u=await jsonpRequest('updateParticipant',{code:p.id,...v});updateCache(u);closeModal();showToast('수정했습니다.')}catch(err){showToast(err.message,4500)}finally{b.disabled=false}})
 }
 function exportCsv(){
-  const h=['접수번호','QR고유코드','대표신청자','연락처','소속기관/단체명','참여인원','좌석번호','구분','비고','도착여부','도착시각','필수정보동의','필수동의일시','동의서버전','선택정보동의','선택동의일시'];
-  const rows=state.participants.map(p=>[p.number,p.id,p.name,p.phone,p.organization,p.partySize,p.wheelchairRequired?'요청':'',p.seat,p.group,p.note,p.arrived?'도착':'미도착',p.checkInAt||'',p.privacyConsentConfirmed?'동의':'온라인동의기록없음',p.privacyConsentConfirmedAt||'',p.privacyConsentVersion||'',p.optionalConsent?'동의':'미동의',p.optionalConsentAt||'']);
+  const h=[
+    '접수번호','QR고유코드','대표신청자','연락처','소속기관/단체명',
+    '참여인원','휠체어 이용인원','좌석번호','구분','비고',
+    '도착여부','도착시각','개인정보 수집·이용 동의','동의일시','동의서버전'
+  ];
+  const rows=state.participants.map(p=>[
+    p.number,p.id,p.name,p.phone,p.organization||'',
+    p.partySize,Math.max(0,Number(p.wheelchairCount)||0),p.seat,p.group,p.note,
+    p.arrived?'도착':'미도착',p.checkInAt||'',
+    p.privacyConsentConfirmed?'동의':'온라인동의기록없음',
+    p.privacyConsentConfirmedAt||'',p.privacyConsentVersion||''
+  ]);
   const esc=v=>`"${String(v??'').replaceAll('"','""')}"`;
   const csv='\uFEFF'+[h,...rows].map(r=>r.map(esc).join(',')).join('\r\n');
-  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`20주년_참가자명단_${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(url)
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=`20주년_참가자명단_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 function bindEvents(){

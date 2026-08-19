@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#172554" />
   <title>20주년 행사 관리자</title>
-  <link rel="stylesheet" href="style.css?v=2.5" />
+  <link rel="stylesheet" href="style.css?v=2.6" />
 </head>
 <body>
   <div id="loginOverlay" class="login-overlay">
@@ -76,7 +76,7 @@
         <form id="participantForm" class="form-grid">
           <label>대표 신청자<input name="name" required maxlength="40" placeholder="예: 홍길동" /></label>
           <label>연락처<input name="phone" maxlength="30" placeholder="010-1234-5678" /></label>
-          <label>소속기관·단체명<input name="organization" maxlength="80" placeholder="예: ○○기관" /></label>
+          <label>소속기관·단체명<input name="organization" maxlength="80" placeholder="해당사항 없으면 공란" /><small class="field-help">소속이 있는 경우에만 입력합니다.</small></label>
           <label>참여인원<input name="partySize" type="number" min="1" max="450" value="1" required /></label>
           <label class="wide">좌석번호<input name="seat" maxlength="5000" placeholder="비우면 자동배정 / 예: BL-01,BL-02 또는 BL-01~BL-02" /></label>
           <label>구분<input name="group" maxlength="40" placeholder="예: 이용인 / 보호자 / 내빈" /></label><label><span>휠체어 이용인원</span><input name="wheelchairCount" type="number" min="0" max="15" value="0" /></label>
@@ -150,6 +150,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="config.js"></script>
-  <script src="admin.js?v=2.5"></script>
+  <script src="admin.js?v=2.6"></script>
 </body>
 </html>

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#152238" />
   <title>개관 20주년 모바일 초대장</title>
-  <link rel="stylesheet" href="public.css?v=2.5" />
+  <link rel="stylesheet" href="public.css?v=2.6" />
 </head>
 <body>
   <section id="introOverlay" class="intro-overlay" aria-label="20주년 행사 인트로 영상">
@@ -109,7 +109,7 @@
       <div class="section-heading">
         <p class="section-kicker">APPLICATION</p>
         <h2>참가 신청</h2>
-        <p>신청 1건당 하나의 QR이 발급됩니다. 여러 명이 함께 참여하는 경우 참여인원을 입력해 주세요. 좌석은 행사 운영진이 관리하며 초대장에는 표시되지 않습니다.</p>
+        <p>신청 1건당 하나의 QR이 발급됩니다. 여러 명이 함께 참여하는 경우 참여인원을 입력해 주세요. 좌석은 자동 또는 관리자 배정 후 개인 티켓에서 확인할 수 있습니다.</p>
       </div>
 
       <div id="registrationStatus" class="registration-status loading">신청 가능 여부를 확인하고 있습니다.</div>
@@ -124,8 +124,9 @@
           <input name="phone" maxlength="20" inputmode="tel" autocomplete="tel" required placeholder="010-1234-5678" />
         </label>
         <label>
-          <span>소속기관·단체명</span>
-          <input name="organization" maxlength="80" autocomplete="organization" placeholder="해당되는 경우 입력" />
+          <span>소속기관·단체명 <em class="optional-field-mark">(해당 시)</em></span>
+          <input name="organization" maxlength="80" autocomplete="organization" placeholder="해당사항이 없으면 공란으로 두세요" />
+          <small class="field-help">기관·단체 소속이 있는 경우에만 입력해 주세요. 해당사항이 없다면 입력하지 않고 공란으로 두셔도 됩니다.</small>
         </label>
         <label>
           <span>참여인원 <b>*</b></span>
@@ -139,13 +140,9 @@
         </label>
         <label class="consent-row privacy-consent-row">
           <input name="privacyConsentConfirmed" type="checkbox" value="true" required />
-          <span><button id="privacyDetailsButton" class="inline-privacy-button" type="button">개인정보 수집·이용 동의서</button>를 확인할 수 있으며, 행사 참가 접수와 현장 확인을 위한 이름·연락처·참여인원 수집·이용에 동의합니다. <b>*</b></span>
+          <span><button id="privacyDetailsButton" class="inline-privacy-button" type="button">개인정보 수집·이용 동의서</button>를 확인할 수 있으며, 행사 참가 접수와 현장 확인을 위한 대표 신청자 이름·연락처·참여인원 및 소속기관·단체명(입력한 경우)의 수집·이용에 동의합니다. <b>*</b></span>
         </label>
-        <label class="consent-row optional-consent-row">
-          <input name="optionalConsent" type="checkbox" value="true" />
-          <span>선택정보(소속기관·단체명) 수집·이용에 동의합니다. <em>(선택)</em></span>
-        </label>
-        <p class="privacy-note">필수 수집·이용 동의는 온라인 참가 신청과 현장 운영에 필요한 정보에 한하며, 선택정보 동의를 하지 않아도 신청할 수 있습니다. 필수·선택 동의 여부와 동의 일시, 동의서 버전은 접수 기록에 저장됩니다.</p>
+        <p class="privacy-note">소속기관·단체명은 <strong>선택 입력 항목</strong>으로, 해당사항이 없다면 공란으로 두셔도 됩니다. 기관명을 입력하지 않아도 참가 신청에 불이익이 없습니다. 입력한 경우에는 위 개인정보 수집·이용 동의 범위에 포함하여 처리합니다.</p>
         <button id="submitButton" class="submit-button" type="submit">신청하고 개인 QR 받기</button>
       </form>
     </section>
@@ -214,7 +211,7 @@
     </section>
 
 
-    <div id="sensitiveModalBackdrop" class="privacy-modal-backdrop hidden" aria-hidden="true"><section class="privacy-modal" role="dialog" aria-modal="true"><div class="privacy-modal-header"><div><p class="section-kicker">SENSITIVE INFORMATION</p><h2>휠체어석 배정을 위한 민감정보 처리 안내</h2></div><button id="sensitiveModalCloseButton" class="privacy-modal-close" type="button">×</button></div><div class="privacy-modal-body"><section class="privacy-clause"><h3>처리 목적</h3><p>휠체어 이용 참가자의 좌석 자동 배정, 이동 동선 확보 및 현장 안내를 위해 사용합니다.</p></section><section class="privacy-clause"><h3>처리 항목</h3><p><strong>휠체어석 요청 여부</strong>만 처리하며 진단명·장애유형·장애등급 등 추가 건강정보는 입력받지 않습니다.</p></section><section class="privacy-clause"><h3>보유 기간</h3><p>행사 참가 접수 개인정보와 동일한 기간 동안 보유한 뒤 파기합니다.</p></section><section class="privacy-clause"><h3>동의 거부</h3><p>동의를 거부할 수 있으며 일반 참가 신청에는 영향이 없습니다. 다만 동의하지 않으면 온라인에서 휠체어석 자동 배정을 요청할 수 없습니다.</p></section></div><div class="privacy-modal-actions"><button id="sensitiveModalConfirmButton" class="submit-button" type="button">확인하고 닫기</button></div></section></div>
+    <div id="sensitiveModalBackdrop" class="privacy-modal-backdrop hidden" aria-hidden="true"><section class="privacy-modal" role="dialog" aria-modal="true"><div class="privacy-modal-header"><div><p class="section-kicker">SENSITIVE INFORMATION</p><h2>휠체어석 배정을 위한 민감정보 처리 안내</h2></div><button id="sensitiveModalCloseButton" class="privacy-modal-close" type="button">×</button></div><div class="privacy-modal-body"><section class="privacy-clause"><h3>처리 목적</h3><p>휠체어 이용 참가자의 좌석 자동 배정, 이동 동선 확보 및 현장 안내를 위해 사용합니다.</p></section><section class="privacy-clause"><h3>처리 항목</h3><p><strong>휠체어 이용인원 수</strong>만 처리하며 진단명·장애유형·장애등급 등 추가 건강정보는 입력받지 않습니다.</p></section><section class="privacy-clause"><h3>보유 기간</h3><p>행사 참가 접수 개인정보와 동일한 기간 동안 보유한 뒤 파기합니다.</p></section><section class="privacy-clause"><h3>동의 거부</h3><p>동의를 거부할 수 있으며 일반 참가 신청에는 영향이 없습니다. 다만 동의하지 않으면 온라인에서 휠체어석 자동 배정을 요청할 수 없습니다.</p></section></div><div class="privacy-modal-actions"><button id="sensitiveModalConfirmButton" class="submit-button" type="button">확인하고 닫기</button></div></section></div>
 
     <div id="privacyModalBackdrop" class="privacy-modal-backdrop hidden" aria-hidden="true">
       <section class="privacy-modal" role="dialog" aria-modal="true" aria-labelledby="privacyModalTitle">
@@ -226,7 +223,7 @@
           <button id="privacyModalCloseButton" class="privacy-modal-close" type="button" aria-label="닫기">×</button>
         </div>
         <div class="privacy-modal-body">
-          <p class="privacy-lead">남양주시장애인복지관은 개관 20주년 기념행사 참가 신청 및 현장 운영을 위해 아래와 같이 개인정보를 수집·이용합니다. 필수 수집·이용 사항과 선택 수집·이용 사항을 구분하여 안내하오니 내용을 충분히 확인한 뒤 동의 여부를 선택해 주세요.</p>
+          <p class="privacy-lead">남양주시장애인복지관은 개관 20주년 기념행사 참가 신청 및 현장 운영을 위해 아래와 같이 개인정보를 수집·이용합니다. 행사 접수에 필요한 개인정보를 아래와 같이 안내합니다. 소속기관·단체명은 해당하는 경우에만 입력하는 항목이며, 입력하지 않아도 신청할 수 있습니다.</p>
 
           <section class="privacy-clause">
             <h3>1. 개인정보처리자</h3>
@@ -235,8 +232,8 @@
 
           <section class="privacy-clause">
             <h3>2. 수집·이용 목적 및 법적 근거</h3>
-            <p class="privacy-basis"><strong>필수 정보:</strong> 「개인정보 보호법」 제15조제1항제1호에 따라 정보주체의 동의를 근거로 수집·이용합니다. 같은 법 제15조제2항에 따라 수집·이용 목적, 항목, 보유기간, 동의 거부 권리 및 거부에 따른 불이익을 아래에 안내합니다.</p>
-            <p class="privacy-basis"><strong>선택 정보:</strong> 소속기관·단체명은 제15조제1항제1호에 따라 필수 정보와 구분하여 별도의 선택 동의를 받은 경우에만 수집·이용합니다.</p>
+            <p class="privacy-basis">「개인정보 보호법」 제15조제1항제1호에 따라 정보주체의 동의를 근거로 수집·이용하며, 수집·이용 목적, 항목, 보유기간, 동의 거부 권리 및 거부에 따른 불이익을 아래와 같이 안내합니다.</p>
+            <p class="privacy-basis"><strong>소속기관·단체명은 선택 입력 항목</strong>입니다. 해당사항이 없거나 입력을 원하지 않는 경우 공란으로 둘 수 있으며, 미입력으로 인한 신청상의 불이익은 없습니다.</p>
             <h3 class="privacy-subheading">처리 목적</h3>
             <ul>
               <li>20주년 기념행사 참가 신청 접수 및 신청내역 확인</li>
@@ -248,11 +245,11 @@
 
           <section class="privacy-clause">
             <h3>3. 처리 항목</h3>
-            <div class="privacy-data-grid">
-              <div><strong>필수</strong><p>대표 신청자 이름, 연락처, 참여인원, 필수 수집·이용 동의 여부·동의일시·동의서 버전</p></div>
-              <div><strong>선택</strong><p>소속기관·단체명</p></div>
+            <div class="privacy-data-grid integrated-privacy-grid">
+              <div><strong>기본 수집 항목</strong><p>대표 신청자 이름, 연락처, 참여인원, 개인정보 수집·이용 동의 여부·동의일시·동의서 버전</p></div>
+              <div><strong>해당 시 입력</strong><p>소속기관·단체명 — 소속이 없는 경우 공란으로 두어도 되며, 미입력해도 신청할 수 있습니다.</p></div>
             </div>
-            <p class="privacy-caution">건강·진단정보 등 불필요한 민감정보는 수집하지 않습니다. 다만 신청자가 휠체어석을 선택한 경우에 한해 좌석 배정을 위한 최소한의 휠체어석 요청 여부를 별도 동의를 받아 처리합니다.</p>
+            <p class="privacy-caution">건강·진단정보 등 불필요한 민감정보는 수집하지 않습니다. 다만 휠체어 이용인원을 입력한 경우에는 좌석 배정을 위한 휠체어 이용인원 수를 별도 동의를 받아 처리합니다.</p>
           </section>
 
           <section class="privacy-clause">
@@ -262,7 +259,7 @@
 
           <section class="privacy-clause">
             <h3>5. 동의 거부 권리 및 거부에 따른 불이익</h3>
-            <p>개인정보 수집·이용에 대한 동의를 거부할 권리가 있습니다. 다만 대표 신청자 이름·연락처·참여인원은 온라인 참가 신청, QR 발급, 좌석 배정 및 현장 확인에 필요한 최소 정보이므로 <strong>필수 수집·이용에 동의하지 않으면 온라인 참가 신청을 완료할 수 없습니다.</strong> 선택정보 수집·이용 동의는 거부할 수 있으며, 동의하지 않아도 행사 신청에 불이익이 없습니다.</p>
+            <p>개인정보 수집·이용에 대한 동의를 거부할 권리가 있습니다. 다만 대표 신청자 이름·연락처·참여인원은 온라인 참가 신청, QR 발급, 좌석 배정 및 현장 확인에 필요한 정보이므로 <strong>개인정보 수집·이용에 동의하지 않으면 온라인 참가 신청을 완료할 수 없습니다.</strong> 소속기관·단체명은 선택 입력 항목이므로 입력하지 않아도 신청에 불이익이 없습니다.</p>
           </section>
 
           <section class="privacy-clause">
@@ -287,13 +284,13 @@
 
           <section class="privacy-clause law-reference">
             <h3>관련 법적 근거</h3>
-            <p>「개인정보 보호법」 제15조(개인정보의 수집·이용), 제16조(개인정보의 수집 제한), 제21조(개인정보의 파기), 제22조(동의를 받는 방법), 제22조의2(아동의 개인정보 보호), 제23조(민감정보의 처리 제한), 제26조(업무위탁), 제28조의8(개인정보의 국외 이전), 제29조(안전조치의무), 제30조(개인정보 처리방침), 제35조부터 제37조(정보주체의 권리) 및 남양주시장애인복지관 개인정보 처리방침을 참고하여 필수·선택 동의사항을 구분합니다.</p>
+            <p>「개인정보 보호법」 제15조(개인정보의 수집·이용), 제16조(개인정보의 수집 제한), 제21조(개인정보의 파기), 제22조(동의를 받는 방법), 제22조의2(아동의 개인정보 보호), 제23조(민감정보의 처리 제한), 제26조(업무위탁), 제28조의8(개인정보의 국외 이전), 제29조(안전조치의무), 제30조(개인정보 처리방침), 제35조부터 제37조(정보주체의 권리) 및 남양주시장애인복지관 개인정보 처리방침을 참고하여 필요한 개인정보와 선택 입력 항목을 명확하게 안내합니다.</p>
             <a href="https://nyjwel.or.kr/privacy" target="_blank" rel="noopener noreferrer">남양주시장애인복지관 개인정보 처리방침 보기</a>
           </section>
 
           <div class="privacy-confirm-box">
             <strong>전자 동의 기록</strong>
-            <p>신청을 완료하면 대표 신청자 정보와 함께 필수 수집·이용 동의 여부·동의 일시·동의서 버전이 기록됩니다. 선택정보 수집·이용 동의 여부와 동의 일시도 별도로 기록되어 동의 내역을 확인할 수 있도록 구성했습니다.</p>
+            <p>신청을 완료하면 대표 신청자 정보와 함께 개인정보 수집·이용 동의 여부·동의 일시·동의서 버전이 기록됩니다. 소속기관·단체명은 입력한 경우에만 참가자 정보에 저장됩니다.</p>
           </div>
         </div>
         <div class="privacy-modal-actions">
@@ -315,6 +312,6 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="config.js"></script>
-  <script src="public.js?v=2.5"></script>
+  <script src="public.js?v=2.6"></script>
 </body>
 </html>
