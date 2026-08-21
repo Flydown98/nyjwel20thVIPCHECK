@@ -3,10 +3,10 @@
 const PUBLIC_CONFIG = window.NYJ20_CONFIG || {};
 const API_URL = String(PUBLIC_CONFIG.appsScriptUrl || '').trim();
 const DEVICE_TICKET_STORAGE_KEY = 'nyj20.publicTicketCode.v1';
-const CURRENT_PRIVACY_VERSION = 'NYJWEL20-2026-08-19-v6';
+const CURRENT_PRIVACY_VERSION = 'NYJWEL20-INDIVIDUAL-2026-08-21-v1';
 const DEFAULT_PUBLIC_SETTINGS = Object.freeze({
   eventName: '남양주시장애인복지관 개관 20주년 기념행사',
-  eventDate: '2026. 9. 17.(목) 14:00',
+  eventDate: '2026. 9. 17.(목) 13:30',
   eventVenue: '남양주금곡실내체육관',
   eventOrganizer: '남양주시장애인복지관',
   publicSubtitle: '스무번의 계절, 스물한 번째 약속',
@@ -262,7 +262,51 @@ function clearQrContainer() {
 }
 
 function compactSeatLabel(value){const seats=String(value||'').split(',').map(v=>v.trim()).filter(Boolean);if(!seats.length)return'좌석 배정 중';return seats.length<=4?seats.join(' · '):`${seats[0]} ~ ${seats[seats.length-1]} (${seats.length}석)`}
-function renderTicket(ticket,{existing=false,remember=false,message='',scroll=true}={}){publicState.ticket=ticket;if(remember)rememberTicketCode(ticket.id);const s=publicState.settings;$('#ticketNumber').textContent=`NO. ${String(ticket.number).padStart(4,'0')}`;$('#ticketOrganizer').textContent=s.eventOrganizer;$('#ticketEventName').textContent=s.eventName;$('#ticketName').textContent=`${ticket.name} 님${Number(ticket.wheelchairCount||0)>0?' · ♿ '+Number(ticket.wheelchairCount)+'명':''}`;const party=Math.max(1,Number(ticket.partySize)||1),org=String(ticket.organization||'').trim();const wc=Math.max(0,Number(ticket.wheelchairCount)||0);$('#ticketPartyInfo').textContent=`${org?org+' · ':''}참여 ${party.toLocaleString()}명${wc?` · ♿ ${wc}명`:''}`;$('#ticketSeat').textContent=compactSeatLabel(ticket.seat);$('#ticketDate').textContent=s.eventDate;$('#ticketVenue').textContent=s.eventVenue;$('#ticketMessage').textContent=message||(existing?'신청 정보를 확인했습니다. 현재 좌석과 개인 QR을 확인해 주세요.':'현장에서 아래 QR을 보여주세요. 좌석 변경은 자동으로 반영됩니다.');clearQrContainer();new QRCode($('#ticketQr'),{text:qrPayload(ticket),width:192,height:192,correctLevel:QRCode.CorrectLevel.H});$('#ticketSection').classList.remove('hidden');history.replaceState(null,'',ticketLink(ticket.id));renderPublicSeatMap();startTicketLiveSync();if(scroll)setTimeout(()=>$('#ticketSection').scrollIntoView({behavior:'smooth',block:'start'}),100)}
+function renderTicket(ticket,{existing=false,remember=false,message='',scroll=true}={}){
+  publicState.ticket=ticket;
+  if(remember)rememberTicketCode(ticket.id);
+
+  const s=publicState.settings;
+  $('#ticketNumber').textContent=`NO. ${String(ticket.number).padStart(4,'0')}`;
+  $('#ticketOrganizer').textContent=s.eventOrganizer;
+  $('#ticketEventName').textContent=s.eventName;
+  $('#ticketName').textContent=`${ticket.name} 님`;
+
+  const profile=[];
+  if(ticket.usesCenter)profile.push(ticket.programName?`복지관 이용 · ${ticket.programName}`:'복지관 이용');
+  else profile.push('개인 참가');
+  if(ticket.wheelchairUser)profile.push('♿ 휠체어 이용');
+  $('#ticketPartyInfo').textContent=profile.join(' · ');
+
+  $('#ticketSeat').textContent=compactSeatLabel(ticket.seat);
+  $('#ticketDate').textContent=s.eventDate;
+  $('#ticketVenue').textContent=s.eventVenue;
+  $('#ticketMessage').textContent=message||(
+    existing
+      ?'신청 정보를 확인했습니다. 개인 QR과 현재 좌석을 확인해 주세요.'
+      :'개인 QR 발급이 완료되었습니다. 행사 전 QR을 사진으로 저장해 주세요.'
+  );
+
+  clearQrContainer();
+  new QRCode($('#ticketQr'),{
+    text:qrPayload(ticket),
+    width:192,
+    height:192,
+    correctLevel:QRCode.CorrectLevel.H
+  });
+
+  $('#ticketSection').classList.remove('hidden');
+  history.replaceState(null,'',ticketLink(ticket.id));
+  renderPublicSeatMap();
+  startTicketLiveSync();
+
+  if(scroll){
+    setTimeout(
+      ()=>$('#ticketSection').scrollIntoView({behavior:'smooth',block:'start'}),
+      100
+    );
+  }
+}
 
 function getDisplayedQrDataUrl() {
   const canvas = $('#ticketQr canvas');
@@ -407,9 +451,10 @@ async function downloadTicketImage() {
     ctx.fillText(`${ticket.name} 님`, 540, nextY + 125);
     ctx.fillStyle = 'rgba(255,255,255,.72)';
     ctx.font = '500 28px "Noto Sans KR", Arial, sans-serif';
-    const ticketPartySize = Math.max(1, Number(ticket.partySize) || 1);
-    const ticketOrg = String(ticket.organization || '').trim();
-    ctx.fillText(`${ticketOrg ? ticketOrg + ' · ' : ''}참여 ${ticketPartySize.toLocaleString()}명`, 540, nextY + 170);
+    const ticketProfile = ticket.usesCenter && ticket.programName
+      ? `개인 참가 · ${ticket.programName}`
+      : '개인 참가';
+    ctx.fillText(ticketProfile, 540, nextY + 170);
 
     const passY = nextY + 220;
     roundedRect(ctx, 125, passY, 830, 135, 36);
@@ -577,45 +622,80 @@ async function loadPublicBootstrap() {
 
 async function handleApplicationSubmit(event) {
   event.preventDefault();
-  const form = event.currentTarget;
-  if (!form.reportValidity()) return;
-  const submitButton = $('#submitButton');
-  const values = Object.fromEntries(new FormData(form).entries());
-  values.privacyConsentConfirmed = form.elements.privacyConsentConfirmed.checked;
-  values.wheelchairCount = Math.max(0, Number(form.elements.wheelchairCount?.value) || 0);
-  values.wheelchairRequired = values.wheelchairCount > 0;
-  values.sensitiveConsent = Boolean(form.elements.sensitiveConsent?.checked);
-  values.ageConfirmed = form.elements.ageConfirmed.checked;
-  values.privacyVersion = publicState.settings.privacyConsentVersion || CURRENT_PRIVACY_VERSION;
-  const totalParty = Math.max(1, Number(values.partySize) || 1);
-  if (values.wheelchairCount > totalParty) { showToast('휠체어 이용인원은 총 참여인원보다 많을 수 없습니다.', 5200); form.elements.wheelchairCount?.focus(); return; }
-  if (values.wheelchairCount > 15) { showToast('휠체어 이용인원은 최대 15명까지 입력할 수 있습니다.', 5200); form.elements.wheelchairCount?.focus(); return; }
-values.group = '';
-  values.note = '';
-  values.startedAt = Number(form.dataset.startedAt || Date.now());
-  submitButton.disabled = true;
-  setLoading(true, '참가 신청을 등록하고 개인 QR을 발급하고 있습니다.');
-  try {
-    const result = await publicApiRequest('publicRegister', values);
-    if (result.settings) publicState.settings = { ...publicState.settings, ...result.settings };
-    renderPublicSettings();
-    renderTicket(result.participant, { existing: result.existing, remember: true });
-    if (!result.existing) {
-      form.reset();
-      if (form.elements.partySize) form.elements.partySize.value = '1';
-      if (form.elements.wheelchairCount) form.elements.wheelchairCount.value = '0';
+
+  const form=event.currentTarget;
+  updateIndividualApplicationUi();
+
+  if(!form.reportValidity())return;
+
+  const submitButton=$('#submitButton');
+  const values=Object.fromEntries(new FormData(form).entries());
+
+  values.usesCenter=Boolean(form.elements.usesCenter?.checked);
+  values.programName=values.usesCenter
+    ?String(form.elements.programName?.value||'').trim()
+    :'';
+  values.wheelchairUser=Boolean(form.elements.wheelchairUser?.checked);
+  values.disabledPerson=Boolean(form.elements.disabledPerson?.checked);
+  values.sensitiveConsent=Boolean(form.elements.sensitiveConsent?.checked);
+  values.privacyConsentConfirmed=Boolean(
+    form.elements.privacyConsentConfirmed?.checked
+  );
+  values.ageConfirmed=Boolean(form.elements.ageConfirmed?.checked);
+  values.privacyVersion=
+    publicState.settings.privacyConsentVersion||CURRENT_PRIVACY_VERSION;
+  values.note=String(form.elements.note?.value||'').trim();
+  values.partySize=1;
+  values.group='개인신청';
+  values.startedAt=Number(form.dataset.startedAt||Date.now());
+
+  if(values.usesCenter&&!values.programName){
+    showToast('복지관 이용 중인 경우 이용 프로그램을 입력해 주세요.',5200);
+    form.elements.programName?.focus();
+    return;
+  }
+
+  if((values.wheelchairUser||values.disabledPerson)&&!values.sensitiveConsent){
+    showToast('체크한 민감정보 항목의 처리 동의가 필요합니다.',5200);
+    form.elements.sensitiveConsent?.focus();
+    return;
+  }
+
+  submitButton.disabled=true;
+  setLoading(true,'개인 참가 신청을 등록하고 QR을 발급하고 있습니다.');
+
+  try{
+    const result=await publicApiRequest('publicRegister',values);
+    if(result.settings){
+      publicState.settings={...publicState.settings,...result.settings};
     }
-    form.dataset.startedAt = String(Date.now());
-    showToast(result.existing ? '기존 신청 정보의 개인 QR을 불러왔습니다.' : '참가 신청과 개인 QR 발급이 완료되었습니다.');
-  } catch (error) {
-    showToast(error.message, 5200);
-  } finally {
+    renderPublicSettings();
+    renderTicket(result.participant,{
+      existing:result.existing,
+      remember:true
+    });
+
+    if(!result.existing){
+      form.reset();
+      updateIndividualApplicationUi();
+    }
+
+    form.dataset.startedAt=String(Date.now());
+    showToast(
+      result.existing
+        ?'기존 개인 신청의 QR을 불러왔습니다.'
+        :'개인 신청과 QR 발급이 완료되었습니다.'
+    );
+  }catch(error){
+    showToast(error.message,5200);
+  }finally{
     setLoading(false);
-    const canSubmit = publicState.settings.registrationOpen !== false && Number(publicState.settings.remainingCount) > 0;
-    submitButton.disabled = !canSubmit;
+    const canSubmit=
+      publicState.settings.registrationOpen!==false &&
+      Number(publicState.settings.remainingCount)>0;
+    submitButton.disabled=!canSubmit;
   }
 }
-
 
 
 function defaultPublicSeatMeta(){const out=[];let order=1;const vip=new Set(['AL-13','AL-14','AL-15','AR-01','AR-02','AR-03','BL-13','BL-14','BL-15','BR-01','BR-02','BR-03','CL-13','CL-14','CL-15','CR-01','CR-02','CR-03','DL-13','DL-14','DL-15','DR-01','DR-02','DR-03']);const wc=new Set('ABCDEFGHIJKLMNO'.split('').map(row=>`${row}R-15`));'ABCDEFGHIJKLMNO'.split('').forEach(row=>['L','R'].forEach(side=>{for(let n=1;n<=15;n++){const code=`${row}${side}-${String(n).padStart(2,'0')}`;out.push({code,row,side,number:n,category:wc.has(code)?'휠체어':vip.has(code)?'VIP':'일반',enabled:true,wheelchairEligible:wc.has(code),order:order++})}}));return out}
@@ -627,11 +707,31 @@ async function syncCurrentTicket(){if(!publicState.ticket?.id||document.hidden)r
 function startTicketLiveSync(){clearInterval(ticketRefreshTimer);ticketRefreshTimer=setInterval(syncCurrentTicket,Math.max(5,Number(publicState.settings.ticketRefreshSeconds)||15)*1000);clearInterval(seatLayoutRefreshTimer);seatLayoutRefreshTimer=setInterval(loadPublicSeatLayout,60000)}
 
 
-function updateWheelchairConsentUi(){
-  const form=$('#applicationForm'),party=Math.max(1,Number(form?.elements.partySize?.value)||1),input=form?.elements.wheelchairCount;
-  if(input)input.max=String(Math.min(15,party));
-  const count=Math.max(0,Number(input?.value)||0),row=$('#sensitiveConsentRow'),box=form?.elements.sensitiveConsent;
-  row?.classList.toggle('hidden',count<=0);if(box){box.required=count>0;if(count<=0)box.checked=false}
+function updateIndividualApplicationUi(){
+  const form=$('#applicationForm');
+  if(!form)return;
+
+  const usesCenter=Boolean(form.elements.usesCenter?.checked);
+  const programRow=$('#programFieldRow');
+  const programInput=form.elements.programName;
+
+  programRow?.classList.toggle('hidden',!usesCenter);
+  if(programInput){
+    programInput.required=usesCenter;
+    if(!usesCenter)programInput.value='';
+  }
+
+  const wheelchair=Boolean(form.elements.wheelchairUser?.checked);
+  const disabledPerson=Boolean(form.elements.disabledPerson?.checked);
+  const sensitiveNeeded=wheelchair||disabledPerson;
+  const sensitiveRow=$('#sensitiveConsentRow');
+  const sensitiveBox=form.elements.sensitiveConsent;
+
+  sensitiveRow?.classList.toggle('hidden',!sensitiveNeeded);
+  if(sensitiveBox){
+    sensitiveBox.required=sensitiveNeeded;
+    if(!sensitiveNeeded)sensitiveBox.checked=false;
+  }
 }
 function openSensitiveModal(){$('#sensitiveModalBackdrop')?.classList.remove('hidden');$('#sensitiveModalBackdrop')?.setAttribute('aria-hidden','false');document.body.classList.add('modal-open')}
 function closeSensitiveModal(){$('#sensitiveModalBackdrop')?.classList.add('hidden');$('#sensitiveModalBackdrop')?.setAttribute('aria-hidden','true');document.body.classList.remove('modal-open')}
@@ -939,9 +1039,10 @@ async function initialize() {
   $('#applicationForm input[name="phone"]').addEventListener('input', event => normalizePhoneInput(event.currentTarget));
   $('#lookupForm input[name="phone"]').addEventListener('input', event => normalizePhoneInput(event.currentTarget));
   $('#applicationForm').addEventListener('submit', handleApplicationSubmit);
-  $('#applicationForm input[name="wheelchairCount"]')?.addEventListener('input', updateWheelchairConsentUi);
-  $('#applicationForm input[name="partySize"]')?.addEventListener('input', updateWheelchairConsentUi);
-  updateWheelchairConsentUi();
+  $('#applicationForm input[name="usesCenter"]')?.addEventListener('change', updateIndividualApplicationUi);
+  $('#applicationForm input[name="wheelchairUser"]')?.addEventListener('change', updateIndividualApplicationUi);
+  $('#applicationForm input[name="disabledPerson"]')?.addEventListener('change', updateIndividualApplicationUi);
+  updateIndividualApplicationUi();
   $('#sensitiveDetailsButton')?.addEventListener('click', openSensitiveModal);
   $('#sensitiveModalCloseButton')?.addEventListener('click', closeSensitiveModal);
   $('#sensitiveModalConfirmButton')?.addEventListener('click', closeSensitiveModal);

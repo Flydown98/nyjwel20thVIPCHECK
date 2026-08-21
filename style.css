@@ -234,3 +234,90 @@
 .legend-dot.wheelchair{background:#bae6fd!important;border:1px solid #0ea5e9}
 
 .runway-auditorium{position:relative}.auditorium-entry-marker{position:absolute;top:12px;right:12px;z-index:12;display:flex;align-items:center;gap:7px;padding:8px 11px;border:2px solid #0ea5e9;border-radius:12px;background:#ecfeff;color:#075985;box-shadow:0 5px 18px rgba(14,165,233,.18)}.auditorium-entry-marker span{font-size:11px;font-weight:950}.auditorium-entry-marker strong{font-size:20px;line-height:1}.wheelchair-stat{border-color:#7dd3fc!important;background:#f0f9ff!important}.wheelchair-stat strong{color:#0369a1!important}.runway-seat.wheelchair-anchor.empty{background:#bae6fd!important;color:#075985!important;border-color:#0ea5e9!important}.runway-seat.wheelchair-person.pending{background:#86efac!important;color:#14532d!important;border-color:#22c55e!important}.runway-seat.wheelchair-person.arrived{background:#c4b5fd!important;color:#4c1d95!important;border-color:#8b5cf6!important}
+
+
+/* v2.4 individual + lucky draw */
+.lucky-button,
+.lucky-primary{
+  border-color:#d3a51f!important;
+  background:#f5cc4b!important;
+  color:#493500!important;
+}
+.lucky-primary{
+  min-height:44px;
+  padding:0 16px;
+  border:0;
+  border-radius:12px;
+  font-weight:950;
+  cursor:pointer;
+}
+.lucky-draw-register-panel textarea,
+#participantForm textarea,
+#editParticipantForm textarea{
+  width:100%;
+  resize:vertical;
+  min-height:90px;
+  border:1px solid #cbd5e1;
+  border-radius:12px;
+  padding:11px 12px;
+  font:inherit;
+}
+.lucky-mini{
+  display:inline-block;
+  padding:4px 7px;
+  border-radius:999px;
+  background:#fff1aa;
+  color:#674b00;
+  font-size:11px;
+  font-weight:900;
+}
+.lucky-mini.redeemed{
+  background:#ede9fe;
+  color:#5b21b6;
+}
+.winner-alert{
+  margin:16px 0;
+  padding:18px;
+  border:2px solid #e4b827;
+  border-radius:18px;
+  background:linear-gradient(135deg,#fff7c7,#fff);
+  text-align:center;
+}
+.winner-alert>span{
+  display:block;
+  color:#9a6a00;
+  font-size:12px;
+  font-weight:950;
+  letter-spacing:.08em;
+}
+.winner-alert>strong{
+  display:block;
+  margin-top:7px;
+  color:#513b00;
+  font-size:20px;
+}
+.winner-alert p{
+  margin:7px 0 13px;
+  color:#80640a;
+}
+.winner-alert.redeemed{
+  border-color:#8b5cf6;
+  background:#f5f3ff;
+}
+.not-winner-alert{
+  margin:16px 0;
+  padding:14px 16px;
+  border-radius:15px;
+  background:#f1f5f9;
+  color:#475569;
+  text-align:center;
+}
+.not-winner-alert strong,
+.not-winner-alert span{display:block}
+.not-winner-alert span{margin-top:4px;font-size:12px}
+.participant-note{
+  padding:11px 13px;
+  border-radius:12px;
+  background:#f8fafc;
+  text-align:left;
+}
