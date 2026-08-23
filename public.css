@@ -552,3 +552,13 @@ body.intro-playing{
   .personal-check-grid{grid-template-columns:1fr}
   .qr-save-notice{margin-left:0;margin-right:0}
 }
+
+/* v2.5 operation clean */
+.qr-security-note{
+  margin-top:6px!important;
+  color:#7c5c00;
+  font-size:12px!important;
+}
+.privacy-data-grid>div{
+  min-width:0;
+}

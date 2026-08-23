@@ -3,7 +3,7 @@
 const PUBLIC_CONFIG = window.NYJ20_CONFIG || {};
 const API_URL = String(PUBLIC_CONFIG.appsScriptUrl || '').trim();
 const DEVICE_TICKET_STORAGE_KEY = 'nyj20.publicTicketCode.v1';
-const CURRENT_PRIVACY_VERSION = 'NYJWEL20-INDIVIDUAL-2026-08-21-v1';
+const CURRENT_PRIVACY_VERSION = 'NYJWEL20-INDIVIDUAL-2026-08-23-v2';
 const DEFAULT_PUBLIC_SETTINGS = Object.freeze({
   eventName: '남양주시장애인복지관 개관 20주년 기념행사',
   eventDate: '2026. 9. 17.(목) 13:30',
@@ -481,7 +481,7 @@ async function downloadTicketImage() {
 
     ctx.fillStyle = 'rgba(255,255,255,.78)';
     ctx.font = '500 26px "Noto Sans KR", Arial, sans-serif';
-    ctx.fillText('행사장 입구에서 이 QR을 제시해 주세요.', 540, qrY + qrSize + 92);
+    ctx.fillText('현장 접수·좌석 확인·행운추첨 확인 시 이 QR을 제시해 주세요.', 540, qrY + qrSize + 92);
     ctx.strokeStyle = 'rgba(255,255,255,.18)';
     ctx.beginPath();
     ctx.moveTo(120, qrY + qrSize + 135);
@@ -645,9 +645,7 @@ async function handleApplicationSubmit(event) {
   values.privacyVersion=
     publicState.settings.privacyConsentVersion||CURRENT_PRIVACY_VERSION;
   values.note=String(form.elements.note?.value||'').trim();
-  values.partySize=1;
-  values.group='개인신청';
-  values.startedAt=Number(form.dataset.startedAt||Date.now());
+    values.startedAt=Number(form.dataset.startedAt||Date.now());
 
   if(values.usesCenter&&!values.programName){
     showToast('복지관 이용 중인 경우 이용 프로그램을 입력해 주세요.',5200);
