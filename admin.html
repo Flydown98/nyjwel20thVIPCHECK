@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#172554" />
   <title>20주년 행사 관리자</title>
-  <link rel="stylesheet" href="style.css?v=2.8" />
+  <link rel="stylesheet" href="style.css?v=3.2" />
 </head>
 <body>
   <div id="loginOverlay" class="login-overlay">
@@ -77,19 +77,19 @@
         <div class="admin-sensitive-note">관리자가 휠체어 이용 또는 장애인 당사자 여부를 직접 입력하는 경우, 온라인 동의 대신 기관의 적절한 동의·확인 절차를 거친 뒤 입력해 주세요.</div>
         <form id="participantForm" class="form-grid">
           <label>이름<input name="name" required maxlength="40" placeholder="예: 홍길동" /></label>
-          <label>연락처<input name="phone" maxlength="30" placeholder="010-1234-5678" /></label>
-          <label>복지관 이용 여부<select name="usesCenter"><option value="false">이용하지 않음</option><option value="true">이용 중</option></select></label>
-          <label>이용 프로그램<input name="programName" maxlength="120" placeholder="해당 시 프로그램명" /></label>
-          <label>휠체어 이용<select name="wheelchairUser"><option value="false">아니오</option><option value="true">예</option></select></label>
-          <label>장애인 당사자<select name="disabledPerson"><option value="false">아니오</option><option value="true">예</option></select></label>
+          <label>소속기관<input name="organization" maxlength="80" placeholder="해당사항 없으면 공란" /></label>
+          <label>핸드폰 번호<input name="phone" maxlength="30" placeholder="010-1234-5678" /></label>
+          <label>장애인 당사자<select name="disabledPerson"><option value="false">해당 없음</option><option value="true">장애인 당사자</option></select></label>
+          <label>휠체어<select name="wheelchairUser"><option value="false">미사용</option><option value="true">사용</option></select></label>
+          <label>복지관 서비스<select name="usesCenter"><option value="false">이용하지 않음</option><option value="true">이용함</option></select></label>
           <label class="wide">좌석번호<input name="seat" maxlength="30" placeholder="비우면 자동배정 / 예: CL-01" /></label>
-          <label class="wide">비고<textarea name="note" maxlength="500" rows="3" placeholder="필요한 사항 또는 전달사항"></textarea></label>
+          <label class="wide">관리자 메모 <span class="small-text">(내부용)</span><textarea name="note" maxlength="500" rows="3" placeholder="직원 내부 확인이 필요한 내용만 입력"></textarea></label>
           <div class="form-actions wide"><button class="button primary" type="submit">개인 참가자 등록</button></div>
         </form>
       </article>
       <article class="panel">
         <div class="filter-row">
-          <input id="participantSearch" type="search" placeholder="이름, 연락처, 좌석, 접수번호 검색" />
+          <input id="participantSearch" type="search" placeholder="이름, 핸드폰 번호, 소속기관, 좌석 검색" />
           <select id="participantStatusFilter"><option value="all">전체 상태</option><option value="arrived">도착 완료</option><option value="pending">미도착</option></select>
           <span id="participantCountLabel" class="small-text"></span>
         </div>
@@ -197,6 +197,6 @@ JL-03 | 기념품 세트"></textarea>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="config.js"></script>
-  <script src="admin.js?v=2.8"></script>
+  <script src="admin.js?v=3.2"></script>
 </body>
 </html>

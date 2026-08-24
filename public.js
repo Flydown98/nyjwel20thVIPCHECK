@@ -3,7 +3,7 @@
 const PUBLIC_CONFIG = window.NYJ20_CONFIG || {};
 const API_URL = String(PUBLIC_CONFIG.appsScriptUrl || '').trim();
 const DEVICE_TICKET_STORAGE_KEY = 'nyj20.publicTicketCode.v1';
-const CURRENT_PRIVACY_VERSION = 'NYJWEL20-INDIVIDUAL-2026-08-23-v2';
+const CURRENT_PRIVACY_VERSION = 'NYJWEL20-INDIVIDUAL-2026-08-24-v3';
 const DEFAULT_PUBLIC_SETTINGS = Object.freeze({
   eventName: '남양주시장애인복지관 개관 20주년 기념행사',
   eventDate: '2026. 9. 17.(목) 13:30',
@@ -273,9 +273,13 @@ function renderTicket(ticket,{existing=false,remember=false,message='',scroll=tr
   $('#ticketName').textContent=`${ticket.name} 님`;
 
   const profile=[];
-  if(ticket.usesCenter)profile.push(ticket.programName?`복지관 이용 · ${ticket.programName}`:'복지관 이용');
-  else profile.push('개인 참가');
-  if(ticket.wheelchairUser)profile.push('♿ 휠체어 이용');
+  if(ticket.organization)profile.push(ticket.organization);
+  if(ticket.disabledPerson){
+    profile.push(ticket.usesCenter?'복지관 서비스 이용':'복지관 서비스 미이용');
+    if(ticket.wheelchairUser)profile.push('♿ 휠체어 사용');
+  }else{
+    profile.push('개인 참가');
+  }
   $('#ticketPartyInfo').textContent=profile.join(' · ');
 
   $('#ticketSeat').textContent=compactSeatLabel(ticket.seat);
@@ -451,9 +455,13 @@ async function downloadTicketImage() {
     ctx.fillText(`${ticket.name} 님`, 540, nextY + 125);
     ctx.fillStyle = 'rgba(255,255,255,.72)';
     ctx.font = '500 28px "Noto Sans KR", Arial, sans-serif';
-    const ticketProfile = ticket.usesCenter && ticket.programName
-      ? `개인 참가 · ${ticket.programName}`
-      : '개인 참가';
+    const ticketProfile = [
+      ticket.organization||'',
+      ticket.disabledPerson
+        ? (ticket.usesCenter?'복지관 서비스 이용':'복지관 서비스 미이용')
+        : '개인 참가',
+      ticket.wheelchairUser?'휠체어 사용':''
+    ].filter(Boolean).join(' · ');
     ctx.fillText(ticketProfile, 540, nextY + 170);
 
     const passY = nextY + 220;
@@ -631,12 +639,31 @@ async function handleApplicationSubmit(event) {
   const submitButton=$('#submitButton');
   const values=Object.fromEntries(new FormData(form).entries());
 
-  values.usesCenter=Boolean(form.elements.usesCenter?.checked);
-  values.programName=values.usesCenter
-    ?String(form.elements.programName?.value||'').trim()
-    :'';
-  values.wheelchairUser=Boolean(form.elements.wheelchairUser?.checked);
+  values.organization=String(form.elements.organization?.value||'').trim();
   values.disabledPerson=Boolean(form.elements.disabledPerson?.checked);
+
+  const wheelchairChoice=String(
+    form.querySelector('input[name="wheelchairChoice"]:checked')?.value||''
+  );
+  const centerServiceChoice=String(
+    form.querySelector('input[name="centerServiceChoice"]:checked')?.value||''
+  );
+
+  if(values.disabledPerson&&!wheelchairChoice){
+    showToast('휠체어 사용 또는 미사용을 선택해 주세요.',5200);
+    form.querySelector('input[name="wheelchairChoice"]')?.focus();
+    return;
+  }
+  if(values.disabledPerson&&!centerServiceChoice){
+    showToast('남양주시장애인복지관 서비스 이용 여부를 선택해 주세요.',5200);
+    form.querySelector('input[name="centerServiceChoice"]')?.focus();
+    return;
+  }
+
+  values.wheelchairUser=values.disabledPerson&&wheelchairChoice==='use';
+  values.usesCenter=values.disabledPerson&&centerServiceChoice==='use';
+  values.programName='';
+  values.note='';
   values.sensitiveConsent=Boolean(form.elements.sensitiveConsent?.checked);
   values.privacyConsentConfirmed=Boolean(
     form.elements.privacyConsentConfirmed?.checked
@@ -644,17 +671,10 @@ async function handleApplicationSubmit(event) {
   values.ageConfirmed=Boolean(form.elements.ageConfirmed?.checked);
   values.privacyVersion=
     publicState.settings.privacyConsentVersion||CURRENT_PRIVACY_VERSION;
-  values.note=String(form.elements.note?.value||'').trim();
-    values.startedAt=Number(form.dataset.startedAt||Date.now());
+  values.startedAt=Number(form.dataset.startedAt||Date.now());
 
-  if(values.usesCenter&&!values.programName){
-    showToast('복지관 이용 중인 경우 이용 프로그램을 입력해 주세요.',5200);
-    form.elements.programName?.focus();
-    return;
-  }
-
-  if((values.wheelchairUser||values.disabledPerson)&&!values.sensitiveConsent){
-    showToast('체크한 민감정보 항목의 처리 동의가 필요합니다.',5200);
+  if(values.disabledPerson&&!values.sensitiveConsent){
+    showToast('편의제공 관련 정보 처리를 위한 별도 동의가 필요합니다.',5200);
     form.elements.sensitiveConsent?.focus();
     return;
   }
@@ -709,26 +729,32 @@ function updateIndividualApplicationUi(){
   const form=$('#applicationForm');
   if(!form)return;
 
-  const usesCenter=Boolean(form.elements.usesCenter?.checked);
-  const programRow=$('#programFieldRow');
-  const programInput=form.elements.programName;
-
-  programRow?.classList.toggle('hidden',!usesCenter);
-  if(programInput){
-    programInput.required=usesCenter;
-    if(!usesCenter)programInput.value='';
-  }
-
-  const wheelchair=Boolean(form.elements.wheelchairUser?.checked);
   const disabledPerson=Boolean(form.elements.disabledPerson?.checked);
-  const sensitiveNeeded=wheelchair||disabledPerson;
+  const details=$('#accessibilityDetails');
   const sensitiveRow=$('#sensitiveConsentRow');
   const sensitiveBox=form.elements.sensitiveConsent;
 
-  sensitiveRow?.classList.toggle('hidden',!sensitiveNeeded);
+  details?.classList.toggle('hidden',!disabledPerson);
+  sensitiveRow?.classList.toggle('hidden',!disabledPerson);
+
+  const wheelRadios=[
+    ...form.querySelectorAll('input[name="wheelchairChoice"]')
+  ];
+  const serviceRadios=[
+    ...form.querySelectorAll('input[name="centerServiceChoice"]')
+  ];
+
+  wheelRadios.forEach(input=>{input.required=disabledPerson;});
+  serviceRadios.forEach(input=>{input.required=disabledPerson;});
+
   if(sensitiveBox){
-    sensitiveBox.required=sensitiveNeeded;
-    if(!sensitiveNeeded)sensitiveBox.checked=false;
+    sensitiveBox.required=disabledPerson;
+  }
+
+  if(!disabledPerson){
+    wheelRadios.forEach(input=>{input.checked=false;});
+    serviceRadios.forEach(input=>{input.checked=false;});
+    if(sensitiveBox)sensitiveBox.checked=false;
   }
 }
 function openSensitiveModal(){$('#sensitiveModalBackdrop')?.classList.remove('hidden');$('#sensitiveModalBackdrop')?.setAttribute('aria-hidden','false');document.body.classList.add('modal-open')}
@@ -1072,8 +1098,6 @@ async function initialize() {
   $('#applicationForm input[name="phone"]').addEventListener('input', event => normalizePhoneInput(event.currentTarget));
   $('#lookupForm input[name="phone"]').addEventListener('input', event => normalizePhoneInput(event.currentTarget));
   $('#applicationForm').addEventListener('submit', handleApplicationSubmit);
-  $('#applicationForm input[name="usesCenter"]')?.addEventListener('change', updateIndividualApplicationUi);
-  $('#applicationForm input[name="wheelchairUser"]')?.addEventListener('change', updateIndividualApplicationUi);
   $('#applicationForm input[name="disabledPerson"]')?.addEventListener('change', updateIndividualApplicationUi);
   updateIndividualApplicationUi();
   $('#sensitiveDetailsButton')?.addEventListener('click', openSensitiveModal);

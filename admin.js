@@ -1,6 +1,6 @@
 'use strict';
 
-const ADMIN_UI_VERSION = '2.5-OPERATION-CLEAN';
+const ADMIN_UI_VERSION = '2.7-FEEDBACK-FORM';
 
 const CONFIG = window.NYJ20_CONFIG || {};
 const API_URL = String(CONFIG.appsScriptUrl || '').trim();
@@ -368,7 +368,7 @@ function renderDashboard() {
   }
 
   c.className='recent-list';
-  c.innerHTML=recent.map(p=>`<div class="recent-item"><div><strong>${escapeHtml(p.name)}</strong><span>${escapeHtml(p.seat||'좌석 미정')}${p.programName?' · '+escapeHtml(p.programName):''}</span></div><span>${escapeHtml(formatDateTime(p.checkInAt))}</span></div>`).join('');
+  c.innerHTML=recent.map(p=>`<div class="recent-item"><div><strong>${escapeHtml(p.name)}</strong><span>${escapeHtml(p.seat||'좌석 미정')}${p.organization?' · '+escapeHtml(p.organization):''}</span></div><span>${escapeHtml(formatDateTime(p.checkInAt))}</span></div>`).join('');
 }
 function prizeForParticipant(p){
   const seat=parseSeatList(p?.seat)[0]||'';
@@ -381,7 +381,7 @@ function filteredParticipants() {
 
   return [...state.participants].filter(p=>{
     const hay=[
-      p.id,p.number,p.name,p.phone,p.seat,p.programName,p.note,
+      p.id,p.number,p.name,p.phone,p.organization,p.seat,p.note,
       p.usesCenter?'복지관 이용':'',
       p.wheelchairUser?'휠체어':'',
       p.disabledPerson?'장애인 당사자':''
@@ -400,9 +400,9 @@ function renderParticipants() {
   $('#participantTableBody').innerHTML=rows.length
     ?rows.map(p=>{
       const prize=prizeForParticipant(p);
-      const centerInfo=p.usesCenter
-        ?`복지관 이용${p.programName?' · '+escapeHtml(p.programName):''}`
-        :'복지관 미이용';
+      const centerInfo=p.disabledPerson
+        ?(p.usesCenter?'복지관 서비스 이용':'복지관 서비스 미이용')
+        :'편의제공 해당 없음';
 
       const flags=[
         p.wheelchairUser?'♿ 휠체어':'',
@@ -415,7 +415,7 @@ function renderParticipants() {
 
       return `<tr>
         <td>${String(p.number).padStart(4,'0')}</td>
-        <td><strong>${escapeHtml(p.name)}</strong><br><span class="small-text">${escapeHtml(p.id)}</span></td>
+        <td><strong>${escapeHtml(p.name)}</strong><br><span class="small-text">${escapeHtml(p.organization||'소속 없음')} · ${escapeHtml(p.id)}</span></td>
         <td>${escapeHtml(maskPhone(p.phone))}</td>
         <td><span>${centerInfo}</span>${flags?`<br><span class="small-text">${escapeHtml(flags)}</span>`:''}</td>
         <td><strong>${escapeHtml(p.seat||'미배정')}</strong></td>
@@ -446,7 +446,7 @@ function findMatches(q){
   const v=String(q||'').trim().toLowerCase();if(!v)return[];
   const parsed=parseQrPayload(v).toLowerCase();
   const exact=state.participants.find(p=>String(p.id).toLowerCase()===parsed);if(exact)return[exact];
-  return state.participants.filter(p=>[p.id,p.name,p.phone,p.seat,p.number,p.programName,p.note].some(x=>String(x||'').toLowerCase().includes(v))).slice(0,20)
+  return state.participants.filter(p=>[p.id,p.name,p.phone,p.organization,p.seat,p.number,p.note].some(x=>String(x||'').toLowerCase().includes(v))).slice(0,20)
 }
 async function checkIn(pOrCode){
   const code=typeof pOrCode==='string'?parseQrPayload(pOrCode):pOrCode.id;
@@ -476,7 +476,8 @@ function showCheckinResult(p,already=false,prize=null){
   $('#checkinResultPanel').classList.remove('hidden');
 
   const profile=[
-    p.usesCenter?(p.programName?`복지관 이용 · ${p.programName}`:'복지관 이용'):'복지관 미이용',
+    p.organization?`소속 · ${p.organization}`:'',
+    p.disabledPerson?(p.usesCenter?'복지관 서비스 이용':'복지관 서비스 미이용'):'편의제공 해당 없음',
     p.wheelchairUser?'♿ 휠체어 이용':'',
     p.disabledPerson?'장애인 당사자':''
   ].filter(Boolean);
@@ -503,7 +504,7 @@ function showCheckinResult(p,already=false,prize=null){
     ${prizeBox}
     <p>접수번호 ${String(p.number).padStart(4,'0')}</p>
     <p>연락처 ${escapeHtml(maskPhone(p.phone))}</p>
-    ${p.note?`<p class="participant-note"><strong>남긴 말씀</strong><br>${escapeHtml(p.note)}</p>`:''}
+    ${p.note?`<p class="participant-note"><strong>관리자 메모</strong><br>${escapeHtml(p.note)}</p>`:''}
     <p class="small-text">${p.arrived?'도착 시각: '+escapeHtml(formatDateTime(p.checkInAt)):'아직 도착하지 않았습니다.'}</p>
     <div class="result-actions">
       ${p.arrived
@@ -527,7 +528,7 @@ function seatPersonMatches(query){
   const digits=q.replace(/\D/g,'');
   return state.participants.filter(p=>{
     const phoneDigits=String(p.phone||'').replace(/\D/g,'');
-    const hay=[p.name,p.programName,p.note,p.phone,p.id,p.number,p.seat,p.usesCenter?'복지관 이용':'',p.wheelchairUser?'휠체어':'',p.disabledPerson?'장애인 당사자':''].join(' ').toLowerCase();
+    const hay=[p.name,p.organization,p.note,p.phone,p.id,p.number,p.seat,p.usesCenter?'복지관 서비스 이용':'',p.wheelchairUser?'휠체어':'',p.disabledPerson?'장애인 당사자':''].join(' ').toLowerCase();
     return hay.includes(q)||(digits.length>=3&&phoneDigits.includes(digits));
   }).sort((a,b)=>{
     const aq=String(a.name||'').toLowerCase().startsWith(q)?0:1;
@@ -599,7 +600,8 @@ function showSeatAssignmentModal(seatCode){
 
 function participantProfileText(p){
   const list=[];
-  list.push(p.usesCenter?(p.programName?`복지관 이용 · ${p.programName}`:'복지관 이용'):'복지관 미이용');
+  if(p.organization)list.push(`소속 · ${p.organization}`);
+  list.push(p.disabledPerson?(p.usesCenter?'복지관 서비스 이용':'복지관 서비스 미이용'):'편의제공 해당 없음');
   if(p.wheelchairUser)list.push('♿ 휠체어 이용');
   if(p.disabledPerson)list.push('장애인 당사자');
   return list.join(' · ');
@@ -648,13 +650,13 @@ function showSeatDetail(p){
 function showEdit(p){
   openModal('개인 참가자 정보 수정',`<form id="editParticipantForm" class="form-grid">
     <label>이름<input name="name" required value="${escapeHtml(p.name)}"></label>
-    <label>연락처<input name="phone" value="${escapeHtml(p.phone||'')}"></label>
-    <label>복지관 이용<select name="usesCenter"><option value="false" ${!p.usesCenter?'selected':''}>이용하지 않음</option><option value="true" ${p.usesCenter?'selected':''}>이용 중</option></select></label>
-    <label>이용 프로그램<input name="programName" value="${escapeHtml(p.programName||'')}"></label>
-    <label>휠체어 이용<select name="wheelchairUser"><option value="false" ${!p.wheelchairUser?'selected':''}>아니오</option><option value="true" ${p.wheelchairUser?'selected':''}>예</option></select></label>
-    <label>장애인 당사자<select name="disabledPerson"><option value="false" ${!p.disabledPerson?'selected':''}>아니오</option><option value="true" ${p.disabledPerson?'selected':''}>예</option></select></label>
+    <label>소속기관<input name="organization" maxlength="80" value="${escapeHtml(p.organization||'')}" placeholder="해당사항 없으면 공란"></label>
+    <label>핸드폰 번호<input name="phone" value="${escapeHtml(p.phone||'')}"></label>
+    <label>장애인 당사자<select name="disabledPerson"><option value="false" ${!p.disabledPerson?'selected':''}>해당 없음</option><option value="true" ${p.disabledPerson?'selected':''}>장애인 당사자</option></select></label>
+    <label>휠체어<select name="wheelchairUser"><option value="false" ${!p.wheelchairUser?'selected':''}>미사용</option><option value="true" ${p.wheelchairUser?'selected':''}>사용</option></select></label>
+    <label>복지관 서비스<select name="usesCenter"><option value="false" ${!p.usesCenter?'selected':''}>이용하지 않음</option><option value="true" ${p.usesCenter?'selected':''}>이용함</option></select></label>
     <label class="wide">좌석번호<input name="seat" maxlength="30" value="${escapeHtml(p.seat||'')}" placeholder="예: CL-01"></label>
-    <label class="wide">비고<textarea name="note" maxlength="500" rows="4">${escapeHtml(p.note||'')}</textarea></label>
+    <label class="wide">관리자 메모<textarea name="note" maxlength="500" rows="4">${escapeHtml(p.note||'')}</textarea></label>
     <div class="form-actions wide"><button class="button primary" type="submit">저장</button></div>
   </form>`);
 
@@ -667,6 +669,11 @@ function showEdit(p){
       v.usesCenter=v.usesCenter==='true';
       v.wheelchairUser=v.wheelchairUser==='true';
       v.disabledPerson=v.disabledPerson==='true';
+      if(!v.disabledPerson){
+        v.wheelchairUser=false;
+        v.usesCenter=false;
+      }
+      v.programName='';
       const u=await jsonpRequest('updateParticipant',{code:p.id,...v});
       updateCache(u);
       closeModal();
@@ -681,18 +688,19 @@ function showEdit(p){
 
 function exportCsv(){
   const h=[
-    '접수번호','QR고유코드','이름','연락처','좌석번호',
-    '복지관이용여부','이용프로그램','휠체어이용여부','장애인당사자여부',
-    '비고','행운추첨상품','상품수령여부',
+    '접수번호','QR고유코드','이름','핸드폰번호','소속기관','좌석번호',
+    '장애인당사자여부','휠체어사용여부','복지관서비스이용여부',
+    '관리자메모','행운추첨상품','상품수령여부',
     '도착여부','도착시각','개인정보동의','동의일시','동의서버전'
   ];
 
   const rows=state.participants.map(p=>{
     const prize=prizeForParticipant(p);
     return[
-      p.number,p.id,p.name,p.phone,p.seat,
-      p.usesCenter?'예':'아니오',p.programName||'',
-      p.wheelchairUser?'예':'아니오',p.disabledPerson?'예':'아니오',
+      p.number,p.id,p.name,p.phone,p.organization||'',p.seat,
+      p.disabledPerson?'예':'아니오',
+      p.wheelchairUser?'사용':'미사용',
+      p.usesCenter?'이용함':'이용하지 않음',
       p.note||'',
       prize?.prizeName||'',prize?.redeemed?'수령완료':prize?'미수령':'',
       p.arrived?'도착':'미도착',p.checkInAt||'',
@@ -702,10 +710,7 @@ function exportCsv(){
   });
 
   const esc=v=>`"${String(v??'').replaceAll('"','""')}"`;
-  const csv='\uFEFF'+[h,...rows]
-    .map(r=>r.map(esc).join(','))
-    .join('\r\n');
-
+  const csv='\uFEFF'+[h,...rows].map(r=>r.map(esc).join(',')).join('\r\n');
   const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
@@ -714,6 +719,7 @@ function exportCsv(){
   a.click();
   URL.revokeObjectURL(url);
 }
+
 function drawParticipantForSeat(seat){
   const target=normalizeSeat(seat);
   return state.participants.find(p=>parseSeatList(p.seat).includes(target))||null;
@@ -832,9 +838,9 @@ function bindEvents(){
   $('#seatParticipantSearchForm').addEventListener('submit',e=>{e.preventDefault();renderSeatSearchResults($('#seatParticipantSearchInput').value,$('#seatParticipantSearchResults'),'seat-search-pick')});
   $('#seatParticipantSearchInput').addEventListener('input',e=>{const q=e.currentTarget.value.trim();if(q.length>=2)renderSeatSearchResults(q,$('#seatParticipantSearchResults'),'seat-search-pick');else $('#seatParticipantSearchResults').innerHTML='<div class="empty-state compact">두 글자 이상 입력하세요.</div>'});
   $('#seatParticipantSearchResults').addEventListener('click',e=>{const b=e.target.closest('[data-seat-search-pick]');if(!b)return;selectedSeatParticipantId=b.dataset.seatSearchPick;updateSeatSelectedPersonBanner();const p=findById(selectedSeatParticipantId);showToast(`${p?.name||'참가자'} 선택됨. 배정할 좌석을 클릭하세요.`);});
-  $('#participantForm').addEventListener('submit',async e=>{e.preventDefault();const form=e.currentTarget,b=form.querySelector('button');b.disabled=true;try{const v=Object.fromEntries(new FormData(form).entries());v.usesCenter=v.usesCenter==='true';v.wheelchairUser=v.wheelchairUser==='true';v.disabledPerson=v.disabledPerson==='true';const p=await jsonpRequest('createParticipant',v);updateCache(p);form.reset();showToast('개인 참가자를 등록했습니다.')}catch(err){showToast(err.message,4500)}finally{b.disabled=false}});
+  $('#participantForm').addEventListener('submit',async e=>{e.preventDefault();const form=e.currentTarget,b=form.querySelector('button');b.disabled=true;try{const v=Object.fromEntries(new FormData(form).entries());v.usesCenter=v.usesCenter==='true';v.wheelchairUser=v.wheelchairUser==='true';v.disabledPerson=v.disabledPerson==='true';if(!v.disabledPerson){v.usesCenter=false;v.wheelchairUser=false;}v.programName='';const p=await jsonpRequest('createParticipant',v);updateCache(p);form.reset();showToast('개인 참가자를 등록했습니다.')}catch(err){showToast(err.message,4500)}finally{b.disabled=false}});
   $('#participantTableBody').addEventListener('click',async e=>{const b=e.target.closest('[data-action]');if(!b)return;const p=findById(b.dataset.id);if(!p)return;try{if(b.dataset.action==='qr')showQr(p);if(b.dataset.action==='edit')showEdit(p);if(b.dataset.action==='toggle')p.arrived?await undoCheckIn(p):await checkIn(p);if(b.dataset.action==='delete'&&confirm(`${p.name} 님 신청을 사용중지할까요?`)){await jsonpRequest('deleteParticipant',{code:p.id});state.participants=state.participants.filter(x=>x.id!==p.id);renderAll();showToast('사용중지했습니다.')}}catch(err){showToast(err.message,4500)}});
-  $('#toggleScannerButton').addEventListener('click',()=>scannerRunning?stopScanner():startScanner());$('#manualCheckinForm').addEventListener('submit',e=>{e.preventDefault();const m=findMatches($('#manualCheckinInput').value);$('#manualSearchResults').innerHTML=m.length?m.map(p=>`<button class="search-result-button" data-manual-id="${escapeHtml(p.id)}"><strong>${escapeHtml(p.name)}${p.wheelchairUser?' · ♿':''}</strong><br><span>${escapeHtml(p.seat||'미배정')} · ${p.programName?escapeHtml(p.programName)+' · ':''}${escapeHtml(maskPhone(p.phone))}</span></button>`).join(''):'<div class="empty-state">찾지 못했습니다.</div>'});$('#manualSearchResults').addEventListener('click',e=>{const b=e.target.closest('[data-manual-id]');if(!b)return;const p=findById(b.dataset.manualId);if(p)showCheckinResult(p,p.arrived,prizeForParticipant(p))});$('#checkinResult').addEventListener('click',async e=>{const b=e.target.closest('[data-result]');if(!b)return;try{const resultAction=b.dataset.result;if(resultAction==='undo-prize'){state.prizes=await jsonpRequest('undoPrizeRedeem',{seat:b.dataset.seat});const currentId=$('#checkinResult [data-result="qr"]')?.dataset.id||'';const current=currentId?findById(currentId):null;if(current)showCheckinResult(current,true,prizeForParticipant(current));renderPrizeDraw();renderParticipants();showToast('상품 수령 처리를 취소했습니다.');return;}const p=findById(b.dataset.id);if(!p)return;if(resultAction==='checkin')await checkIn(p);if(resultAction==='undo')await undoCheckIn(p);if(resultAction==='qr')showQr(p);if(resultAction==='redeem-prize'){const r=await jsonpRequest('redeemPrize',{code:p.id});await refreshFromServer({silent:true});showCheckinResult(findById(p.id),true,r.prize);showToast(r.already?'이미 상품 수령 완료된 당첨자입니다.':'상품 수령완료 처리했습니다.');}}catch(err){showToast(err.message,4500)}});
+  $('#toggleScannerButton').addEventListener('click',()=>scannerRunning?stopScanner():startScanner());$('#manualCheckinForm').addEventListener('submit',e=>{e.preventDefault();const m=findMatches($('#manualCheckinInput').value);$('#manualSearchResults').innerHTML=m.length?m.map(p=>`<button class="search-result-button" data-manual-id="${escapeHtml(p.id)}"><strong>${escapeHtml(p.name)}${p.wheelchairUser?' · ♿':''}</strong><br><span>${escapeHtml(p.seat||'미배정')} · ${p.organization?escapeHtml(p.organization)+' · ':''}${escapeHtml(maskPhone(p.phone))}</span></button>`).join(''):'<div class="empty-state">찾지 못했습니다.</div>'});$('#manualSearchResults').addEventListener('click',e=>{const b=e.target.closest('[data-manual-id]');if(!b)return;const p=findById(b.dataset.manualId);if(p)showCheckinResult(p,p.arrived,prizeForParticipant(p))});$('#checkinResult').addEventListener('click',async e=>{const b=e.target.closest('[data-result]');if(!b)return;try{const resultAction=b.dataset.result;if(resultAction==='undo-prize'){state.prizes=await jsonpRequest('undoPrizeRedeem',{seat:b.dataset.seat});const currentId=$('#checkinResult [data-result="qr"]')?.dataset.id||'';const current=currentId?findById(currentId):null;if(current)showCheckinResult(current,true,prizeForParticipant(current));renderPrizeDraw();renderParticipants();showToast('상품 수령 처리를 취소했습니다.');return;}const p=findById(b.dataset.id);if(!p)return;if(resultAction==='checkin')await checkIn(p);if(resultAction==='undo')await undoCheckIn(p);if(resultAction==='qr')showQr(p);if(resultAction==='redeem-prize'){const r=await jsonpRequest('redeemPrize',{code:p.id});await refreshFromServer({silent:true});showCheckinResult(findById(p.id),true,r.prize);showToast(r.already?'이미 상품 수령 완료된 당첨자입니다.':'상품 수령완료 처리했습니다.');}}catch(err){showToast(err.message,4500)}});
   const seatClick=async e=>{const b=e.target.closest('[data-seat-code]');if(!b)return;const code=b.dataset.seatCode;if(selectedSeatParticipantId){const p=findById(selectedSeatParticipantId);if(!p){selectedSeatParticipantId='';updateSeatSelectedPersonBanner();return;}try{await assignSelectedPersonToSeat(p,code)}catch(err){showToast(err.message,5200)}return;}showSeatAssignmentModal(code)};$('#seatMap').addEventListener('click',seatClick);$('#extraSeatMap')?.addEventListener('click',seatClick);
   $('#seatZoneForm').addEventListener('submit',async e=>{e.preventDefault();try{state.seatMeta=await jsonpRequest('saveSeatMeta',{seats:$('#seatZoneSeats').value.trim(),category:$('#seatZoneCategory').value.trim()||'일반',autoAssignable:$('#seatZoneAuto').value==='true',enabled:$('#seatZoneEnabled').value==='true',wheelchairEligible:$('#seatZoneWheelchair').value==='true',note:$('#seatZoneNote').value.trim()});renderSeatMap();showToast('좌석 구역을 저장했습니다.')}catch(err){showToast(err.message,5200)}});
   $('#eventSettingsForm').addEventListener('submit',async e=>{e.preventDefault();const b=e.currentTarget.querySelector('button');b.disabled=true;session.station=$('#stationName').value.trim()||'관리자 웹';localStorage.setItem(STORAGE.STATION,session.station);const s={eventName:$('#eventName').value.trim(),eventDate:$('#eventDate').value.trim(),eventVenue:$('#eventVenue').value.trim(),eventOrganizer:$('#eventOrganizer').value.trim(),autoRefreshSeconds:Number($('#autoRefreshSeconds').value)||15,publicSubtitle:$('#publicSubtitle').value.trim(),publicGreeting:$('#publicGreeting').value.trim(),privacyRetentionText:$('#privacyRetentionText').value.trim(),registrationOpen:$('#registrationOpen').value==='true',registrationCapacity:Math.min(450,Number($('#registrationCapacity').value)||450),autoAssignSeat:$('#autoAssignSeat').value==='true',ticketRefreshSeconds:Number($('#ticketRefreshSeconds').value)||15};try{state.settings=await jsonpRequest('saveSettings',s);renderAll();scheduleRefresh();showToast('설정을 저장했습니다.')}catch(err){showToast(err.message,4500)}finally{b.disabled=false}});

@@ -999,3 +999,122 @@ body.intro-playing{
   .gate-description{display:none}
   .gate-audio-note{display:none}
 }
+
+
+/* v2.7 신청서 피드백 반영 */
+.application-title-row{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:11px;
+  flex-wrap:wrap;
+}
+.application-personal-badge{
+  display:inline-flex;
+  align-items:center;
+  min-height:32px;
+  padding:5px 11px;
+  border-radius:999px;
+  background:#edf3ff;
+  border:1px solid #cbd9f6;
+  color:#214a9c;
+  font-size:12px;
+  font-weight:900;
+}
+.application-important-copy{
+  max-width:720px;
+  margin-left:auto!important;
+  margin-right:auto!important;
+  padding:12px 15px;
+  border-radius:14px;
+  background:#fff8df;
+  border:1px solid #ead38a;
+  color:#654f08!important;
+}
+.accessibility-application-card{
+  padding:17px;
+  border:1px solid #d9e1ed;
+  border-radius:20px;
+  background:#fbfcfe;
+}
+.accessibility-application-intro{
+  margin-bottom:14px;
+}
+.accessibility-application-intro strong{
+  display:block;
+  color:#172554;
+  font-size:14px;
+  line-height:1.55;
+}
+.accessibility-application-intro p{
+  margin:5px 0 0;
+  color:#667085;
+  font-size:12px;
+  line-height:1.55;
+}
+.disabled-person-check{
+  margin:0;
+}
+.accessibility-details{
+  display:grid;
+  gap:12px;
+  margin-top:14px;
+  padding-top:14px;
+  border-top:1px dashed #d8e0ec;
+}
+.binary-choice-group{
+  min-width:0;
+  margin:0;
+  padding:0;
+  border:0;
+}
+.binary-choice-group legend{
+  margin-bottom:8px;
+  color:#172554;
+  font-size:13px;
+  font-weight:900;
+}
+.binary-choice-buttons{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+.binary-choice-buttons label{
+  position:relative;
+  cursor:pointer;
+}
+.binary-choice-buttons input{
+  position:absolute;
+  opacity:0;
+  pointer-events:none;
+}
+.binary-choice-buttons span{
+  min-height:46px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:9px 12px;
+  border:1px solid #cfd8e6;
+  border-radius:13px;
+  background:#fff;
+  color:#475467;
+  font-size:13px;
+  font-weight:850;
+  transition:.18s ease;
+}
+.binary-choice-buttons input:checked+span{
+  border-color:#366bd6;
+  background:#edf3ff;
+  color:#173e91;
+  box-shadow:0 0 0 2px rgba(54,107,214,.08);
+}
+.binary-choice-buttons input:focus-visible+span{
+  outline:2px solid #366bd6;
+  outline-offset:2px;
+}
+@media(max-width:560px){
+  .application-title-row{
+    align-items:flex-start;
+    justify-content:flex-start;
+  }
+}
