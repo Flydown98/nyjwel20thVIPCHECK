@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#172554" />
   <title>20주년 행사 관리자</title>
-  <link rel="stylesheet" href="style.css?v=3.4" />
+  <link rel="stylesheet" href="style.css?v=3.5" />
 </head>
 <body>
   <div id="loginOverlay" class="login-overlay">
@@ -62,7 +62,7 @@
         <article class="stat-card"><span>개인 신청</span><strong id="statApplications">0</strong></article>
         <article class="stat-card"><span>등록 인원</span><strong id="statTotal">0</strong></article>
         <article class="stat-card success"><span>현장 도착</span><strong id="statArrived">0</strong></article>
-        <article class="stat-card"><span>도착률</span><strong id="statRate">0%</strong></article><article class="stat-card wheelchair-stat"><span>휠체어 이용</span><strong id="statWheelchair">0 / 15</strong></article><article class="stat-card"><span>복지관 이용</span><strong id="statCenterUsers">0</strong></article><article class="stat-card"><span>장애인 당사자</span><strong id="statDisabledPersons">0</strong></article><article class="stat-card"><span>좌석 미배정</span><strong id="statUnassigned">0</strong></article>
+        <article class="stat-card"><span>도착률</span><strong id="statRate">0%</strong></article><article class="stat-card wheelchair-stat"><span>휠체어 이용</span><strong id="statWheelchair">0명</strong></article><article class="stat-card"><span>복지관 이용</span><strong id="statCenterUsers">0</strong></article><article class="stat-card"><span>장애인 당사자</span><strong id="statDisabledPersons">0</strong></article><article class="stat-card"><span>좌석 미배정</span><strong id="statUnassigned">0</strong></article>
       </div>
       <div class="two-column">
         <article class="panel"><div class="panel-heading"><h3>최근 도착</h3><span class="small-text">최근 8명</span></div><div id="recentCheckins" class="empty-state">아직 도착한 참가자가 없습니다.</div></article>
@@ -107,21 +107,20 @@
     </section>
 
     <section id="view-seats" class="view">
-      <div class="section-heading"><div><p class="eyebrow">RUNWAY SEATING · 450</p><h2>좌석 배치도</h2><p class="small-text"><strong>A~O 15줄 × 30석 = 총 450석</strong><br>VIP 24석은 기존 위치 그대로 유지합니다. <strong>도면의 오른쪽 끝이 앞</strong>이라는 기준으로 R-15·R-14·R-13의 앞쪽 3열을 장애인 우선구역으로 운영하며, R-15는 휠체어 접근성석입니다.</p></div><div class="legend"><span><i class="legend-dot vip"></i>VIP</span><span><i class="legend-dot disabled-priority"></i>장애인 지정석</span><span><i class="legend-dot wheelchair"></i>휠체어 접근성석</span><span><i class="legend-dot pending"></i>배정완료</span><span><i class="legend-dot arrived"></i>현장도착</span><span><i class="legend-dot empty"></i>빈 좌석</span></div></div>
+      <div class="section-heading"><div><p class="eyebrow">RUNWAY SEATING · 450</p><h2>좌석 배치도</h2><p class="small-text"><strong>A~O 15줄 × 30석 = 총 450석</strong><br>VIP는 <strong>A~D 각 줄 중앙 6석씩 총 24석</strong>을 금색으로 유지합니다. 장애인(휠체어) 지정석은 <strong>A~C 앞 3줄의 VIP 제외 72석</strong>입니다.</p></div><div class="legend"><span><i class="legend-dot vip"></i>VIP 24석</span><span><i class="legend-dot disabled-priority"></i>장애인(휠체어) 72석</span><span><i class="legend-dot pending"></i>배정완료</span><span><i class="legend-dot arrived"></i>현장도착</span><span><i class="legend-dot empty"></i>빈 좌석</span></div></div>
       <div class="vip-location-banner"><strong>★ 귀빈(VIP) 지정석 24석</strong><span>A~D · 런웨이 좌우 각 3석</span><small>AL/BL/CL/DL-13~15 · AR/BR/CR/DR-01~03 · 일반 자동배정 제외</small></div>
-      <div class="disabled-priority-banner"><strong>◆ 장애인 우선 앞쪽 3열</strong><span>R-15 · R-14 · R-13</span><small>VIP와 별도 구역입니다. 장애인 당사자는 접수 순서대로 앞쪽 좌석부터 우선 배정됩니다.</small></div>
-      <div class="wheelchair-location-banner"><strong>♿ 휠체어 접근성석 15석</strong><span>AR-15 ~ OR-15</span><small>가장 앞쪽 R-15는 휠체어 이용자를 위해 우선 보존합니다. 비휠체어 장애인 당사자는 R-14 → R-13 순으로 배정됩니다.</small></div>
+      <div class="disabled-priority-banner"><strong>♿ 장애인(휠체어) 지정석 72석</strong><span>A · B · C 앞 3줄</span><small>각 줄 L-01~12 및 R-04~15를 사용합니다. 중앙 VIP 6석은 유지하며 장애인 당사자는 접수 순서대로 AL-01부터 오른쪽 방향으로 선착순 배정됩니다.</small></div>
 
       <article class="panel seat-person-search-panel">
-        <div class="panel-heading"><div><h3>사람을 먼저 찾아 좌석 지정</h3><span class="small-text">개인 참가자를 이름·전화번호·프로그램명으로 바로 검색합니다.</span></div></div>
+        <div class="panel-heading"><div><h3>사람을 먼저 찾아 좌석 지정</h3><span class="small-text">개인 참가자를 이름·핸드폰 번호·소속기관으로 바로 검색합니다.</span></div></div>
         <form id="seatParticipantSearchForm" class="seat-person-search-form">
-          <input id="seatParticipantSearchInput" autocomplete="off" placeholder="이름 / 전화번호 / 프로그램명 검색" />
+          <input id="seatParticipantSearchInput" autocomplete="off" placeholder="이름 / 핸드폰 번호 / 소속기관 검색" />
           <button class="button primary" type="submit">검색</button>
         </form>
         <div id="seatParticipantSearchResults" class="seat-person-search-results"><div class="empty-state compact">검색어를 입력하면 참가자가 표시됩니다.</div></div>
         <div id="seatSelectedPersonBanner" class="seat-selected-person hidden"></div>
       </article>
-      <article class="panel seat-zone-editor"><div class="panel-heading"><h3>좌석 구역 일괄 변경</h3><span class="small-text">VIP·장애인지정석·관계자·휠체어 위치 등을 직접 지정</span></div><form id="seatZoneForm" class="form-grid"><label class="wide">좌석 범위<input id="seatZoneSeats" required placeholder="VIP 예: AL-13~AL-15,AR-01~AR-03,BL-13~BL-15,BR-01~BR-03" /></label><label>구역명<input id="seatZoneCategory" list="seatCategoryPresets" value="VIP" maxlength="40" /><datalist id="seatCategoryPresets"><option value="일반"><option value="VIP"><option value="관계자"><option value="휠체어"><option value="장애인지정석"><option value="예비"><option value="추가석"><option value="사용안함"></datalist></label><label>일반 자동배정<select id="seatZoneAuto"><option value="false">제외</option><option value="true">허용</option></select></label><label>좌석 사용<select id="seatZoneEnabled"><option value="true">사용</option><option value="false">사용안함</option></select></label><label>휠체어 자동배정 위치<select id="seatZoneWheelchair"><option value="false">아님</option><option value="true">휠체어 위치로 지정</option></select></label><label class="wide">메모<input id="seatZoneNote" maxlength="120" placeholder="예: 주요 내빈 / 출입구 가까운 휠체어석" /></label><div class="form-actions wide"><button class="button primary" type="submit">구역 설정 저장</button></div></form></article>
+      <article class="panel seat-zone-editor"><div class="panel-heading"><h3>좌석 구역 일괄 변경</h3><span class="small-text">VIP·장애인(휠체어)·관계자 위치 등을 직접 지정</span></div><form id="seatZoneForm" class="form-grid"><label class="wide">좌석 범위<input id="seatZoneSeats" required placeholder="VIP 예: AL-13~AL-15,AR-01~AR-03,BL-13~BL-15,BR-01~BR-03" /></label><label>구역명<input id="seatZoneCategory" list="seatCategoryPresets" value="VIP" maxlength="40" /><datalist id="seatCategoryPresets"><option value="일반"><option value="VIP"><option value="관계자"><option value="장애인(휠체어)"><option value="휠체어"><option value="장애인지정석"><option value="예비"><option value="추가석"><option value="사용안함"></datalist></label><label>일반 자동배정<select id="seatZoneAuto"><option value="false">제외</option><option value="true">허용</option></select></label><label>좌석 사용<select id="seatZoneEnabled"><option value="true">사용</option><option value="false">사용안함</option></select></label><label>휠체어 자동배정 위치<select id="seatZoneWheelchair"><option value="false">아님</option><option value="true">휠체어 위치로 지정</option></select></label><label class="wide">메모<input id="seatZoneNote" maxlength="120" placeholder="예: 주요 내빈 / 출입구 가까운 휠체어석" /></label><div class="form-actions wide"><button class="button primary" type="submit">구역 설정 저장</button></div></form></article>
       <article class="auditorium-panel runway-auditorium"><div class="auditorium-entry-marker"><span>입·출입구</span><strong>↙</strong></div><div class="stage-visual runway-stage"><div class="stage-light left"></div><div class="stage-light right"></div><span>MAIN STAGE</span><strong>무대 · 단상</strong><div class="stage-edge"></div></div><div class="runway-head">RUNWAY</div><div id="seatMap" class="runway-seat-map"></div><div id="extraSeatMap" class="hidden"></div></article>
     </section>
 
@@ -198,6 +197,6 @@ JL-03 | 기념품 세트"></textarea>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="config.js"></script>
-  <script src="admin.js?v=3.4"></script>
+  <script src="admin.js?v=3.5"></script>
 </body>
 </html>

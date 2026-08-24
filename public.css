@@ -1185,3 +1185,35 @@ body.intro-playing{
   border-color:#0ea5e9;
   outline:2px dashed #0ea5e9;
 }
+
+/* v2.7.3 공개 좌석도 */
+.public-seat-dot.public-disabled-priority{background:#bae6fd!important;border-color:#0284c7!important;outline:none!important}
+
+/* v2.7.3 한글 글자 밀림 / 폰트 폴백 수정 */
+.invite-hero h1,
+.intro-section h2,
+.section-heading h2,
+.gate-actions h1,
+.ticket-title h3,
+.trailer-fallback strong{
+  font-family:"Pretendard","Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic","맑은 고딕",sans-serif!important;
+  font-kerning:normal;
+  font-variant-ligatures:none;
+  word-break:keep-all;
+  overflow-wrap:normal;
+  text-rendering:optimizeLegibility;
+}
+.invite-hero h1{font-weight:800!important;letter-spacing:-.018em!important;line-height:1.18!important}
+.intro-section h2,.section-heading h2{font-weight:750!important;letter-spacing:-.012em!important;line-height:1.38!important}
+.gate-actions h1{font-weight:650!important;letter-spacing:-.012em!important;line-height:1.35!important}
+.invite-hero .organizer,
+.invite-hero .hero-subtitle,
+.invite-hero .event-summary strong,
+.invite-hero .hero-address{
+  font-family:"Pretendard","Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic","맑은 고딕",sans-serif!important;
+  letter-spacing:-.005em;
+  word-break:keep-all;
+  overflow-wrap:normal;
+}
+.invite-hero .event-summary span{width:100%;text-align:center;white-space:nowrap}
+@media(max-width:520px){.invite-hero h1{letter-spacing:-.012em!important}}

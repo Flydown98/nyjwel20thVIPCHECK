@@ -350,7 +350,7 @@ function renderDashboard() {
   $('#statTotal').textContent=total.toLocaleString();
   $('#statArrived').textContent=arrived.toLocaleString();
   $('#statRate').textContent=`${total?Math.round(arrived/total*1000)/10:0}%`;
-  if($('#statWheelchair'))$('#statWheelchair').textContent=`${wheelchairTotal} / 15`;
+  if($('#statWheelchair'))$('#statWheelchair').textContent=`${wheelchairTotal.toLocaleString()}명`;
   if($('#statCenterUsers'))$('#statCenterUsers').textContent=state.participants.filter(p=>p.usesCenter).length.toLocaleString();
   if($('#statDisabledPersons'))$('#statDisabledPersons').textContent=state.participants.filter(p=>p.disabledPerson).length.toLocaleString();
   if($('#statUnassigned'))$('#statUnassigned').textContent=state.participants.filter(p=>!String(p.seat||'').trim()).length.toLocaleString();
@@ -433,9 +433,30 @@ function renderParticipants() {
 }
 function seatMetaByCode(){const m=new Map();state.seatMeta.forEach(s=>m.set(normalizeSeat(s.code),s));return m}
 function seatOccupantMap(){const m=new Map();state.participants.forEach(p=>parseSeatList(p.seat).forEach(c=>m.set(normalizeSeat(c),p)));return m}
-function zoneClass(c){const v=String(c||'').toLowerCase();if(v.includes('vip'))return'zone-vip';if(v.includes('장애인지정'))return'zone-disabled-priority';if(v.includes('휠체어'))return'zone-wheelchair';if(v.includes('관계자'))return'zone-staff';if(v.includes('추가')||v.includes('예비'))return'zone-extra';if(v.includes('사용안함'))return'zone-disabled';return'zone-general'}
+function zoneClass(c){const v=String(c||'').toLowerCase();if(v.includes('vip'))return'zone-vip';if(v.includes('장애인'))return'zone-disabled-priority';if(v.includes('휠체어'))return'zone-wheelchair';if(v.includes('관계자'))return'zone-staff';if(v.includes('추가')||v.includes('예비'))return'zone-extra';if(v.includes('사용안함'))return'zone-disabled';return'zone-general'}
 function isWheelchairPersonSeat(p,code){if(!p||!p.wheelchairUser)return false;const target=normalizeSeat(code),list=(p.wheelchairSeats||[]).map(normalizeSeat);if(list.length)return list.includes(target);const seats=parseSeatList(p.seat).map(c=>{const m=normalizeSeat(c).match(/^([A-O])R-(\d{2})$/);return m?{code:normalizeSeat(c),row:m[1],n:Number(m[2])}:null}).filter(Boolean),count=p.wheelchairUser?1:0,out=[];for(const row of 'ABCDEFGHIJKLMNO'.split('')){const rs=seats.filter(s=>s.row===row).sort((a,b)=>b.n-a.n);if(!rs.some(s=>s.n===15))continue;for(const s of rs){if(out.length>=count)break;out.push(s.code)}if(out.length>=count)break}return out.includes(target)}
-function seatButton(code,meta,p){const cls=['runway-seat',zoneClass(meta?.category)];const disabledPriority=String(meta?.category||'').includes('장애인지정');if(meta?.wheelchairEligible)cls.push('wheelchair-anchor');if(disabledPriority)cls.push('disabled-priority-seat');const wcSeat=isWheelchairPersonSeat(p,code);if(wcSeat)cls.push('wheelchair-person');if(meta?.enabled===false)cls.push('disabled-seat');else if(p?.arrived)cls.push('arrived');else if(p)cls.push('pending');else cls.push('empty');const title=code+' · '+(meta?.category||'일반')+(disabledPriority?' · 장애인 당사자 우선 좌석':'')+(meta?.wheelchairEligible?' · 휠체어 접근성 슬롯':'')+(wcSeat?' · 휠체어 위치':'')+(p?' · '+p.name:'');const icon=meta?.wheelchairEligible||wcSeat?'<i class="wheelchair-seat-icon">♿</i>':disabledPriority?'<i class="disabled-priority-icon">우선</i>':'';return `<button class="${cls.join(' ')}" type="button" data-seat-code="${escapeHtml(code)}" title="${escapeHtml(title)}">${icon}<strong>${code.split('-')[1]}</strong>${p?`<span>${escapeHtml(p.name)}</span>`:''}</button>`}
+function seatButton(code,meta,p){
+  const cls=['runway-seat',zoneClass(meta?.category)];
+  const disabledAccessible=String(meta?.category||'').includes('장애인');
+  if(disabledAccessible)cls.push('disabled-priority-seat');
+
+  const wcSeat=isWheelchairPersonSeat(p,code);
+  if(wcSeat)cls.push('wheelchair-person');
+
+  if(meta?.enabled===false)cls.push('disabled-seat');
+  else if(p?.arrived)cls.push('arrived');
+  else if(p)cls.push('pending');
+  else cls.push('empty');
+
+  const title=code+' · '+(meta?.category||'일반')+
+    (disabledAccessible?' · 장애인(휠체어) 지정석':'')+
+    (wcSeat?' · 휠체어 이용 참가자':'')+(p?' · '+p.name:'');
+
+  const icon=disabledAccessible?'<i class="wheelchair-seat-icon">♿</i>':'';
+
+  return `<button class="${cls.join(' ')}" type="button" data-seat-code="${escapeHtml(code)}" title="${escapeHtml(title)}">${icon}<strong>${code.split('-')[1]}</strong>${p?`<span>${escapeHtml(p.name)}</span>`:''}</button>`;
+}
+
 function runwayRow(row,leftN,rightN,mm,om){let l='',r='';for(let i=1;i<=leftN;i++){const c=`${row}L-${String(i).padStart(2,'0')}`;l+=seatButton(c,mm.get(c),om.get(c))}for(let i=1;i<=rightN;i++){const c=`${row}R-${String(i).padStart(2,'0')}`;r+=seatButton(c,mm.get(c),om.get(c))}return `<div class="runway-row"><div class="runway-side runway-left"><span class="runway-row-label">${row}L</span><div class="runway-side-seats">${l}</div></div><div class="runway-spine"><span>${row}</span></div><div class="runway-side runway-right"><div class="runway-side-seats">${r}</div><span class="runway-row-label">${row}R</span></div></div>`}
 function renderSeatMap(){const mm=seatMetaByCode(),om=seatOccupantMap();$('#seatMap').innerHTML='ABCDEFGHIJKLMNO'.split('').map(r=>runwayRow(r,15,15,mm,om)).join('');if($('#extraSeatMap'))$('#extraSeatMap').innerHTML=''}
 function renderSettings(){

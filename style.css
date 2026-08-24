@@ -450,3 +450,13 @@
   color:#4c1d95!important;
   border-color:#8b5cf6!important;
 }
+
+/* v2.7.3 장애인(휠체어) A~C 72석 */
+.disabled-priority-banner{background:#eff8ff!important;border-color:#7dd3fc!important;color:#075985!important}
+.disabled-priority-banner span{background:#0284c7!important}
+.disabled-priority-banner small{color:#075985!important}
+.legend-dot.disabled-priority{background:#bae6fd!important;border-color:#0284c7!important}
+.runway-seat.zone-disabled-priority.empty{background:#e0f2fe!important;border-color:#38bdf8!important;color:#075985!important}
+.runway-seat.zone-disabled-priority .wheelchair-seat-icon{background:#0284c7!important}
+.runway-seat.zone-disabled-priority.pending{background:#86efac!important;color:#14532d!important;border-color:#22c55e!important}
+.runway-seat.zone-disabled-priority.arrived{background:#c4b5fd!important;color:#4c1d95!important;border-color:#8b5cf6!important}
