@@ -1569,3 +1569,8 @@ body.intro-playing{
   }
   .seat-detail-footer .submit-button{width:100%}
 }
+
+/* v2.8 300석 상세 좌석도 */
+.seat-detail-canvas{width:980px}
+.seat-detail-stage{width:540px}
+.seat-detail-side{grid-template-columns:repeat(10,1fr)}

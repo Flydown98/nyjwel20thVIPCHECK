@@ -16,9 +16,9 @@ const DEFAULT_PUBLIC_SETTINGS = Object.freeze({
   publicGreeting: '남양주시장애인복지관의 스무 해를 함께해 주신 여러분을 초대합니다.',
   privacyRetentionText: '행사 종료 후 결과 정리 및 문의 대응 완료 시까지(최대 30일)',
   registrationOpen: true,
-  registrationCapacity: 450,
+  registrationCapacity: 300,
   registeredCount: 0,
-  remainingCount: 450,
+  remainingCount: 300,
   autoAssignSeat: true,
   introVideoEnabled: false,
   introVideoUrl: 'assets/intro.mp4',
@@ -831,29 +831,22 @@ async function handleApplicationSubmit(event) {
 function defaultPublicSeatMeta(){
   const out=[];let order=1;
   const vip=new Set([
-    'AL-13','AL-14','AL-15','AR-01','AR-02','AR-03',
-    'BL-13','BL-14','BL-15','BR-01','BR-02','BR-03',
-    'CL-13','CL-14','CL-15','CR-01','CR-02','CR-03',
-    'DL-13','DL-14','DL-15','DR-01','DR-02','DR-03'
+    'AL-08','AL-09','AL-10','AR-01','AR-02','AR-03',
+    'BL-08','BL-09','BL-10','BR-01','BR-02','BR-03',
+    'CL-08','CL-09','CL-10','CR-01','CR-02','CR-03',
+    'DL-08','DL-09','DL-10','DR-01','DR-02','DR-03'
   ]);
   const disabled=new Set();
-
   ['A','B','C'].forEach(row=>{
-    for(let n=1;n<=12;n++)disabled.add(`${row}L-${String(n).padStart(2,'0')}`);
-    for(let n=4;n<=15;n++)disabled.add(`${row}R-${String(n).padStart(2,'0')}`);
+    for(let n=1;n<=7;n++)disabled.add(`${row}L-${String(n).padStart(2,'0')}`);
+    for(let n=4;n<=10;n++)disabled.add(`${row}R-${String(n).padStart(2,'0')}`);
   });
-
   'ABCDEFGHIJKLMNO'.split('').forEach(row=>['L','R'].forEach(side=>{
-    for(let n=1;n<=15;n++){
+    for(let n=1;n<=10;n++){
       const code=`${row}${side}-${String(n).padStart(2,'0')}`;
-      out.push({
-        code,row,side,number:n,
-        category:vip.has(code)?'VIP':disabled.has(code)?'장애인(휠체어)':'일반',
-        enabled:true,wheelchairEligible:disabled.has(code),order:order++
-      });
+      out.push({code,row,side,number:n,category:vip.has(code)?'VIP':disabled.has(code)?'장애인(휠체어)':'일반',enabled:true,wheelchairEligible:disabled.has(code),order:order++});
     }
   }));
-
   return out;
 }
 
@@ -867,7 +860,7 @@ function publicSeatDot(code,m,selected){
 }
 
 function publicRow(row,lN,rN,map,selected){let l='',r='';for(let i=1;i<=lN;i++){const c=`${row}L-${String(i).padStart(2,'0')}`;l+=publicSeatDot(c,map.get(c),selected.has(c))}for(let i=1;i<=rN;i++){const c=`${row}R-${String(i).padStart(2,'0')}`;r+=publicSeatDot(c,map.get(c),selected.has(c))}return `<div class="public-runway-row"><div class="public-side">${l}</div><div class="public-runway-spine">${row}</div><div class="public-side">${r}</div></div>`}
-function renderPublicSeatMap(){const a=$('#publicSeatMap');if(!a)return;const src=publicState.seatMeta.length?publicState.seatMeta:defaultPublicSeatMeta(),map=new Map(src.map(s=>[String(s.code).toUpperCase(),s])),selected=new Set(String(publicState.ticket?.seat||'').split(',').map(v=>v.trim().toUpperCase()).filter(Boolean));a.innerHTML='ABCDEFGHIJKLMNO'.split('').map(r=>publicRow(r,15,15,map,selected)).join('');if($('#publicExtraSeatMap'))$('#publicExtraSeatMap').innerHTML=''}
+function renderPublicSeatMap(){const a=$('#publicSeatMap');if(!a)return;const src=publicState.seatMeta.length?publicState.seatMeta:defaultPublicSeatMeta(),map=new Map(src.map(s=>[String(s.code).toUpperCase(),s])),selected=new Set(String(publicState.ticket?.seat||'').split(',').map(v=>v.trim().toUpperCase()).filter(Boolean));a.innerHTML='ABCDEFGHIJKLMNO'.split('').map(r=>publicRow(r,10,10,map,selected)).join('');if($('#publicExtraSeatMap'))$('#publicExtraSeatMap').innerHTML=''}
 
 let seatDetailZoom=1;
 
@@ -887,11 +880,11 @@ function detailedSeatCell(code,meta,selected){
 function detailedSeatRow(row,map,selected){
   let left='',right='';
 
-  for(let n=1;n<=15;n++){
+  for(let n=1;n<=10;n++){
     const code=`${row}L-${String(n).padStart(2,'0')}`;
     left+=detailedSeatCell(code,map.get(code),selected.has(code));
   }
-  for(let n=1;n<=15;n++){
+  for(let n=1;n<=10;n++){
     const code=`${row}R-${String(n).padStart(2,'0')}`;
     right+=detailedSeatCell(code,map.get(code),selected.has(code));
   }

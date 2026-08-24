@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#172554" />
   <title>20주년 행사 관리자</title>
-  <link rel="stylesheet" href="style.css?v=3.7" />
+  <link rel="stylesheet" href="style.css?v=4.0" />
   <link rel="manifest" href="admin-manifest.webmanifest" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/admin-app-icon-180.png" />
   <meta name="mobile-web-app-capable" content="yes" />
@@ -48,7 +48,7 @@
   </header>
 
   <div class="sync-notice">
-    <strong>관리자 전용 화면</strong> — 1인 1QR 개인 신청, 450석 좌석배정, 현장 QR 확인과 행운추첨 상품 수령을 관리합니다.
+    <strong>관리자 전용 화면</strong> — 1인 1QR 개인 신청, 300석 좌석배정, 현장 QR 확인과 행운추첨 상품 수령을 관리합니다.
   </div>
 
   <nav class="main-nav" aria-label="주요 메뉴">
@@ -108,16 +108,27 @@
     <section id="view-checkin" class="view">
       <div class="section-heading"><div><p class="eyebrow">CHECK-IN</p><h2>QR 접수</h2></div></div>
       <div class="two-column checkin-layout">
-        <article class="panel"><div class="panel-heading"><h3>카메라 QR 스캔</h3><button id="toggleScannerButton" class="button primary" type="button">카메라 시작</button></div><div id="reader" class="scanner-box"><p>카메라 시작 버튼을 눌러주세요.</p></div><p class="help-text">QR 스캔 즉시 도착 처리되며 좌석과 행운추첨 당첨 여부를 함께 확인합니다.</p></article>
+        <article class="panel fast-scan-panel">
+          <div class="panel-heading">
+            <div>
+              <h3>고속 QR 스캔 <span id="scannerModeBadge" class="scanner-mode-badge">대기</span></h3>
+              <p class="small-text">후면 카메라를 계속 켜둔 상태에서 QR이 화면에 들어오면 바로 인식합니다.</p>
+            </div>
+            <button id="toggleScannerButton" class="button primary" type="button">카메라 시작</button>
+          </div>
+          <div id="reader" class="scanner-box fast-scanner-box"><p>카메라 시작 버튼을 눌러주세요.</p></div>
+          <div class="fast-scan-status"><span id="scannerStatusDot" class="scanner-status-dot"></span><strong id="scannerStatusText">카메라 대기 중</strong></div>
+          <p class="help-text">지원 기기에서는 네이티브 QR 인식을 우선 사용하고, 미지원 기기는 고속 호환 모드로 자동 전환합니다.</p>
+        </article>
         <article class="panel"><h3>수동 검색</h3><form id="manualCheckinForm" class="stack-form"><label>이름·연락처·좌석·접수코드<input id="manualCheckinInput" required placeholder="예: 홍길동 또는 BL-01" /></label><button class="button primary" type="submit">찾기</button></form><div id="manualSearchResults" class="search-results"></div></article>
       </div>
       <article id="checkinResultPanel" class="panel result-panel hidden"><div id="checkinResult"></div></article>
     </section>
 
     <section id="view-seats" class="view">
-      <div class="section-heading"><div><p class="eyebrow">RUNWAY SEATING · 450</p><h2>좌석 배치도</h2><p class="small-text"><strong>A~O 15줄 × 30석 = 총 450석</strong><br>VIP는 <strong>A~D 각 줄 중앙 6석씩 총 24석</strong>을 금색으로 유지합니다. 장애인(휠체어) 지정석은 <strong>A~C 앞 3줄의 VIP 제외 72석</strong>입니다.</p></div><div class="legend"><span><i class="legend-dot vip"></i>VIP 24석</span><span><i class="legend-dot disabled-priority"></i>장애인(휠체어) 72석</span><span><i class="legend-dot pending"></i>배정완료</span><span><i class="legend-dot arrived"></i>현장도착</span><span><i class="legend-dot empty"></i>빈 좌석</span></div></div>
+      <div class="section-heading"><div><p class="eyebrow">RUNWAY SEATING · 300</p><h2>좌석 배치도</h2><p class="small-text"><strong>A~O 15줄 × 20석 = 총 300석</strong><br>VIP는 <strong>A~D 각 줄 중앙 6석씩 총 24석</strong>을 금색으로 유지합니다. 장애인(휠체어) 지정석은 <strong>A~C 앞 3줄의 VIP 제외 42석</strong>입니다.</p></div><div class="legend"><span><i class="legend-dot vip"></i>VIP 24석</span><span><i class="legend-dot disabled-priority"></i>장애인(휠체어) 42석</span><span><i class="legend-dot pending"></i>배정완료</span><span><i class="legend-dot arrived"></i>현장도착</span><span><i class="legend-dot empty"></i>빈 좌석</span></div></div>
       <div class="vip-location-banner"><strong>★ 귀빈(VIP) 지정석 24석</strong><span>A~D · 런웨이 좌우 각 3석</span><small>AL/BL/CL/DL-13~15 · AR/BR/CR/DR-01~03 · 일반 자동배정 제외</small></div>
-      <div class="disabled-priority-banner"><strong>♿ 장애인(휠체어) 지정석 72석</strong><span>A · B · C 앞 3줄</span><small>각 줄 L-01~12 및 R-04~15를 사용합니다. 중앙 VIP 6석은 유지하며 장애인 당사자는 접수 순서대로 AL-01부터 오른쪽 방향으로 선착순 배정됩니다.</small></div>
+      <div class="disabled-priority-banner"><strong>♿ 장애인(휠체어) 지정석 42석</strong><span>A · B · C 앞 3줄</span><small>각 줄 L-01~07 및 R-04~10을 사용합니다. 중앙 VIP 6석은 유지하며 장애인 당사자는 접수 순서대로 AL-01부터 오른쪽 방향으로 선착순 배정됩니다.</small></div>
 
       <article class="panel seat-person-search-panel">
         <div class="panel-heading"><div><h3>사람을 먼저 찾아 좌석 지정</h3><span class="small-text">개인 참가자를 이름·핸드폰 번호·소속기관으로 바로 검색합니다.</span></div></div>
@@ -184,13 +195,13 @@ JL-03 | 기념품 세트"></textarea>
           <label>행사 일시<input id="eventDate" required /></label>
           <label>장소<input id="eventVenue" required /></label>
           <label>주최 기관<input id="eventOrganizer" required /></label>
-          <label class="wide"><span>좌석 구조</span><input value="A~O 15줄 × 30석 = 450석" disabled /></label>
+          <label class="wide"><span>좌석 구조</span><input value="A~O 15줄 × 20석 = 300석" disabled /></label>
           <label>자동 새로고침(초)<input id="autoRefreshSeconds" type="number" min="5" max="300" /></label>
           <label class="wide">공개 초대장 부제<input id="publicSubtitle" maxlength="120" /></label>
           <label class="wide">초대 인사말<input id="publicGreeting" maxlength="5000" /></label>
           <label class="wide">개인정보 보유기간 안내<input id="privacyRetentionText" maxlength="300" placeholder="예: 행사 종료 후 30일" /></label>
           <label>온라인 신청 상태<select id="registrationOpen"><option value="true">신청 가능</option><option value="false">신청 마감</option></select></label>
-          <label>최대 수용 인원<input id="registrationCapacity" type="number" min="1" max="450" /></label>
+          <label>최대 수용 인원<input id="registrationCapacity" type="number" min="1" max="300" /></label>
           <label>좌석 자동 배정<select id="autoAssignSeat"><option value="true">사용</option><option value="false">사용 안 함</option></select></label><label class="wide"><span>인트로 영상 파일</span><input value="PC: assets/intro.mp4 / 모바일: assets/intro_mobile.mp4" disabled /></label><label>티켓 좌석 갱신(초)<input id="ticketRefreshSeconds" type="number" min="5" max="300" /></label><label>접수대 이름<input id="stationName" maxlength="40" placeholder="예: 정문 접수대" /></label>
           <div class="form-actions wide"><button class="button primary" type="submit">설정 저장</button></div>
         </form>
@@ -215,6 +226,6 @@ JL-03 | 기념품 세트"></textarea>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="config.js"></script>
-  <script src="admin.js?v=3.7"></script>
+  <script src="admin.js?v=4.0"></script>
 </body>
 </html>

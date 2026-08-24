@@ -517,3 +517,18 @@ body.admin-pwa-standalone .admin-app-install-trigger{
     font-size:.78rem;
   }
 }
+
+
+/* v2.8 고속 QR 스캐너 */
+.scanner-mode-badge{display:inline-flex;align-items:center;min-height:24px;margin-left:6px;padding:3px 8px;border-radius:999px;background:#e9eef6;color:#526074;font-size:.68rem;font-weight:900;vertical-align:middle}
+.fast-scanner-box{position:relative;min-height:340px;overflow:hidden;background:#070b12}
+.native-scanner-video{width:100%;height:min(58vh,520px);display:block;object-fit:cover;background:#000}
+.native-scanner-guide{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
+.native-scanner-guide span{position:relative;width:min(72%,360px);aspect-ratio:1;border:3px solid rgba(255,255,255,.94);border-radius:26px;box-shadow:0 0 0 999px rgba(0,0,0,.18),inset 0 0 28px rgba(255,255,255,.09)}
+.native-scanner-guide span::after{content:'QR을 이 영역에 보여주세요';position:absolute;left:50%;bottom:-50px;transform:translateX(-50%);width:max-content;max-width:88vw;padding:7px 12px;border-radius:999px;background:rgba(0,0,0,.64);color:#fff;font-size:.76rem;font-weight:850}
+.fast-scan-status{display:flex;align-items:center;gap:8px;margin-top:11px;color:#475569;font-size:.82rem}
+.scanner-status-dot{width:10px;height:10px;flex:0 0 auto;border-radius:50%;background:#94a3b8}
+.scanner-status-dot.busy{background:#f59e0b;animation:scannerPulse 1s infinite}.scanner-status-dot.ok{background:#22c55e}.scanner-status-dot.error{background:#ef4444}
+@keyframes scannerPulse{50%{opacity:.35;transform:scale(.78)}}
+#reader video{max-height:min(58vh,520px)!important;object-fit:cover!important}#reader__scan_region{min-height:320px!important}
+@media(max-width:650px){.fast-scanner-box{min-height:300px}.native-scanner-video{height:52vh;min-height:300px}}

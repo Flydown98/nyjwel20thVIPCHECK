@@ -1,6 +1,6 @@
 'use strict';
 
-const ADMIN_UI_VERSION = '2.7.5-ADMIN-PWA';
+const ADMIN_UI_VERSION = '2.8-FASTSCAN-300';
 
 const CONFIG = window.NYJ20_CONFIG || {};
 const API_URL = String(CONFIG.appsScriptUrl || '').trim();
@@ -22,7 +22,7 @@ const DEFAULT_SETTINGS = Object.freeze({
   publicGreeting: '남양주시장애인복지관의 스무 해를 함께해 주신 여러분을 초대합니다.',
   privacyRetentionText: '행사 종료 후 결과 정리 및 문의 대응 완료 시까지(최대 30일)',
   registrationOpen: true,
-  registrationCapacity: 450,
+  registrationCapacity: 300,
   autoAssignSeat: true
 });
 
@@ -39,6 +39,12 @@ let refreshTimer = null;
 let scanner = null;
 let scannerRunning = false;
 let scanBusy = false;
+let nativeScannerStream = null;
+let nativeScannerVideo = null;
+let nativeScannerFrame = null;
+let nativeScannerDetector = null;
+let nativeScannerLastDetectAt = 0;
+let scannerMode = 'idle';
 let lastScannedText = '';
 let lastScannedAt = 0;
 let selectedSeatParticipantId = '';
@@ -434,7 +440,10 @@ function renderParticipants() {
 function seatMetaByCode(){const m=new Map();state.seatMeta.forEach(s=>m.set(normalizeSeat(s.code),s));return m}
 function seatOccupantMap(){const m=new Map();state.participants.forEach(p=>parseSeatList(p.seat).forEach(c=>m.set(normalizeSeat(c),p)));return m}
 function zoneClass(c){const v=String(c||'').toLowerCase();if(v.includes('vip'))return'zone-vip';if(v.includes('장애인'))return'zone-disabled-priority';if(v.includes('휠체어'))return'zone-wheelchair';if(v.includes('관계자'))return'zone-staff';if(v.includes('추가')||v.includes('예비'))return'zone-extra';if(v.includes('사용안함'))return'zone-disabled';return'zone-general'}
-function isWheelchairPersonSeat(p,code){if(!p||!p.wheelchairUser)return false;const target=normalizeSeat(code),list=(p.wheelchairSeats||[]).map(normalizeSeat);if(list.length)return list.includes(target);const seats=parseSeatList(p.seat).map(c=>{const m=normalizeSeat(c).match(/^([A-O])R-(\d{2})$/);return m?{code:normalizeSeat(c),row:m[1],n:Number(m[2])}:null}).filter(Boolean),count=p.wheelchairUser?1:0,out=[];for(const row of 'ABCDEFGHIJKLMNO'.split('')){const rs=seats.filter(s=>s.row===row).sort((a,b)=>b.n-a.n);if(!rs.some(s=>s.n===15))continue;for(const s of rs){if(out.length>=count)break;out.push(s.code)}if(out.length>=count)break}return out.includes(target)}
+function isWheelchairPersonSeat(p,code){
+  if(!p||!p.wheelchairUser)return false;
+  return parseSeatList(p.seat).map(normalizeSeat).includes(normalizeSeat(code));
+}
 function seatButton(code,meta,p){
   const cls=['runway-seat',zoneClass(meta?.category)];
   const disabledAccessible=String(meta?.category||'').includes('장애인');
@@ -458,9 +467,9 @@ function seatButton(code,meta,p){
 }
 
 function runwayRow(row,leftN,rightN,mm,om){let l='',r='';for(let i=1;i<=leftN;i++){const c=`${row}L-${String(i).padStart(2,'0')}`;l+=seatButton(c,mm.get(c),om.get(c))}for(let i=1;i<=rightN;i++){const c=`${row}R-${String(i).padStart(2,'0')}`;r+=seatButton(c,mm.get(c),om.get(c))}return `<div class="runway-row"><div class="runway-side runway-left"><span class="runway-row-label">${row}L</span><div class="runway-side-seats">${l}</div></div><div class="runway-spine"><span>${row}</span></div><div class="runway-side runway-right"><div class="runway-side-seats">${r}</div><span class="runway-row-label">${row}R</span></div></div>`}
-function renderSeatMap(){const mm=seatMetaByCode(),om=seatOccupantMap();$('#seatMap').innerHTML='ABCDEFGHIJKLMNO'.split('').map(r=>runwayRow(r,15,15,mm,om)).join('');if($('#extraSeatMap'))$('#extraSeatMap').innerHTML=''}
+function renderSeatMap(){const mm=seatMetaByCode(),om=seatOccupantMap();$('#seatMap').innerHTML='ABCDEFGHIJKLMNO'.split('').map(r=>runwayRow(r,10,10,mm,om)).join('');if($('#extraSeatMap'))$('#extraSeatMap').innerHTML=''}
 function renderSettings(){
-  $('#eventName').value=state.settings.eventName||'';$('#eventDate').value=state.settings.eventDate||'';$('#eventVenue').value=state.settings.eventVenue||'';$('#eventOrganizer').value=state.settings.eventOrganizer||'';$('#autoRefreshSeconds').value=state.settings.autoRefreshSeconds||15;$('#publicSubtitle').value=state.settings.publicSubtitle||'';$('#publicGreeting').value=state.settings.publicGreeting||'';$('#privacyRetentionText').value=state.settings.privacyRetentionText||'';$('#registrationOpen').value=String(state.settings.registrationOpen!==false);$('#registrationCapacity').value=state.settings.registrationCapacity||450;$('#autoAssignSeat').value=String(state.settings.autoAssignSeat!==false);$('#ticketRefreshSeconds').value=state.settings.ticketRefreshSeconds||15;$('#stationName').value=session.station||'관리자 웹';
+  $('#eventName').value=state.settings.eventName||'';$('#eventDate').value=state.settings.eventDate||'';$('#eventVenue').value=state.settings.eventVenue||'';$('#eventOrganizer').value=state.settings.eventOrganizer||'';$('#autoRefreshSeconds').value=state.settings.autoRefreshSeconds||15;$('#publicSubtitle').value=state.settings.publicSubtitle||'';$('#publicGreeting').value=state.settings.publicGreeting||'';$('#privacyRetentionText').value=state.settings.privacyRetentionText||'';$('#registrationOpen').value=String(state.settings.registrationOpen!==false);$('#registrationCapacity').value=state.settings.registrationCapacity||300;$('#autoAssignSeat').value=String(state.settings.autoAssignSeat!==false);$('#ticketRefreshSeconds').value=state.settings.ticketRefreshSeconds||15;$('#stationName').value=session.station||'관리자 웹';
 }
 function findById(id){return state.participants.find(p=>p.id===id)}
 function findMatches(q){
@@ -537,9 +546,120 @@ function showCheckinResult(p,already=false,prize=null){
 
   $('#checkinResultPanel').scrollIntoView({behavior:'smooth',block:'center'});
 }
-async function handleScanned(text){const now=Date.now();if(scanBusy||(text===lastScannedText&&now-lastScannedAt<3000))return;lastScannedText=text;lastScannedAt=now;try{await checkIn(text)}catch(e){showToast(e.message,4500);$('#checkinResultPanel').classList.remove('hidden');$('#checkinResult').innerHTML=`<div class="empty-state"><strong>${escapeHtml(e.message)}</strong></div>`}}
-function startScanner(){if(scannerRunning)return;if(typeof Html5QrcodeScanner==='undefined')return showToast('QR 스캐너 라이브러리를 불러오지 못했습니다.');$('#reader').innerHTML='';scanner=new Html5QrcodeScanner('reader',{fps:10,qrbox:{width:230,height:230},rememberLastUsedCamera:true,supportedScanTypes:[Html5QrcodeScanType.SCAN_TYPE_CAMERA,Html5QrcodeScanType.SCAN_TYPE_FILE]},false);scanner.render(t=>handleScanned(t),()=>{});scannerRunning=true;$('#toggleScannerButton').textContent='카메라 종료'}
-async function stopScanner(){if(!scannerRunning||!scanner)return;try{await scanner.clear()}catch(_){}scanner=null;scannerRunning=false;$('#reader').innerHTML='<p>카메라 시작 버튼을 눌러주세요.</p>';$('#toggleScannerButton').textContent='카메라 시작'}
+async function handleScanned(text){
+  const now=Date.now();
+  if(scanBusy||(text===lastScannedText&&now-lastScannedAt<1200))return;
+  lastScannedText=text;
+  lastScannedAt=now;
+  try{
+    if(navigator.vibrate)navigator.vibrate(45);
+    setScannerStatus('QR 인식 · 확인 중','busy');
+    await checkIn(text);
+    setScannerStatus('체크인 완료 · 다음 QR을 보여주세요','ok');
+  }catch(e){
+    setScannerStatus('QR 인식됨 · 확인 필요','error');
+    showToast(e.message,4500);
+    $('#checkinResultPanel').classList.remove('hidden');
+    $('#checkinResult').innerHTML=`<div class="empty-state"><strong>${escapeHtml(e.message)}</strong></div>`;
+  }
+}
+
+function setScannerStatus(text,state='idle',modeText=''){
+  const status=$('#scannerStatusText');
+  const dot=$('#scannerStatusDot');
+  const badge=$('#scannerModeBadge');
+  if(status)status.textContent=text;
+  if(dot){dot.className='scanner-status-dot';if(state)dot.classList.add(state);}
+  if(badge&&modeText)badge.textContent=modeText;
+}
+
+async function stopNativeScanner(){
+  if(nativeScannerFrame){cancelAnimationFrame(nativeScannerFrame);nativeScannerFrame=null;}
+  if(nativeScannerVideo){try{nativeScannerVideo.pause()}catch(_){}nativeScannerVideo.srcObject=null;nativeScannerVideo=null;}
+  if(nativeScannerStream){nativeScannerStream.getTracks().forEach(track=>track.stop());nativeScannerStream=null;}
+  nativeScannerDetector=null;
+}
+
+async function startNativeScanner(){
+  if(!('BarcodeDetector' in window))return false;
+  try{
+    if(typeof BarcodeDetector.getSupportedFormats==='function'){
+      const formats=await BarcodeDetector.getSupportedFormats();
+      if(!formats.includes('qr_code'))return false;
+    }
+    nativeScannerDetector=new BarcodeDetector({formats:['qr_code']});
+  }catch(_){nativeScannerDetector=null;return false;}
+  if(!navigator.mediaDevices?.getUserMedia)return false;
+  try{
+    nativeScannerStream=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080},frameRate:{ideal:30,max:60}}});
+  }catch(_){nativeScannerStream=null;return false;}
+  const video=document.createElement('video');
+  video.className='native-scanner-video';
+  video.setAttribute('playsinline','');
+  video.autoplay=true;video.muted=true;video.srcObject=nativeScannerStream;
+  const guide=document.createElement('div');guide.className='native-scanner-guide';guide.innerHTML='<span></span>';
+  const reader=$('#reader');reader.innerHTML='';reader.append(video,guide);nativeScannerVideo=video;
+  try{await video.play();}catch(_){await stopNativeScanner();return false;}
+  try{
+    const track=nativeScannerStream.getVideoTracks()[0];
+    const caps=track?.getCapabilities?.()||{};
+    if(Array.isArray(caps.focusMode)&&caps.focusMode.includes('continuous'))await track.applyConstraints({advanced:[{focusMode:'continuous'}]});
+  }catch(_){}
+  scannerMode='native';scannerRunning=true;
+  setScannerStatus('고속 스캔 중 · QR을 화면에 보여주세요','ok','고속 네이티브');
+  $('#toggleScannerButton').textContent='카메라 종료';
+  const loop=async timestamp=>{
+    if(!scannerRunning||scannerMode!=='native'||!nativeScannerVideo)return;
+    if(!scanBusy&&nativeScannerVideo.readyState>=2&&timestamp-nativeScannerLastDetectAt>=70){
+      nativeScannerLastDetectAt=timestamp;
+      try{
+        const results=await nativeScannerDetector.detect(nativeScannerVideo);
+        const qr=results?.find(item=>item?.rawValue);
+        if(qr?.rawValue)handleScanned(String(qr.rawValue));
+      }catch(_){}
+    }
+    nativeScannerFrame=requestAnimationFrame(loop);
+  };
+  nativeScannerFrame=requestAnimationFrame(loop);
+  return true;
+}
+
+async function startHtml5FastScanner(){
+  if(typeof Html5Qrcode==='undefined')return false;
+  $('#reader').innerHTML='';
+  scanner=new Html5Qrcode('reader',{verbose:false});
+  try{
+    await scanner.start({facingMode:'environment'},{fps:20,qrbox:(width,height)=>{const edge=Math.floor(Math.min(width,height)*0.82);return{width:edge,height:edge};},aspectRatio:1.7777778,disableFlip:true},decodedText=>handleScanned(decodedText),()=>{});
+  }catch(_){try{await scanner.clear()}catch(__){}scanner=null;return false;}
+  scannerMode='html5';scannerRunning=true;
+  setScannerStatus('고속 호환 스캔 중 · QR을 화면에 보여주세요','ok','고속 호환');
+  $('#toggleScannerButton').textContent='카메라 종료';
+  return true;
+}
+
+async function startScanner(){
+  if(scannerRunning)return;
+  setScannerStatus('카메라를 준비하고 있습니다.','busy','준비');
+  $('#toggleScannerButton').disabled=true;
+  try{
+    if(await startNativeScanner())return;
+    if(await startHtml5FastScanner())return;
+    setScannerStatus('카메라를 시작하지 못했습니다.','error','오류');
+    showToast('카메라 권한을 확인한 뒤 다시 시도해 주세요.',4800);
+    $('#reader').innerHTML='<p>카메라를 사용할 수 없습니다. 브라우저의 카메라 권한을 확인해 주세요.</p>';
+  }finally{$('#toggleScannerButton').disabled=false;}
+}
+
+async function stopScanner(){
+  scannerRunning=false;
+  if(scannerMode==='native')await stopNativeScanner();
+  if(scannerMode==='html5'&&scanner){try{await scanner.stop()}catch(_){}try{await scanner.clear()}catch(_){}}
+  scanner=null;scannerMode='idle';
+  $('#reader').innerHTML='<p>카메라 시작 버튼을 눌러주세요.</p>';
+  $('#toggleScannerButton').textContent='카메라 시작';
+  setScannerStatus('카메라 대기 중','idle','대기');
+}
+
 function openModal(title,html){$('#modalTitle').textContent=title;$('#modalContent').innerHTML=html;$('#modalBackdrop').classList.remove('hidden');document.body.style.overflow='hidden'}
 function closeModal(){$('#modalBackdrop').classList.add('hidden');document.body.style.overflow=''}
 
@@ -974,10 +1094,10 @@ function bindEvents(){
   $('#seatParticipantSearchResults').addEventListener('click',e=>{const b=e.target.closest('[data-seat-search-pick]');if(!b)return;selectedSeatParticipantId=b.dataset.seatSearchPick;updateSeatSelectedPersonBanner();const p=findById(selectedSeatParticipantId);showToast(`${p?.name||'참가자'} 선택됨. 배정할 좌석을 클릭하세요.`);});
   $('#participantForm').addEventListener('submit',async e=>{e.preventDefault();const form=e.currentTarget,b=form.querySelector('button');b.disabled=true;try{const v=Object.fromEntries(new FormData(form).entries());v.usesCenter=v.usesCenter==='true';v.wheelchairUser=v.wheelchairUser==='true';v.disabledPerson=v.disabledPerson==='true';if(!v.disabledPerson){v.usesCenter=false;v.wheelchairUser=false;}v.programName='';const p=await jsonpRequest('createParticipant',v);updateCache(p);form.reset();showToast('개인 참가자를 등록했습니다.')}catch(err){showToast(err.message,4500)}finally{b.disabled=false}});
   $('#participantTableBody').addEventListener('click',async e=>{const b=e.target.closest('[data-action]');if(!b)return;const p=findById(b.dataset.id);if(!p)return;try{if(b.dataset.action==='qr')showQr(p);if(b.dataset.action==='edit')showEdit(p);if(b.dataset.action==='toggle')p.arrived?await undoCheckIn(p):await checkIn(p);if(b.dataset.action==='delete'&&confirm(`${p.name} 님 신청을 사용중지할까요?`)){await jsonpRequest('deleteParticipant',{code:p.id});state.participants=state.participants.filter(x=>x.id!==p.id);renderAll();showToast('사용중지했습니다.')}}catch(err){showToast(err.message,4500)}});
-  $('#toggleScannerButton').addEventListener('click',()=>scannerRunning?stopScanner():startScanner());$('#manualCheckinForm').addEventListener('submit',e=>{e.preventDefault();const m=findMatches($('#manualCheckinInput').value);$('#manualSearchResults').innerHTML=m.length?m.map(p=>`<button class="search-result-button" data-manual-id="${escapeHtml(p.id)}"><strong>${escapeHtml(p.name)}${p.wheelchairUser?' · ♿':''}</strong><br><span>${escapeHtml(p.seat||'미배정')} · ${p.organization?escapeHtml(p.organization)+' · ':''}${escapeHtml(maskPhone(p.phone))}</span></button>`).join(''):'<div class="empty-state">찾지 못했습니다.</div>'});$('#manualSearchResults').addEventListener('click',e=>{const b=e.target.closest('[data-manual-id]');if(!b)return;const p=findById(b.dataset.manualId);if(p)showCheckinResult(p,p.arrived,prizeForParticipant(p))});$('#checkinResult').addEventListener('click',async e=>{const b=e.target.closest('[data-result]');if(!b)return;try{const resultAction=b.dataset.result;if(resultAction==='undo-prize'){state.prizes=await jsonpRequest('undoPrizeRedeem',{seat:b.dataset.seat});const currentId=$('#checkinResult [data-result="qr"]')?.dataset.id||'';const current=currentId?findById(currentId):null;if(current)showCheckinResult(current,true,prizeForParticipant(current));renderPrizeDraw();renderParticipants();showToast('상품 수령 처리를 취소했습니다.');return;}const p=findById(b.dataset.id);if(!p)return;if(resultAction==='checkin')await checkIn(p);if(resultAction==='undo')await undoCheckIn(p);if(resultAction==='qr')showQr(p);if(resultAction==='redeem-prize'){const r=await jsonpRequest('redeemPrize',{code:p.id});await refreshFromServer({silent:true});showCheckinResult(findById(p.id),true,r.prize);showToast(r.already?'이미 상품 수령 완료된 당첨자입니다.':'상품 수령완료 처리했습니다.');}}catch(err){showToast(err.message,4500)}});
+  $('#toggleScannerButton').addEventListener('click',async()=>scannerRunning?await stopScanner():await startScanner());$('#manualCheckinForm').addEventListener('submit',e=>{e.preventDefault();const m=findMatches($('#manualCheckinInput').value);$('#manualSearchResults').innerHTML=m.length?m.map(p=>`<button class="search-result-button" data-manual-id="${escapeHtml(p.id)}"><strong>${escapeHtml(p.name)}${p.wheelchairUser?' · ♿':''}</strong><br><span>${escapeHtml(p.seat||'미배정')} · ${p.organization?escapeHtml(p.organization)+' · ':''}${escapeHtml(maskPhone(p.phone))}</span></button>`).join(''):'<div class="empty-state">찾지 못했습니다.</div>'});$('#manualSearchResults').addEventListener('click',e=>{const b=e.target.closest('[data-manual-id]');if(!b)return;const p=findById(b.dataset.manualId);if(p)showCheckinResult(p,p.arrived,prizeForParticipant(p))});$('#checkinResult').addEventListener('click',async e=>{const b=e.target.closest('[data-result]');if(!b)return;try{const resultAction=b.dataset.result;if(resultAction==='undo-prize'){state.prizes=await jsonpRequest('undoPrizeRedeem',{seat:b.dataset.seat});const currentId=$('#checkinResult [data-result="qr"]')?.dataset.id||'';const current=currentId?findById(currentId):null;if(current)showCheckinResult(current,true,prizeForParticipant(current));renderPrizeDraw();renderParticipants();showToast('상품 수령 처리를 취소했습니다.');return;}const p=findById(b.dataset.id);if(!p)return;if(resultAction==='checkin')await checkIn(p);if(resultAction==='undo')await undoCheckIn(p);if(resultAction==='qr')showQr(p);if(resultAction==='redeem-prize'){const r=await jsonpRequest('redeemPrize',{code:p.id});await refreshFromServer({silent:true});showCheckinResult(findById(p.id),true,r.prize);showToast(r.already?'이미 상품 수령 완료된 당첨자입니다.':'상품 수령완료 처리했습니다.');}}catch(err){showToast(err.message,4500)}});
   const seatClick=async e=>{const b=e.target.closest('[data-seat-code]');if(!b)return;const code=b.dataset.seatCode;if(selectedSeatParticipantId){const p=findById(selectedSeatParticipantId);if(!p){selectedSeatParticipantId='';updateSeatSelectedPersonBanner();return;}try{await assignSelectedPersonToSeat(p,code)}catch(err){showToast(err.message,5200)}return;}showSeatAssignmentModal(code)};$('#seatMap').addEventListener('click',seatClick);$('#extraSeatMap')?.addEventListener('click',seatClick);
   $('#seatZoneForm').addEventListener('submit',async e=>{e.preventDefault();try{state.seatMeta=await jsonpRequest('saveSeatMeta',{seats:$('#seatZoneSeats').value.trim(),category:$('#seatZoneCategory').value.trim()||'일반',autoAssignable:$('#seatZoneAuto').value==='true',enabled:$('#seatZoneEnabled').value==='true',wheelchairEligible:$('#seatZoneWheelchair').value==='true',note:$('#seatZoneNote').value.trim()});renderSeatMap();showToast('좌석 구역을 저장했습니다.')}catch(err){showToast(err.message,5200)}});
-  $('#eventSettingsForm').addEventListener('submit',async e=>{e.preventDefault();const b=e.currentTarget.querySelector('button');b.disabled=true;session.station=$('#stationName').value.trim()||'관리자 웹';localStorage.setItem(STORAGE.STATION,session.station);const s={eventName:$('#eventName').value.trim(),eventDate:$('#eventDate').value.trim(),eventVenue:$('#eventVenue').value.trim(),eventOrganizer:$('#eventOrganizer').value.trim(),autoRefreshSeconds:Number($('#autoRefreshSeconds').value)||15,publicSubtitle:$('#publicSubtitle').value.trim(),publicGreeting:$('#publicGreeting').value.trim(),privacyRetentionText:$('#privacyRetentionText').value.trim(),registrationOpen:$('#registrationOpen').value==='true',registrationCapacity:Math.min(450,Number($('#registrationCapacity').value)||450),autoAssignSeat:$('#autoAssignSeat').value==='true',ticketRefreshSeconds:Number($('#ticketRefreshSeconds').value)||15};try{state.settings=await jsonpRequest('saveSettings',s);renderAll();scheduleRefresh();showToast('설정을 저장했습니다.')}catch(err){showToast(err.message,4500)}finally{b.disabled=false}});
+  $('#eventSettingsForm').addEventListener('submit',async e=>{e.preventDefault();const b=e.currentTarget.querySelector('button');b.disabled=true;session.station=$('#stationName').value.trim()||'관리자 웹';localStorage.setItem(STORAGE.STATION,session.station);const s={eventName:$('#eventName').value.trim(),eventDate:$('#eventDate').value.trim(),eventVenue:$('#eventVenue').value.trim(),eventOrganizer:$('#eventOrganizer').value.trim(),autoRefreshSeconds:Number($('#autoRefreshSeconds').value)||15,publicSubtitle:$('#publicSubtitle').value.trim(),publicGreeting:$('#publicGreeting').value.trim(),privacyRetentionText:$('#privacyRetentionText').value.trim(),registrationOpen:$('#registrationOpen').value==='true',registrationCapacity:Math.min(300,Number($('#registrationCapacity').value)||300),autoAssignSeat:$('#autoAssignSeat').value==='true',ticketRefreshSeconds:Number($('#ticketRefreshSeconds').value)||15};try{state.settings=await jsonpRequest('saveSettings',s);renderAll();scheduleRefresh();showToast('설정을 저장했습니다.')}catch(err){showToast(err.message,4500)}finally{b.disabled=false}});
   $('#logoutButton').addEventListener('click',logout);$('#logoutButtonTop').addEventListener('click',logout);$('#closeModalButton').addEventListener('click',closeModal);$('#modalBackdrop').addEventListener('click',e=>{if(e.target.id==='modalBackdrop')closeModal()});document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
 }
 
