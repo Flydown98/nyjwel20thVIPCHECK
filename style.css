@@ -460,3 +460,60 @@
 .runway-seat.zone-disabled-priority .wheelchair-seat-icon{background:#0284c7!important}
 .runway-seat.zone-disabled-priority.pending{background:#86efac!important;color:#14532d!important;border-color:#22c55e!important}
 .runway-seat.zone-disabled-priority.arrived{background:#c4b5fd!important;color:#4c1d95!important;border-color:#8b5cf6!important}
+
+
+/* =====================================================================
+   v2.7.5 — 관리자 PWA 설치 UI
+   ===================================================================== */
+.admin-install-button{
+  border-color:#93c5fd!important;
+  background:#eff6ff!important;
+  color:#1d4ed8!important;
+  font-weight:900!important;
+}
+.admin-install-button:hover{
+  background:#dbeafe!important;
+}
+.admin-app-panel{
+  border:1px solid #c7d8f5!important;
+  background:linear-gradient(135deg,#f8fbff,#eef5ff)!important;
+}
+.admin-app-install-note{
+  margin:10px 0 0;
+}
+.admin-install-guide{
+  text-align:left;
+}
+.admin-install-guide h3{
+  margin:5px 0 12px;
+}
+.admin-install-guide ol{
+  margin:12px 0;
+  padding-left:23px;
+  line-height:1.85;
+}
+.admin-install-guide p{
+  line-height:1.65;
+}
+.admin-install-icon{
+  width:58px;
+  height:58px;
+  display:grid;
+  place-items:center;
+  margin-bottom:14px;
+  border-radius:17px;
+  background:#172554;
+  color:#fff;
+  font-size:24px;
+  font-weight:950;
+  box-shadow:0 10px 24px rgba(23,37,84,.2);
+}
+body.admin-pwa-standalone .admin-app-install-trigger{
+  display:none!important;
+}
+@media(max-width:620px){
+  .header-actions .admin-install-button{
+    padding:9px 11px;
+    font-size:.78rem;
+  }
+}

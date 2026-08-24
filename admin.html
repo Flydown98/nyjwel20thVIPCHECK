@@ -5,7 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#172554" />
   <title>20주년 행사 관리자</title>
-  <link rel="stylesheet" href="style.css?v=3.5" />
+  <link rel="stylesheet" href="style.css?v=3.7" />
+  <link rel="manifest" href="admin-manifest.webmanifest" />
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/admin-app-icon-180.png" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="20주년 관리자" />
+
 </head>
 <body>
   <div id="loginOverlay" class="login-overlay">
@@ -34,6 +41,7 @@
       <h1 id="headerEventName">20주년 기념행사 QR 접수</h1>
     </div>
     <div class="header-actions">
+      <button class="button admin-install-button admin-app-install-trigger" type="button" title="이 기기에 관리자 웹앱 설치">앱 설치</button>
       <span id="storageBadge" class="badge warning">로그인 필요</span>
       <button id="logoutButtonTop" class="button ghost" type="button">로그아웃</button>
     </div>
@@ -187,6 +195,16 @@ JL-03 | 기념품 세트"></textarea>
           <div class="form-actions wide"><button class="button primary" type="submit">설정 저장</button></div>
         </form>
       </article>
+      <article class="panel admin-app-panel">
+        <div class="panel-heading">
+          <div>
+            <h3>관리자 앱으로 사용</h3>
+            <p class="help-text">이 관리자 화면만 휴대폰 또는 PC에 설치형 웹앱(PWA)으로 추가할 수 있습니다. 설치 후 홈 화면 아이콘으로 바로 실행되며 로그인·QR 스캔·좌석관리 기능은 동일합니다.</p>
+          </div>
+        </div>
+        <button class="button primary admin-app-install-trigger" type="button">이 기기에 관리자 앱 설치</button>
+        <p class="small-text admin-app-install-note">아이폰은 Safari의 ‘홈 화면에 추가’ 방식으로 설치됩니다.</p>
+      </article>
       <article class="panel"><h3>관리자 로그인</h3><p class="help-text">로그인 세션은 24시간 유지됩니다. 아이디·비밀번호 변경은 Apps Script의 Code.gs 맨 위 <code>ADMIN_LOGIN_CONFIG</code>에서 합니다.</p><button id="logoutButton" class="button secondary" type="button">이 기기 로그아웃</button></article>
     </section>
   </main>
@@ -197,6 +215,6 @@ JL-03 | 기념품 세트"></textarea>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="config.js"></script>
-  <script src="admin.js?v=3.5"></script>
+  <script src="admin.js?v=3.7"></script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 'use strict';
 
-const ADMIN_UI_VERSION = '2.7-FEEDBACK-FORM';
+const ADMIN_UI_VERSION = '2.7.5-ADMIN-PWA';
 
 const CONFIG = window.NYJ20_CONFIG || {};
 const API_URL = String(CONFIG.appsScriptUrl || '').trim();
@@ -849,6 +849,119 @@ function exportDrawCsv(){
   a.click();
   URL.revokeObjectURL(url);
 }
+
+/* =====================================================================
+   v2.7.5 — 관리자 설치형 웹앱(PWA)
+   공개 초대장에는 설치 UI가 없고 admin.html에서만 등록합니다.
+   ===================================================================== */
+let deferredAdminInstallPrompt=null;
+
+function isAdminAppStandalone(){
+  return window.matchMedia?.('(display-mode: standalone)')?.matches ||
+    window.navigator.standalone===true;
+}
+
+function isIosDevice(){
+  return /iphone|ipad|ipod/i.test(window.navigator.userAgent||'');
+}
+
+function updateAdminInstallButtons(){
+  const installed=isAdminAppStandalone();
+  document.querySelectorAll('.admin-app-install-trigger').forEach(button=>{
+    button.classList.toggle('hidden',installed);
+    if(installed){
+      button.setAttribute('aria-hidden','true');
+    }else{
+      button.removeAttribute('aria-hidden');
+    }
+  });
+
+  document.body.classList.toggle('admin-pwa-standalone',installed);
+}
+
+function showAdminInstallGuide(){
+  if(isIosDevice()){
+    openModal(
+      '아이폰 관리자 앱 설치',
+      `<div class="admin-install-guide">
+        <div class="admin-install-icon">20</div>
+        <h3>Safari에서 홈 화면에 추가</h3>
+        <ol>
+          <li>아래쪽 <strong>공유</strong> 버튼을 누릅니다.</li>
+          <li><strong>홈 화면에 추가</strong>를 선택합니다.</li>
+          <li>오른쪽 위 <strong>추가</strong>를 누릅니다.</li>
+        </ol>
+        <p>설치하면 홈 화면의 <strong>20주년 관리자</strong> 아이콘으로 바로 실행할 수 있습니다.</p>
+      </div>`
+    );
+    return;
+  }
+
+  openModal(
+    '관리자 앱 설치',
+    `<div class="admin-install-guide">
+      <div class="admin-install-icon">20</div>
+      <h3>설치 메뉴를 선택해 주세요.</h3>
+      <p>현재 브라우저에서 자동 설치창을 바로 띄울 수 없는 상태입니다.</p>
+      <p><strong>Chrome / Edge 메뉴 → 앱 설치 또는 이 페이지를 앱으로 설치</strong>를 선택해 주세요.</p>
+      <p class="small-text">GitHub Pages의 HTTPS 주소에서 관리자 페이지를 열었을 때 설치할 수 있습니다.</p>
+    </div>`
+  );
+}
+
+async function requestAdminAppInstall(){
+  if(isAdminAppStandalone()){
+    showToast('이미 관리자 앱으로 실행 중입니다.');
+    return;
+  }
+
+  if(deferredAdminInstallPrompt){
+    const promptEvent=deferredAdminInstallPrompt;
+    deferredAdminInstallPrompt=null;
+    promptEvent.prompt();
+
+    try{
+      const choice=await promptEvent.userChoice;
+      if(choice?.outcome==='accepted'){
+        showToast('관리자 앱 설치를 시작했습니다.');
+      }
+    }catch(_){}
+
+    updateAdminInstallButtons();
+    return;
+  }
+
+  showAdminInstallGuide();
+}
+
+async function setupAdminPwa(){
+  if('serviceWorker' in navigator){
+    try{
+      await navigator.serviceWorker.register('./admin-sw.js');
+    }catch(error){
+      console.warn('관리자 PWA 서비스워커 등록 실패:',error);
+    }
+  }
+
+  window.addEventListener('beforeinstallprompt',event=>{
+    event.preventDefault();
+    deferredAdminInstallPrompt=event;
+    updateAdminInstallButtons();
+  });
+
+  window.addEventListener('appinstalled',()=>{
+    deferredAdminInstallPrompt=null;
+    updateAdminInstallButtons();
+    showToast('관리자 앱이 설치되었습니다.');
+  });
+
+  document.querySelectorAll('.admin-app-install-trigger').forEach(button=>{
+    button.addEventListener('click',requestAdminAppInstall);
+  });
+
+  updateAdminInstallButtons();
+}
+
 function bindEvents(){
   $('#loginForm').addEventListener('submit',async e=>{e.preventDefault();const b=$('#loginButton');b.disabled=true;$('#loginMessage').classList.add('hidden');try{await login($('#adminUsername').value.trim(),$('#adminPassword').value)}catch(err){showLogin(err.message)}finally{b.disabled=false}});$$('.nav-button').forEach(b=>b.addEventListener('click',()=>switchView(b.dataset.view)));$$('[data-go]').forEach(b=>b.addEventListener('click',()=>switchView(b.dataset.go)));$('#refreshDashboardButton').addEventListener('click',()=>refreshFromServer().catch(()=>{}));$('#exportCsvButton').addEventListener('click',exportCsv);$('#exportCsvDashboardButton').addEventListener('click',exportCsv);$('#participantSearch').addEventListener('input',renderParticipants);$('#participantStatusFilter').addEventListener('change',renderParticipants);
   $('#drawSearch')?.addEventListener('input',renderPrizeDraw);
@@ -870,6 +983,7 @@ function bindEvents(){
 
 async function initialize(){
   bindEvents();
+  setupAdminPwa();
   if(!validateApiUrl(API_URL)){showLogin('config.js에 Apps Script /exec 주소가 설정되지 않았습니다.');return;}
   if(!isSessionLocallyValid()){clearSession();showLogin();return;}
   setStatus('warning','로그인 확인 중');
