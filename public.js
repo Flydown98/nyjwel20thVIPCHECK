@@ -906,8 +906,53 @@ function applyResponsiveIntroSource() {
   return nextSource;
 }
 
+async function openInvitationIntro() {
+  if (introFinished || window.__invitationIntroOpened) return;
+  window.__invitationIntroOpened = true;
+
+  const gate = $('#invitationGate');
+  const movieStage = $('#introMovieStage');
+  const video = $('#introVideo');
+
+  gate?.classList.add('gate-opening');
+  movieStage?.classList.add('active');
+  movieStage?.setAttribute('aria-hidden', 'false');
+
+  if (!video) {
+    window.setTimeout(finishIntro, 900);
+    return;
+  }
+
+  try {
+    video.currentTime = 0;
+    video.volume = 1;
+    video.muted = false;
+
+    // 이 play() 호출은 사용자의 클릭 이벤트 안에서 즉시 실행됩니다.
+    // 따라서 iOS/Android 브라우저에서도 소리 재생 권한을 얻기 가장 안정적입니다.
+    await video.play();
+  } catch (_) {
+    try {
+      video.muted = true;
+      await video.play();
+    } catch (_) {
+      window.setTimeout(finishIntro, 900);
+      return;
+    }
+  }
+
+  updateIntroSoundButton();
+  updateIntroPlayPauseButton();
+
+  window.setTimeout(() => {
+    gate?.classList.add('gate-hidden');
+  }, 1050);
+}
+
 function setupIntroVideo() {
   const overlay = $('#introOverlay');
+  const gate = $('#invitationGate');
+  const movieStage = $('#introMovieStage');
   const video = $('#introVideo');
 
   if (!overlay || !video) return;
@@ -915,9 +960,20 @@ function setupIntroVideo() {
   applyResponsiveIntroSource();
 
   introFinished = false;
+  window.__invitationIntroOpened = false;
+
   overlay.classList.remove('hidden', 'intro-leaving');
   overlay.setAttribute('aria-hidden', 'false');
+  gate?.classList.remove('gate-opening', 'gate-hidden');
+  movieStage?.classList.remove('active');
+  movieStage?.setAttribute('aria-hidden', 'true');
   document.body.classList.add('intro-playing');
+
+  try {
+    video.pause();
+    video.currentTime = 0;
+    video.muted = true;
+  } catch (_) {}
 
   const seekBar = $('#introSeekBar');
 
@@ -931,9 +987,7 @@ function setupIntroVideo() {
     if (video.paused) {
       try {
         await video.play();
-      } catch (_) {
-        showIntroStartPanel();
-      }
+      } catch (_) {}
     } else {
       video.pause();
     }
@@ -953,10 +1007,13 @@ function setupIntroVideo() {
   video.addEventListener('ended', finishIntro, { once: true });
 
   video.addEventListener('error', () => {
-    finishIntro();
-  }, { once: true });
+    // 첫 초대장 화면 자체는 유지합니다.
+    // 사용자가 열기를 누른 이후 영상 파일 오류가 난 경우에는 본문으로 자연스럽게 이동합니다.
+    if (window.__invitationIntroOpened) {
+      window.setTimeout(finishIntro, 700);
+    }
+  });
 
-  // 영상 자체를 눌러도 재생/일시정지.
   video.addEventListener('click', togglePlayPause);
 
   $('#introPlayPauseButton')?.addEventListener('click', togglePlayPause);
@@ -968,7 +1025,8 @@ function setupIntroVideo() {
     if (!Number.isFinite(video.duration) || video.duration <= 0) return;
     const ratio = Math.max(0, Math.min(1000, Number(event.currentTarget.value) || 0)) / 1000;
     const previewSeconds = video.duration * ratio;
-    $('#introCurrentTime').textContent = formatIntroTime(previewSeconds);
+    const currentLabel = $('#introCurrentTime');
+    if (currentLabel) currentLabel.textContent = formatIntroTime(previewSeconds);
   });
 
   seekBar?.addEventListener('change', event => {
@@ -979,57 +1037,34 @@ function setupIntroVideo() {
   });
 
   $('#introSoundButton')?.addEventListener('click', async () => {
-    // 사용자 클릭이므로 모바일 브라우저에서도 오디오 활성화가 가능.
     video.muted = !video.muted;
-
     if (!video.muted && video.paused) {
       try { await video.play(); } catch (_) {}
     }
-
     updateIntroSoundButton();
   });
 
-  $('#introStartButton')?.addEventListener('click', async () => {
-    hideIntroStartPanel();
+  $('#invitationOpenButton')?.addEventListener('click', openInvitationIntro);
+  $('#invitationEnvelopeButton')?.addEventListener('click', openInvitationIntro);
+  $('#invitationSkipButton')?.addEventListener('click', finishIntro);
 
-    try {
-      video.muted = false;
-      await video.play();
-    } catch (_) {
-      video.muted = true;
-      await video.play().catch(finishIntro);
-    }
-
-    updateIntroSoundButton();
-    updateIntroPlayPauseButton();
-  });
-
+  // 아직 초대장을 열지 않은 상태에서 회전한 경우에만 세로/가로 영상 소스를 다시 고릅니다.
   window.addEventListener('orientationchange', () => {
-    if (introFinished) return;
-
+    if (introFinished || window.__invitationIntroOpened) return;
     window.setTimeout(() => {
-      const before = video.getAttribute('data-selected-source') || '';
-      const after = preferredIntroSource();
-
-      if (before !== after) {
-        applyResponsiveIntroSource();
-        startIntroMuted();
-      }
+      applyResponsiveIntroSource();
+      try {
+        video.pause();
+        video.currentTime = 0;
+        video.muted = true;
+      } catch (_) {}
     }, 250);
-  }, { once: true });
+  });
 
   updateIntroProgress();
   updateIntroSoundButton();
   updateIntroPlayPauseButton();
-  startIntroMuted();
-
-  window.setTimeout(() => {
-    if (!introFinished && video.paused && Number(video.currentTime || 0) < 0.2) {
-      showIntroStartPanel();
-    }
-  }, 1500);
 }
-
 
 async function initialize() {
   setupIntroVideo();
