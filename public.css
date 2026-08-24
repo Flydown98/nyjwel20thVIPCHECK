@@ -1118,3 +1118,70 @@ body.intro-playing{
     justify-content:flex-start;
   }
 }
+
+
+/* =====================================================================
+   v2.7.1 — 모바일 초대장 1페이지 폰트 피드백
+   ===================================================================== */
+
+/* '남양주시장애인복지관'을 '스무번의 계절...'과 비슷한 시각 크기로 */
+.invite-hero .organizer{
+  margin-top:30px;
+  margin-bottom:9px;
+  font-size:clamp(17px,4vw,23px);
+  line-height:1.35;
+  font-weight:650;
+  color:rgba(255,255,255,.84);
+}
+
+/* DATE / PLACE 영역 전체를 기존보다 한 단계 크게 */
+.invite-hero .event-summary{
+  width:min(680px,100%);
+  gap:16px;
+}
+
+.invite-hero .event-summary div{
+  padding:21px 15px 22px;
+}
+
+.invite-hero .event-summary span{
+  font-size:clamp(12px,2.8vw,15px);
+  line-height:1.25;
+  letter-spacing:.19em;
+  font-weight:800;
+}
+
+.invite-hero .event-summary strong{
+  margin-top:8px;
+  font-size:clamp(17px,3.8vw,21px);
+  line-height:1.4;
+  font-weight:750;
+}
+
+.invite-hero .hero-address{
+  margin-top:6px;
+  font-size:clamp(12px,3vw,15px);
+  line-height:1.45;
+  font-weight:550;
+  color:rgba(255,255,255,.68);
+}
+
+@media(max-width:520px){
+  .invite-hero .event-summary{
+    gap:10px;
+  }
+  .invite-hero .event-summary div{
+    padding:18px 8px 19px;
+  }
+}
+
+/* v2.7.2 공개 좌석도 장애인 우선석 */
+.public-seat-dot.public-disabled-priority{
+  background:#ffedd5;
+  border-color:#fb923c;
+}
+.public-seat-dot.public-wheelchair{
+  background:#bae6fd;
+  border-color:#0ea5e9;
+  outline:2px dashed #0ea5e9;
+}

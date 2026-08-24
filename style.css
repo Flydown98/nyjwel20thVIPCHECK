@@ -376,3 +376,77 @@
 @media(max-width:800px){
   .draw-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+
+
+/* v2.7.2 장애인 우선 앞쪽 3열 */
+.legend-dot.disabled-priority{
+  background:#fed7aa!important;
+  border:1px solid #f97316;
+}
+.disabled-priority-banner{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap;
+  margin:0 0 10px;
+  padding:13px 16px;
+  border:1px solid #fdba74;
+  border-radius:16px;
+  background:#fff7ed;
+  color:#9a3412;
+}
+.disabled-priority-banner strong{font-size:.9rem}
+.disabled-priority-banner span{
+  padding:5px 9px;
+  border-radius:999px;
+  background:#f97316;
+  color:#fff;
+  font-weight:950;
+}
+.disabled-priority-banner small{color:#9a3412}
+.runway-seat.zone-disabled-priority.empty{
+  background:#ffedd5!important;
+  color:#9a3412!important;
+  border-color:#fb923c!important;
+  box-shadow:inset 0 -5px 0 rgba(154,52,18,.08);
+}
+.disabled-priority-icon{
+  position:absolute;
+  top:-8px;
+  left:50%;
+  transform:translateX(-50%);
+  display:grid!important;
+  place-items:center;
+  min-width:25px;
+  height:17px;
+  padding:0 4px;
+  border-radius:999px;
+  background:#f97316;
+  color:#fff;
+  font-style:normal;
+  font-size:8px;
+  font-weight:950;
+  z-index:3;
+  box-shadow:0 2px 6px rgba(249,115,22,.28);
+}
+.disabled-person-badge{
+  display:inline-block;
+  margin-left:5px;
+  padding:2px 6px;
+  border-radius:999px;
+  background:#ffedd5;
+  color:#c2410c;
+  font-size:.68rem;
+  font-weight:900;
+}
+/* 배정/도착 상태색은 지정석 배경보다 우선 */
+.runway-seat.zone-disabled-priority.pending{
+  background:#86efac!important;
+  color:#14532d!important;
+  border-color:#22c55e!important;
+}
+.runway-seat.zone-disabled-priority.arrived{
+  background:#c4b5fd!important;
+  color:#4c1d95!important;
+  border-color:#8b5cf6!important;
+}
