@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#152238" />
   <title>개관 20주년 모바일 초대장</title>
-  <link rel="stylesheet" href="public.css?v=3.6" />
+  <link rel="stylesheet" href="public.css?v=3.8" />
 </head>
 <body>
   <section id="introOverlay" class="intro-overlay invitation-experience" aria-label="남양주시장애인복지관 20주년 초대장 열기">
@@ -146,9 +146,9 @@
         <p class="section-kicker">APPLICATION</p>
         <div class="application-title-row">
           <h2>참가 신청</h2>
-          <span class="application-personal-badge">참가자별 신청서 작성</span>
+          <span class="application-personal-badge">1인 1신청 · 1인 1QR</span>
         </div>
-        <p class="application-important-copy">개인별 입장 QR코드로 좌석 배정 및 경품 추첨을 진행합니다. <strong>반드시 참가자 1인당 1개의 신청서를 작성해 주세요.</strong></p>
+        <p class="application-important-copy">개인별 QR로 좌석 확인과 행운추첨이 진행됩니다. <strong>참가자마다 본인 신청서를 작성해 주세요.</strong></p>
       </div>
 
       <div id="registrationStatus" class="registration-status loading">신청 가능 여부를 확인하고 있습니다.</div>
@@ -160,9 +160,8 @@
         </label>
 
         <label>
-          <span>소속기관 <em class="optional-field-mark">(해당 시)</em></span>
-          <input name="organization" maxlength="80" autocomplete="organization" placeholder="해당사항이 없으면 공란으로 두세요" />
-          <small class="field-help">소속기관이 없는 경우 입력하지 않아도 됩니다.</small>
+          <span>소속기관 <em class="optional-field-mark">(해당 시, 없는 경우 입력하지 않아도 됩니다)</em></span>
+          <input name="organization" maxlength="80" autocomplete="organization" placeholder="소속기관" />
         </label>
 
         <label>
@@ -172,13 +171,13 @@
 
         <section class="accessibility-application-card" aria-labelledby="accessibilityApplicationTitle">
           <div class="accessibility-application-intro">
-            <strong id="accessibilityApplicationTitle">장애인 당사자의 경우 편의제공을 위해 다음의 내용을 작성해 주세요.</strong>
-            <p>해당사항이 없을 경우 아래의 <b>QR 받기</b> 버튼을 눌러주세요.</p>
+            <strong id="accessibilityApplicationTitle">장애인 당사자에 해당하는 경우 체크해 주세요.</strong>
+            <p>편의제공과 좌석 배정에 필요한 항목이 표시됩니다.</p>
           </div>
 
           <label class="personal-check-card disabled-person-check">
             <input id="disabledPersonCheckbox" name="disabledPerson" type="checkbox" value="true" />
-            <span><strong>장애인 당사자입니다.</strong><small>체크하면 편의제공 관련 선택 항목이 열립니다.</small></span>
+            <span><strong>장애인 당사자입니다.</strong></span>
           </label>
 
           <div id="accessibilityDetails" class="accessibility-details hidden">
@@ -206,8 +205,6 @@
           <input name="privacyConsentConfirmed" type="checkbox" value="true" required />
           <span><button id="privacyDetailsButton" class="inline-privacy-button" type="button">개인정보 처리 동의</button> <b>*</b></span>
         </label>
-
-        <p class="privacy-note">본 신청은 <strong>1인 1신청·1인 1QR</strong> 방식입니다. 개인정보 동의를 확인한 뒤 QR 받기 버튼을 눌러 주세요.</p>
 
         <button id="submitButton" class="submit-button" type="submit">QR 받기</button>
       </form>
@@ -252,8 +249,9 @@
       <div class="qr-save-notice">
         <div class="qr-save-icon">QR</div>
         <div>
-          <strong>개인 QR코드를 꼭 저장해 주세요.</strong>
-          <p>이 QR코드는 <b>행운추첨 당첨 확인</b>, 좌석 확인 및 행사장 안내에 사용됩니다. QR 이미지를 휴대폰 사진으로 저장하거나 이 티켓 링크를 보관하여 행사장에서 바로 보여주실 수 있도록 준비해 주세요.</p><p class="qr-security-note">QR에는 본인의 개인 고유코드가 포함되어 있으므로 다른 사람에게 전달하거나 공개된 곳에 올리지 않는 것을 권장합니다.</p>
+          <strong>개인 QR코드를 저장해 주세요.</strong>
+          <p>현장 입장, 좌석 확인, 행운추첨에 사용됩니다. QR 이미지를 저장하거나 이 티켓 화면을 보관해 주세요.</p>
+          <p class="qr-security-note">개인 QR은 다른 사람에게 전달하거나 공개된 곳에 올리지 않는 것을 권장합니다.</p>
         </div>
       </div>
 
@@ -268,14 +266,20 @@
           <strong id="ticketName">참가자 님</strong>
           <p id="ticketPartyInfo" class="ticket-party-info">개인 참가</p>
         </div>
-        <div class="ticket-seat-box"><span>YOUR SEAT</span><strong id="ticketSeat">좌석 배정 중</strong><p id="ticketSeatSync">관리자 변경 시 자동으로 갱신됩니다.</p></div><div id="ticketQr" class="ticket-qr"></div>
+        <div class="ticket-seat-box">
+          <span>YOUR SEAT</span>
+          <strong id="ticketSeat">좌석 배정 중</strong>
+          <p id="ticketSeatSync">좌석배치도는 행사 운영에 따라 변경될 수 있습니다. 최신 좌석 확인을 위해 이 화면을 유지해 주세요.</p>
+          <button id="openSeatDetailButton" class="ticket-seat-detail-button" type="button">좌석 자세히 보기</button>
+        </div>
+        <div id="ticketQr" class="ticket-qr"></div>
         <p class="ticket-guide">행사장 접수 및 행운추첨 당첨 확인 시 이 QR을 제시해 주세요.</p>
         <div class="ticket-event-meta">
           <p id="ticketDate">-</p><p id="ticketVenue">-</p>
         </div>
       </article>
 
-      <section id="publicSeatGuide" class="public-seat-guide"><div class="section-heading centered compact-heading"><p class="section-kicker">SEAT MAP</p><h3>내 좌석 위치</h3><p>파란색과 노란 테두리로 표시된 자리가 현재 배정 좌석입니다.</p></div><div class="public-stage">무대 · 단상</div><div class="public-runway-head">RUNWAY</div><div id="publicSeatMap" class="public-runway-map"></div><div id="publicExtraSeatMap" class="hidden"></div></section><div class="ticket-actions">
+      <section id="publicSeatGuide" class="public-seat-guide"><div class="section-heading centered compact-heading"><p class="section-kicker">SEAT MAP</p><h3>내 좌석 위치</h3><p>파란색과 노란 테두리가 현재 좌석입니다. 전체 배치도는 ‘좌석 자세히 보기’에서 크게 확인할 수 있습니다.</p></div><div class="public-stage">무대 · 단상</div><div class="public-runway-head">RUNWAY</div><div id="publicSeatMap" class="public-runway-map"></div><div id="publicExtraSeatMap" class="hidden"></div></section><div class="ticket-actions">
         <button id="downloadTicketButton" class="submit-button" type="button">모바일 티켓 이미지 저장</button>
         <button id="downloadQrButton" class="outline-button" type="button">QR만 PNG로 저장</button>
         <button id="copyLinkButton" class="text-button" type="button">내 티켓 링크 복사</button>
@@ -301,17 +305,63 @@
       </section>
     </div>
 
+
+    <div id="seatDetailBackdrop" class="seat-detail-backdrop hidden" aria-hidden="true">
+      <section class="seat-detail-modal" role="dialog" aria-modal="true" aria-labelledby="seatDetailTitle">
+        <div class="seat-detail-header">
+          <div>
+            <p class="section-kicker">SEAT MAP</p>
+            <h2 id="seatDetailTitle">좌석 자세히 보기</h2>
+            <p id="seatDetailCurrentText">현재 좌석을 확인하고 있습니다.</p>
+          </div>
+          <button id="seatDetailCloseButton" class="seat-detail-close" type="button" aria-label="닫기">×</button>
+        </div>
+
+        <div class="seat-detail-toolbar">
+          <div class="seat-detail-status">
+            <span id="seatDetailConnectionDot" class="seat-detail-connection-dot"></span>
+            <strong id="seatDetailSyncText">좌석 정보를 확인하고 있습니다.</strong>
+          </div>
+          <div class="seat-detail-zoom-controls" aria-label="좌석도 확대 축소">
+            <button id="seatZoomOutButton" type="button" aria-label="축소">−</button>
+            <button id="seatZoomResetButton" type="button">100%</button>
+            <button id="seatZoomInButton" type="button" aria-label="확대">＋</button>
+          </div>
+        </div>
+
+        <div class="seat-detail-legend">
+          <span><i class="seat-legend-dot vip"></i>VIP</span>
+          <span><i class="seat-legend-dot accessible"></i>장애인(휠체어)</span>
+          <span><i class="seat-legend-dot general"></i>일반석</span>
+          <span><i class="seat-legend-dot mine"></i>내 좌석</span>
+        </div>
+
+        <div class="seat-detail-viewport">
+          <div id="seatDetailCanvas" class="seat-detail-canvas">
+            <div class="seat-detail-stage">무대 · 단상</div>
+            <div class="seat-detail-runway-label">RUNWAY</div>
+            <div id="seatDetailMap" class="seat-detail-map"></div>
+          </div>
+        </div>
+
+        <div class="seat-detail-footer">
+          <p><strong>좌석배치도는 행사 운영에 따라 변경될 수 있습니다.</strong> 최신 좌석 확인을 위해 현재 티켓 화면을 유지해 주세요.</p>
+          <button id="seatDetailDoneButton" class="submit-button" type="button">확인</button>
+        </div>
+      </section>
+    </div>
+
     <div id="privacyModalBackdrop" class="privacy-modal-backdrop hidden" aria-hidden="true">
       <section class="privacy-modal" role="dialog" aria-modal="true" aria-labelledby="privacyModalTitle">
         <div class="privacy-modal-header">
           <div>
             <p class="section-kicker">PRIVACY CONSENT</p>
-            <h2 id="privacyModalTitle">개인정보 수집·이용 동의서</h2>
+            <h2 id="privacyModalTitle">개인정보 처리 동의</h2>
           </div>
           <button id="privacyModalCloseButton" class="privacy-modal-close" type="button" aria-label="닫기">×</button>
         </div>
         <div class="privacy-modal-body">
-          <p class="privacy-lead">남양주시장애인복지관은 개관 20주년 기념행사 <strong>개인 참가 신청, 개인 QR 발급, 좌석 배정, 현장 체크인, 행운추첨 당첨 확인 및 상품 수령 처리</strong>를 위해 아래와 같이 개인정보를 수집·이용합니다.</p>
+          <p class="privacy-lead">남양주시장애인복지관은 개관 20주년 기념행사의 <strong>참가 신청, 개인 QR 발급, 좌석 확인, 현장 입장 및 행운추첨</strong>을 위해 아래 정보를 처리합니다.</p>
 
           <section class="privacy-clause">
             <h3>1. 개인정보처리자</h3>
@@ -333,9 +383,9 @@
           <section class="privacy-clause">
             <h3>3. 처리 항목</h3>
             <div class="privacy-data-grid integrated-privacy-grid">
-              <div><strong>참가 신청 정보</strong><p>이름, 핸드폰 번호, 소속기관(입력한 경우), 남양주시장애인복지관 서비스 이용 여부(해당 시)</p></div>
-              <div><strong>시스템 운영 정보</strong><p>접수번호, 개인 QR 고유코드, 좌석번호, 신청·수정 시각, 현장 도착 여부·시각, 행운추첨 상품 수령 여부·시각</p></div>
-              <div><strong>별도 민감정보 동의 항목</strong><p>휠체어 이용 여부, 장애인 당사자 여부 — 해당 항목을 체크한 경우에만 별도 동의를 받아 처리합니다.</p></div>
+              <div><strong>참가 신청 정보</strong><p>이름, 핸드폰 번호, 소속기관(입력한 경우)</p></div>
+              <div><strong>편의제공 정보(해당 시)</strong><p>장애인 당사자 여부, 휠체어 사용 여부, 남양주시장애인복지관 서비스 이용 여부</p></div>
+              <div><strong>행사 이용 정보</strong><p>접수번호, 개인 QR 고유코드, 좌석번호, 신청·수정 시각, 현장 도착 여부·시각, 행운추첨 상품 수령 여부·시각</p></div>
             </div>
             <p class="privacy-caution">진단명, 장애유형, 장애등급 등 행사 운영에 불필요한 의료·건강정보는 요구하지 않습니다.</p>
           </section>
@@ -348,7 +398,7 @@
           <section class="privacy-clause">
             <h3>5. 동의 거부 권리 및 불이익</h3>
             <p>개인정보 수집·이용 동의를 거부할 권리가 있습니다. 다만 이름·핸드폰 번호는 개인 신청, QR 발급 및 현장 본인 확인에 필요한 정보이므로 <strong>개인정보 수집·이용에 동의하지 않으면 온라인 신청을 완료할 수 없습니다.</strong></p>
-            <p>소속기관은 해당하는 경우에만 입력하며, 소속기관이 없어도 신청할 수 있습니다. 장애인 당사자에 해당하여 휠체어 사용 여부 등 편의제공 관련 항목을 작성하는 경우 별도 동의 절차가 나타납니다.</p>
+            <p>소속기관과 편의제공 관련 항목은 해당하는 경우에만 입력합니다.</p>
           </section>
 
           <section class="privacy-clause">
@@ -364,11 +414,6 @@
           <section class="privacy-clause">
             <h3>8. 정보주체의 권리</h3>
             <p>정보주체는 관련 법령에 따라 본인의 개인정보에 대한 열람, 정정·삭제, 처리정지 및 동의 철회를 요청할 수 있습니다. 관련 문의는 남양주시장애인복지관(031-592-7150)으로 연락해 주세요.</p>
-          </section>
-
-          <section class="privacy-clause">
-            <h3>9. 만 14세 미만 신청</h3>
-            <p>현재 온라인 신청은 <strong>만 14세 이상 참가자의 본인 신청</strong>을 기준으로 운영합니다. 만 14세 미만 참가자의 접수가 필요한 경우 보호자가 복지관에 문의해 별도 접수 절차를 안내받아 주세요.</p>
           </section>
 
           <section class="privacy-clause law-reference">
@@ -390,8 +435,8 @@
     </div>
 
     <section id="setupWarning" class="invite-section setup-warning hidden">
-      <h2>아직 서버 주소가 설정되지 않았습니다.</h2>
-      <p><code>config.js</code>의 <code>appsScriptUrl</code>에 Apps Script의 <code>/exec</code> 주소를 입력하세요.</p>
+      <h2>현재 온라인 신청을 준비 중입니다.</h2>
+      <p>잠시 후 다시 확인해 주세요.</p>
     </section>
   </main>
 
@@ -401,6 +446,6 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="config.js"></script>
-  <script src="public.js?v=3.6"></script>
+  <script src="public.js?v=3.8"></script>
 </body>
 </html>

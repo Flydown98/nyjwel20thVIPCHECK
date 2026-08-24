@@ -3,7 +3,10 @@
 const PUBLIC_CONFIG = window.NYJ20_CONFIG || {};
 const API_URL = String(PUBLIC_CONFIG.appsScriptUrl || '').trim();
 const DEVICE_TICKET_STORAGE_KEY = 'nyj20.publicTicketCode.v1';
-const CURRENT_PRIVACY_VERSION = 'NYJWEL20-INDIVIDUAL-2026-08-24-v3';
+const LAST_PUBLIC_TICKET_CACHE_KEY = 'nyj20.lastTicketSnapshot.v1';
+const LAST_PUBLIC_SEAT_CACHE_KEY = 'nyj20.lastSeatLayout.v1';
+const LAST_PUBLIC_SEAT_SYNC_KEY = 'nyj20.lastSeatSync.v1';
+const CURRENT_PRIVACY_VERSION = 'NYJWEL20-INDIVIDUAL-2026-08-24-v4';
 const DEFAULT_PUBLIC_SETTINGS = Object.freeze({
   eventName: '개관 20주년 기념행사',
   eventDate: '2026. 9. 17.(목) 13:30',
@@ -160,7 +163,7 @@ function publicApiRequest(action, payload = {}) {
     function poll() {
       if (finished) return;
       if (Date.now() > deadline) {
-        fail(new Error('서버 응답 시간이 초과되었습니다. 잠시 후 다시 시도해 주세요.'));
+        fail(new Error('연결이 지연되고 있습니다. 잠시 후 다시 시도해 주세요.'));
         return;
       }
 
@@ -183,7 +186,7 @@ function publicApiRequest(action, payload = {}) {
           return;
         }
         if (!response || response.ok !== true) {
-          fail(new Error(response?.error || '신청 서버에서 오류가 발생했습니다.'));
+          fail(new Error(response?.error || '신청 처리 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.'));
           return;
         }
         const data = response.data;
@@ -203,19 +206,87 @@ function publicApiRequest(action, payload = {}) {
       form.submit();
       setTimeout(poll, 180);
     } catch (error) {
-      fail(new Error('신청 서버에 요청을 보내지 못했습니다.'));
+      fail(new Error('현재 연결이 원활하지 않습니다. 잠시 후 다시 시도해 주세요.'));
     }
+  });
+}
+
+
+function displayEventName(settings=publicState.settings){
+  const organizer=String(
+    settings?.eventOrganizer||DEFAULT_PUBLIC_SETTINGS.eventOrganizer||''
+  ).trim();
+  let name=String(
+    settings?.eventName||DEFAULT_PUBLIC_SETTINGS.eventName||''
+  ).trim();
+
+  if(organizer&&name.startsWith(organizer)){
+    name=name.slice(organizer.length).trim();
+  }
+  return name||'개관 20주년 기념행사';
+}
+
+function saveJsonLocal(key,value){
+  try{localStorage.setItem(key,JSON.stringify(value));}catch(_){}
+}
+
+function readJsonLocal(key){
+  try{
+    const raw=localStorage.getItem(key);
+    return raw?JSON.parse(raw):null;
+  }catch(_){
+    return null;
+  }
+}
+
+function cacheTicketSnapshot(ticket){
+  if(!ticket)return;
+  saveJsonLocal(LAST_PUBLIC_TICKET_CACHE_KEY,{
+    ticket,
+    settings:publicState.settings,
+    savedAt:new Date().toISOString()
+  });
+}
+
+function cachedTicketSnapshot(code=''){
+  const snapshot=readJsonLocal(LAST_PUBLIC_TICKET_CACHE_KEY);
+  if(!snapshot?.ticket)return null;
+  if(code&&String(snapshot.ticket.id||'').toUpperCase()!==String(code).toUpperCase()){
+    return null;
+  }
+  return snapshot;
+}
+
+function cacheSeatLayout(seats){
+  if(!Array.isArray(seats)||!seats.length)return;
+  saveJsonLocal(LAST_PUBLIC_SEAT_CACHE_KEY,seats);
+  try{localStorage.setItem(LAST_PUBLIC_SEAT_SYNC_KEY,new Date().toISOString());}catch(_){}
+}
+
+function cachedSeatLayout(){
+  const seats=readJsonLocal(LAST_PUBLIC_SEAT_CACHE_KEY);
+  return Array.isArray(seats)?seats:[];
+}
+
+function lastSeatSyncAt(){
+  try{return localStorage.getItem(LAST_PUBLIC_SEAT_SYNC_KEY)||'';}catch(_){return'';}
+}
+
+function formatSeatSyncTime(value){
+  if(!value)return'';
+  const date=new Date(value);
+  if(Number.isNaN(date.getTime()))return'';
+  return date.toLocaleString('ko-KR',{
+    month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'
   });
 }
 
 function renderPublicSettings() {
   const settings = publicState.settings;
-  const organizer = String(settings.eventOrganizer || DEFAULT_PUBLIC_SETTINGS.eventOrganizer || '').trim();
-  let eventName = String(settings.eventName || DEFAULT_PUBLIC_SETTINGS.eventName || '').trim();
-  if (organizer && eventName.startsWith(organizer)) {
-    eventName = eventName.slice(organizer.length).trim();
-  }
-  if (!eventName) eventName = DEFAULT_PUBLIC_SETTINGS.eventName;
+  const organizer = String(
+    settings.eventOrganizer||DEFAULT_PUBLIC_SETTINGS.eventOrganizer||''
+  ).trim();
+  const eventName=displayEventName(settings);
 
   const organizerEl = $('#organizerText');
   if (organizerEl) organizerEl.textContent = organizer;
@@ -238,24 +309,24 @@ function renderPublicSettings() {
   $('#detailDateText').textContent = settings.eventDate;
   $('#detailVenueText').textContent = settings.eventVenue;
   $('#greetingText').textContent = settings.publicGreeting;
+
   const retentionText = $('#privacyRetentionText');
-  if (retentionText) retentionText.textContent = settings.privacyRetentionText || DEFAULT_PUBLIC_SETTINGS.privacyRetentionText;
+  if (retentionText) {
+    retentionText.textContent =
+      settings.privacyRetentionText||
+      DEFAULT_PUBLIC_SETTINGS.privacyRetentionText;
+  }
+
   document.title = `${organizer} ${eventName} 모바일 초대장`;
 
   const status = $('#registrationStatus');
-  const submit = $('#submitButton');
-  const full = Number(settings.remainingCount) <= 0;
-  const open = settings.registrationOpen !== false && !full;
+  if (!status) return;
+  const open = settings.registrationOpen !== false;
   status.className = `registration-status ${open ? 'open' : 'closed'}`;
-  if (open) {
-    status.textContent = '현재 참가 신청이 가능합니다.';
-  } else if (full) {
-    status.textContent = '참가 신청이 마감되었습니다.';
-  } else {
-    status.textContent = '현재 온라인 참가 신청이 마감되어 있습니다.';
-  }
-  submit.disabled = !open;
+  status.textContent = open ? '참가 신청이 가능합니다.' : '현재 온라인 신청이 마감되었습니다.';
+  $('#submitButton').disabled = !open;
 }
+
 
 function normalizePhoneInput(input) {
   const digits = input.value.replace(/\D/g, '').slice(0, 11);
@@ -285,11 +356,12 @@ function compactSeatLabel(value){const seats=String(value||'').split(',').map(v=
 function renderTicket(ticket,{existing=false,remember=false,message='',scroll=true}={}){
   publicState.ticket=ticket;
   if(remember)rememberTicketCode(ticket.id);
+  cacheTicketSnapshot(ticket);
 
   const s=publicState.settings;
   $('#ticketNumber').textContent=`NO. ${String(ticket.number).padStart(4,'0')}`;
   $('#ticketOrganizer').textContent=s.eventOrganizer;
-  $('#ticketEventName').textContent=s.eventName;
+  $('#ticketEventName').textContent=displayEventName(s);
   $('#ticketName').textContent=`${ticket.name} 님`;
 
   const profile=[];
@@ -465,7 +537,7 @@ async function downloadTicketImage() {
     ctx.fillText(publicState.settings.eventOrganizer, 540, 205);
     ctx.fillStyle = '#ffffff';
     ctx.font = '500 60px Georgia, "Noto Sans KR", sans-serif';
-    let nextY = drawCenteredWrappedText(ctx, publicState.settings.eventName, 540, 290, 850, 76, 2);
+    let nextY = drawCenteredWrappedText(ctx, displayEventName(publicState.settings), 540, 290, 850, 76, 2);
 
     ctx.fillStyle = '#ead1a5';
     ctx.font = '700 22px Arial, sans-serif';
@@ -588,8 +660,22 @@ async function loadRememberedTicket({ scroll = true } = {}) {
     showToast('저장된 개인 티켓을 자동으로 불러왔습니다.');
     return true;
   } catch (error) {
-    forgetRememberedTicket();
-    showToast('저장된 티켓 정보를 확인할 수 없어 자동 표시를 해제했습니다.', 4800);
+    const cached=cachedTicketSnapshot(code);
+    if(cached?.ticket){
+      if(cached.settings){
+        publicState.settings={...DEFAULT_PUBLIC_SETTINGS,...cached.settings};
+        renderPublicSettings();
+      }
+      renderTicket(cached.ticket,{
+        existing:true,
+        remember:true,
+        message:'현재 연결이 없어 마지막으로 확인한 티켓 정보를 표시합니다.',
+        scroll
+      });
+      showToast('마지막으로 확인한 좌석 정보를 표시합니다.',4200);
+      return true;
+    }
+    showToast('저장된 티켓 정보를 확인할 수 없습니다.',4800);
     return false;
   } finally {
     setLoading(false);
@@ -635,7 +721,20 @@ async function loadTicketFromUrl() {
     renderTicket(result.participant, { existing: true, message: '개인 티켓 링크로 신청 정보를 불러왔습니다.' });
     return true;
   } catch (error) {
-    showToast(error.message, 5000);
+    const cached=cachedTicketSnapshot(code);
+    if(cached?.ticket){
+      if(cached.settings){
+        publicState.settings={...DEFAULT_PUBLIC_SETTINGS,...cached.settings};
+        renderPublicSettings();
+      }
+      renderTicket(cached.ticket,{
+        existing:true,
+        message:'현재 연결이 없어 마지막으로 확인한 티켓 정보를 표시합니다.'
+      });
+      showToast('마지막으로 확인한 좌석 정보를 표시합니다.',4200);
+      return true;
+    }
+    showToast(error.message,5000);
     return false;
   } finally {
     setLoading(false);
@@ -769,8 +868,154 @@ function publicSeatDot(code,m,selected){
 
 function publicRow(row,lN,rN,map,selected){let l='',r='';for(let i=1;i<=lN;i++){const c=`${row}L-${String(i).padStart(2,'0')}`;l+=publicSeatDot(c,map.get(c),selected.has(c))}for(let i=1;i<=rN;i++){const c=`${row}R-${String(i).padStart(2,'0')}`;r+=publicSeatDot(c,map.get(c),selected.has(c))}return `<div class="public-runway-row"><div class="public-side">${l}</div><div class="public-runway-spine">${row}</div><div class="public-side">${r}</div></div>`}
 function renderPublicSeatMap(){const a=$('#publicSeatMap');if(!a)return;const src=publicState.seatMeta.length?publicState.seatMeta:defaultPublicSeatMeta(),map=new Map(src.map(s=>[String(s.code).toUpperCase(),s])),selected=new Set(String(publicState.ticket?.seat||'').split(',').map(v=>v.trim().toUpperCase()).filter(Boolean));a.innerHTML='ABCDEFGHIJKLMNO'.split('').map(r=>publicRow(r,15,15,map,selected)).join('');if($('#publicExtraSeatMap'))$('#publicExtraSeatMap').innerHTML=''}
-async function loadPublicSeatLayout(){try{const r=await publicApiRequest('publicSeatLayout');publicState.seatMeta=Array.isArray(r?.seats)?r.seats:[];}catch(_){if(!publicState.seatMeta.length)publicState.seatMeta=defaultPublicSeatMeta()}renderPublicSeatMap()}
-async function syncCurrentTicket(){if(!publicState.ticket?.id||document.hidden)return;try{const before=String(publicState.ticket.seat||''),r=await publicApiRequest('publicTicket',{code:publicState.ticket.id});if(r.settings)publicState.settings={...publicState.settings,...r.settings};if(r.participant){const changed=before!==String(r.participant.seat||'');renderTicket(r.participant,{existing:true,scroll:false,message:changed?'관리자가 좌석을 변경했습니다. 최신 좌석으로 갱신했습니다.':'현재 좌석 정보가 최신 상태입니다.'});if(changed)showToast('좌석 변경사항이 반영되었습니다.',4200)}}catch(_){}}
+
+let seatDetailZoom=1;
+
+function detailedSeatCell(code,meta,selected){
+  const category=String(meta?.category||'일반');
+  const cls=['seat-detail-cell'];
+
+  if(category.toLowerCase().includes('vip'))cls.push('vip');
+  else if(category.includes('장애인')||category.includes('휠체어'))cls.push('accessible');
+  else cls.push('general');
+
+  if(selected)cls.push('mine');
+
+  return `<span class="${cls.join(' ')}" title="${code} · ${category}${selected?' · 내 좌석':''}"><b>${code.split('-')[1]}</b></span>`;
+}
+
+function detailedSeatRow(row,map,selected){
+  let left='',right='';
+
+  for(let n=1;n<=15;n++){
+    const code=`${row}L-${String(n).padStart(2,'0')}`;
+    left+=detailedSeatCell(code,map.get(code),selected.has(code));
+  }
+  for(let n=1;n<=15;n++){
+    const code=`${row}R-${String(n).padStart(2,'0')}`;
+    right+=detailedSeatCell(code,map.get(code),selected.has(code));
+  }
+
+  return `<div class="seat-detail-row">
+    <strong class="seat-detail-row-label">${row}L</strong>
+    <div class="seat-detail-side">${left}</div>
+    <div class="seat-detail-runway-cell">${row}</div>
+    <div class="seat-detail-side">${right}</div>
+    <strong class="seat-detail-row-label">${row}R</strong>
+  </div>`;
+}
+
+function renderDetailedSeatMap(){
+  const target=$('#seatDetailMap');
+  if(!target)return;
+
+  const src=publicState.seatMeta.length
+    ?publicState.seatMeta
+    :(cachedSeatLayout().length?cachedSeatLayout():defaultPublicSeatMeta());
+
+  const map=new Map(src.map(s=>[
+    String(s.code).toUpperCase(),s
+  ]));
+  const selected=new Set(
+    String(publicState.ticket?.seat||'')
+      .split(',')
+      .map(v=>v.trim().toUpperCase())
+      .filter(Boolean)
+  );
+
+  target.innerHTML='ABCDEFGHIJKLMNO'
+    .split('')
+    .map(row=>detailedSeatRow(row,map,selected))
+    .join('');
+
+  const current=$('#seatDetailCurrentText');
+  if(current){
+    current.textContent=publicState.ticket?.seat
+      ?`현재 좌석: ${compactSeatLabel(publicState.ticket.seat)}`
+      :'현재 배정 좌석을 확인하고 있습니다.';
+  }
+}
+
+function applySeatDetailZoom(){
+  const canvas=$('#seatDetailCanvas');
+  if(!canvas)return;
+  canvas.style.setProperty('--seat-detail-zoom',String(seatDetailZoom));
+  const reset=$('#seatZoomResetButton');
+  if(reset)reset.textContent=`${Math.round(seatDetailZoom*100)}%`;
+}
+
+function updateSeatDetailConnectionStatus(){
+  const text=$('#seatDetailSyncText');
+  const dot=$('#seatDetailConnectionDot');
+  if(!text||!dot)return;
+
+  const last=formatSeatSyncTime(lastSeatSyncAt());
+  const online=navigator.onLine;
+
+  dot.classList.toggle('offline',!online);
+
+  if(online){
+    text.textContent=last
+      ?`온라인 · 마지막 좌석 확인 ${last}`
+      :'온라인 · 최신 좌석 정보를 확인할 수 있습니다.';
+  }else{
+    text.textContent=last
+      ?`오프라인 · ${last}에 마지막으로 확인한 좌석을 표시합니다.`
+      :'오프라인 · 저장된 좌석 정보가 없습니다.';
+  }
+}
+
+async function openSeatDetailModal(){
+  const backdrop=$('#seatDetailBackdrop');
+  if(!backdrop)return;
+
+  backdrop.classList.remove('hidden');
+  backdrop.setAttribute('aria-hidden','false');
+  document.body.classList.add('modal-open');
+  seatDetailZoom=1;
+  applySeatDetailZoom();
+
+  if(navigator.onLine){
+    await Promise.allSettled([
+      syncCurrentTicket(),
+      loadPublicSeatLayout()
+    ]);
+  }else{
+    const cached=cachedSeatLayout();
+    if(cached.length)publicState.seatMeta=cached;
+  }
+
+  renderDetailedSeatMap();
+  updateSeatDetailConnectionStatus();
+  $('#seatDetailCloseButton')?.focus();
+}
+
+function closeSeatDetailModal(){
+  const backdrop=$('#seatDetailBackdrop');
+  if(!backdrop)return;
+  backdrop.classList.add('hidden');
+  backdrop.setAttribute('aria-hidden','true');
+  document.body.classList.remove('modal-open');
+  $('#openSeatDetailButton')?.focus();
+}
+
+
+async function loadPublicSeatLayout(){
+  try{
+    const r=await publicApiRequest('publicSeatLayout');
+    publicState.seatMeta=Array.isArray(r?.seats)?r.seats:[];
+    if(publicState.seatMeta.length)cacheSeatLayout(publicState.seatMeta);
+  }catch(_){
+    const cached=cachedSeatLayout();
+    if(cached.length)publicState.seatMeta=cached;
+    else if(!publicState.seatMeta.length)publicState.seatMeta=defaultPublicSeatMeta();
+  }
+
+  renderPublicSeatMap();
+  renderDetailedSeatMap();
+  updateSeatDetailConnectionStatus();
+}
+async function syncCurrentTicket(){if(!publicState.ticket?.id||document.hidden)return;try{const before=String(publicState.ticket.seat||''),r=await publicApiRequest('publicTicket',{code:publicState.ticket.id});if(r.settings)publicState.settings={...publicState.settings,...r.settings};if(r.participant){const changed=before!==String(r.participant.seat||'');renderTicket(r.participant,{existing:true,scroll:false,message:changed?'좌석 정보가 변경되어 최신 내용으로 갱신되었습니다.':'현재 좌석 정보가 최신 상태입니다.'});if(changed)showToast('최신 좌석 정보가 반영되었습니다.',4200)}}catch(_){updateSeatDetailConnectionStatus();}}
 function startTicketLiveSync(){clearInterval(ticketRefreshTimer);ticketRefreshTimer=setInterval(syncCurrentTicket,Math.max(5,Number(publicState.settings.ticketRefreshSeconds)||15)*1000);clearInterval(seatLayoutRefreshTimer);seatLayoutRefreshTimer=setInterval(loadPublicSeatLayout,60000)}
 
 
@@ -1141,11 +1386,14 @@ async function initialize() {
   $('#applicationForm').addEventListener('submit', handleApplicationSubmit);
   $('#applicationForm input[name="disabledPerson"]')?.addEventListener('change', updateIndividualApplicationUi);
   updateIndividualApplicationUi();
-  $('#sensitiveDetailsButton')?.addEventListener('click', openSensitiveModal);
-  $('#sensitiveModalCloseButton')?.addEventListener('click', closeSensitiveModal);
-  $('#sensitiveModalConfirmButton')?.addEventListener('click', closeSensitiveModal);
-  $('#sensitiveModalBackdrop')?.addEventListener('click',e=>{if(e.target===e.currentTarget)closeSensitiveModal()});
   $('#lookupForm').addEventListener('submit', handleLookupSubmit);
+  $('#openSeatDetailButton')?.addEventListener('click', openSeatDetailModal);
+  $('#seatDetailCloseButton')?.addEventListener('click', closeSeatDetailModal);
+  $('#seatDetailDoneButton')?.addEventListener('click', closeSeatDetailModal);
+  $('#seatDetailBackdrop')?.addEventListener('click',e=>{if(e.target===e.currentTarget)closeSeatDetailModal()});
+  $('#seatZoomOutButton')?.addEventListener('click',()=>{seatDetailZoom=Math.max(.75,seatDetailZoom-.25);applySeatDetailZoom()});
+  $('#seatZoomResetButton')?.addEventListener('click',()=>{seatDetailZoom=1;applySeatDetailZoom()});
+  $('#seatZoomInButton')?.addEventListener('click',()=>{seatDetailZoom=Math.min(1.75,seatDetailZoom+.25);applySeatDetailZoom()});
   $('#downloadTicketButton').addEventListener('click', downloadTicketImage);
   $('#downloadQrButton').addEventListener('click', downloadQrOnly);
   $('#copyLinkButton').addEventListener('click', copyTicketLink);
@@ -1161,10 +1409,19 @@ async function initialize() {
   document.addEventListener('keydown', event => { if (event.key === 'Escape' && !$('#privacyModalBackdrop')?.classList.contains('hidden')) closePrivacyModal(); });
   updateRememberedTicketUi();
 
+  const cachedSeats=cachedSeatLayout();
+  if(cachedSeats.length){
+    publicState.seatMeta=cachedSeats;
+    renderPublicSeatMap();
+  }
+  updateSeatDetailConnectionStatus();
+  window.addEventListener('online',updateSeatDetailConnectionStatus);
+  window.addEventListener('offline',updateSeatDetailConnectionStatus);
+
   if (!isConfiguredUrl(API_URL)) {
     $('#setupWarning').classList.remove('hidden');
     $('#registrationStatus').className = 'registration-status closed';
-    $('#registrationStatus').textContent = '서버 설정 전에는 신청할 수 없습니다.';
+    $('#registrationStatus').textContent = '현재 온라인 신청을 준비 중입니다. 잠시 후 다시 확인해 주세요.';
     $('#submitButton').disabled = true;
     return;
   }
@@ -1179,9 +1436,29 @@ async function initialize() {
     document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncCurrentTicket()});
   } catch (error) {
     $('#registrationStatus').className = 'registration-status closed';
-    $('#registrationStatus').textContent = error.message;
+    $('#registrationStatus').textContent = '현재 연결이 원활하지 않습니다. 잠시 후 다시 시도해 주세요.';
     $('#submitButton').disabled = true;
-    showToast(error.message, 5200);
+
+    const codeFromUrl=new URLSearchParams(window.location.search).get('code')||
+      new URLSearchParams(window.location.search).get('ticket')||
+      getRememberedTicketCode();
+    const cached=cachedTicketSnapshot(codeFromUrl||'');
+
+    if(cached?.ticket){
+      if(cached.settings){
+        publicState.settings={...DEFAULT_PUBLIC_SETTINGS,...cached.settings};
+        renderPublicSettings();
+      }
+      renderTicket(cached.ticket,{
+        existing:true,
+        remember:Boolean(cached.ticket.id),
+        message:'현재 연결이 없어 마지막으로 확인한 티켓 정보를 표시합니다.',
+        scroll:true
+      });
+      showToast('마지막으로 확인한 좌석 정보를 표시합니다.',4200);
+    }else{
+      showToast('현재 연결이 원활하지 않습니다. 잠시 후 다시 시도해 주세요.',5200);
+    }
   }
 }
 

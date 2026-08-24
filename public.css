@@ -1274,3 +1274,298 @@ body.intro-playing{
   .invite-hero h1{gap:6px;}
   .invite-hero .event-name-org{font-size:clamp(22px,4.8vw,30px);}
 }
+
+
+/* =====================================================================
+   v2.7.6 — 공개 초대장 중복 문구 정리 / 상세 좌석 보기
+   ===================================================================== */
+.application-important-copy{
+  line-height:1.65;
+}
+.optional-field-mark{
+  white-space:normal;
+  line-height:1.45;
+}
+.ticket-seat-detail-button{
+  margin-top:12px;
+  min-height:42px;
+  padding:0 17px;
+  border:1px solid rgba(234,209,165,.48);
+  border-radius:999px;
+  background:rgba(255,255,255,.08);
+  color:#fff;
+  font:inherit;
+  font-size:12px;
+  font-weight:900;
+  cursor:pointer;
+}
+.ticket-seat-detail-button:hover{
+  background:rgba(255,255,255,.14);
+}
+
+/* 상세 좌석도 */
+.seat-detail-backdrop{
+  position:fixed;
+  inset:0;
+  z-index:1200;
+  display:grid;
+  place-items:center;
+  padding:14px;
+  background:rgba(8,17,30,.78);
+  backdrop-filter:blur(6px);
+}
+.seat-detail-backdrop.hidden{display:none}
+.seat-detail-modal{
+  width:min(1500px,100%);
+  height:min(94vh,980px);
+  display:grid;
+  grid-template-rows:auto auto auto 1fr auto;
+  background:#f8fafc;
+  border-radius:24px;
+  overflow:hidden;
+  box-shadow:0 30px 100px rgba(0,0,0,.42);
+}
+.seat-detail-header{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:18px;
+  padding:20px 24px 15px;
+  background:#fff;
+  border-bottom:1px solid #e5e7eb;
+}
+.seat-detail-header h2{
+  margin:3px 0 5px;
+  color:#172554;
+  font-size:clamp(24px,4vw,34px);
+}
+.seat-detail-header p:last-child{
+  margin:0;
+  color:#64748b;
+  font-size:14px;
+}
+.seat-detail-close{
+  width:42px;
+  height:42px;
+  flex:0 0 auto;
+  border:0;
+  border-radius:50%;
+  background:#eef2f7;
+  color:#334155;
+  font-size:28px;
+  cursor:pointer;
+}
+.seat-detail-toolbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  padding:11px 24px;
+  background:#fff;
+  border-bottom:1px solid #eef1f5;
+}
+.seat-detail-status{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-width:0;
+  color:#475569;
+  font-size:12px;
+}
+.seat-detail-status strong{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.seat-detail-connection-dot{
+  width:9px;
+  height:9px;
+  flex:0 0 auto;
+  border-radius:50%;
+  background:#22c55e;
+}
+.seat-detail-connection-dot.offline{background:#f59e0b}
+.seat-detail-zoom-controls{
+  display:flex;
+  gap:6px;
+  flex:0 0 auto;
+}
+.seat-detail-zoom-controls button{
+  min-width:40px;
+  height:36px;
+  border:1px solid #d8dee8;
+  border-radius:10px;
+  background:#fff;
+  color:#334155;
+  font-weight:900;
+  cursor:pointer;
+}
+.seat-detail-zoom-controls #seatZoomResetButton{min-width:62px}
+.seat-detail-legend{
+  display:flex;
+  justify-content:center;
+  gap:14px;
+  flex-wrap:wrap;
+  padding:10px 18px;
+  background:#f8fafc;
+  border-bottom:1px solid #e8edf4;
+  color:#475569;
+  font-size:12px;
+  font-weight:800;
+}
+.seat-detail-legend span{
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.seat-legend-dot{
+  width:16px;
+  height:16px;
+  border-radius:5px;
+  border:1px solid #cbd5e1;
+  background:#fff;
+}
+.seat-legend-dot.vip{background:#fff0b8;border-color:#d6aa2f}
+.seat-legend-dot.accessible{background:#bae6fd;border-color:#0284c7}
+.seat-legend-dot.general{background:#f8fafc;border-color:#cbd5e1}
+.seat-legend-dot.mine{
+  background:#2563eb;
+  border:3px solid #facc15;
+}
+.seat-detail-viewport{
+  overflow:auto;
+  padding:20px;
+  background:#eef2f7;
+  overscroll-behavior:contain;
+}
+.seat-detail-canvas{
+  --seat-detail-zoom:1;
+  width:1180px;
+  min-height:650px;
+  margin:0 auto;
+  padding:18px 20px 24px;
+  border-radius:20px;
+  background:#fff;
+  transform:scale(var(--seat-detail-zoom));
+  transform-origin:top center;
+  transition:transform .16s ease;
+  box-shadow:0 10px 35px rgba(15,23,42,.08);
+}
+.seat-detail-stage{
+  width:640px;
+  margin:0 auto 9px;
+  padding:19px;
+  border-radius:15px 15px 46% 46%;
+  background:#172554;
+  color:#fff;
+  text-align:center;
+  font-size:22px;
+  font-weight:900;
+}
+.seat-detail-runway-label{
+  width:86px;
+  margin:0 auto -1px;
+  padding:7px 4px;
+  background:#e8dbc0;
+  color:#755d35;
+  text-align:center;
+  font-size:10px;
+  font-weight:950;
+  letter-spacing:.1em;
+}
+.seat-detail-map{
+  display:grid;
+  gap:4px;
+}
+.seat-detail-row{
+  display:grid;
+  grid-template-columns:36px 1fr 86px 1fr 36px;
+  gap:5px;
+  align-items:center;
+}
+.seat-detail-row-label{
+  color:#172554;
+  font-size:11px;
+  text-align:center;
+}
+.seat-detail-side{
+  display:grid;
+  grid-template-columns:repeat(15,1fr);
+  gap:3px;
+}
+.seat-detail-runway-cell{
+  min-height:31px;
+  display:grid;
+  place-items:center;
+  background:#efe5d2;
+  color:#775e37;
+  font-size:10px;
+  font-weight:900;
+}
+.seat-detail-cell{
+  position:relative;
+  min-width:0;
+  height:31px;
+  display:grid;
+  place-items:center;
+  border:1px solid #cbd5e1;
+  border-radius:6px;
+  background:#f8fafc;
+  color:#475569;
+  font-size:9px;
+}
+.seat-detail-cell.vip{
+  background:#fff0b8;
+  border-color:#d6aa2f;
+  color:#7c5b00;
+}
+.seat-detail-cell.accessible{
+  background:#dff4ff;
+  border-color:#38a9db;
+  color:#075985;
+}
+.seat-detail-cell.mine{
+  z-index:2;
+  background:#2563eb!important;
+  color:#fff!important;
+  border:3px solid #facc15!important;
+  box-shadow:0 0 0 2px #1e3a8a,0 4px 10px rgba(30,58,138,.28);
+  transform:scale(1.12);
+}
+.seat-detail-footer{
+  display:grid;
+  grid-template-columns:1fr auto;
+  align-items:center;
+  gap:18px;
+  padding:14px 24px 18px;
+  background:#fff;
+  border-top:1px solid #e5e7eb;
+}
+.seat-detail-footer p{
+  margin:0;
+  color:#64748b;
+  font-size:12px;
+  line-height:1.55;
+}
+.seat-detail-footer .submit-button{
+  min-width:130px;
+  margin:0;
+}
+@media(max-width:720px){
+  .seat-detail-backdrop{padding:0}
+  .seat-detail-modal{
+    width:100%;
+    height:100dvh;
+    border-radius:0;
+  }
+  .seat-detail-header{padding:16px 16px 12px}
+  .seat-detail-toolbar{padding:9px 14px}
+  .seat-detail-status strong{max-width:210px}
+  .seat-detail-viewport{padding:12px}
+  .seat-detail-footer{
+    grid-template-columns:1fr;
+    gap:10px;
+    padding:12px 16px max(16px,env(safe-area-inset-bottom));
+  }
+  .seat-detail-footer .submit-button{width:100%}
+}
