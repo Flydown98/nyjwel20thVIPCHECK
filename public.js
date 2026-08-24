@@ -5,7 +5,7 @@ const API_URL = String(PUBLIC_CONFIG.appsScriptUrl || '').trim();
 const DEVICE_TICKET_STORAGE_KEY = 'nyj20.publicTicketCode.v1';
 const CURRENT_PRIVACY_VERSION = 'NYJWEL20-INDIVIDUAL-2026-08-24-v3';
 const DEFAULT_PUBLIC_SETTINGS = Object.freeze({
-  eventName: '남양주시장애인복지관 개관 20주년 기념행사',
+  eventName: '개관 20주년 기념행사',
   eventDate: '2026. 9. 17.(목) 13:30',
   eventVenue: '남양주금곡실내체육관',
   eventOrganizer: '남양주시장애인복지관',
@@ -210,8 +210,28 @@ function publicApiRequest(action, payload = {}) {
 
 function renderPublicSettings() {
   const settings = publicState.settings;
-  $('#organizerText').textContent = settings.eventOrganizer;
-  $('#eventNameText').textContent = settings.eventName;
+  const organizer = String(settings.eventOrganizer || DEFAULT_PUBLIC_SETTINGS.eventOrganizer || '').trim();
+  let eventName = String(settings.eventName || DEFAULT_PUBLIC_SETTINGS.eventName || '').trim();
+  if (organizer && eventName.startsWith(organizer)) {
+    eventName = eventName.slice(organizer.length).trim();
+  }
+  if (!eventName) eventName = DEFAULT_PUBLIC_SETTINGS.eventName;
+
+  const organizerEl = $('#organizerText');
+  if (organizerEl) organizerEl.textContent = organizer;
+
+  const titleEl = $('#eventNameText');
+  if (titleEl) {
+    titleEl.innerHTML = '';
+    const orgSpan = document.createElement('span');
+    orgSpan.className = 'event-name-org';
+    orgSpan.textContent = organizer;
+    const mainSpan = document.createElement('span');
+    mainSpan.className = 'event-name-main';
+    mainSpan.textContent = eventName;
+    titleEl.append(orgSpan, mainSpan);
+  }
+
   $('#subtitleText').textContent = settings.publicSubtitle;
   $('#eventDateText').textContent = settings.eventDate;
   $('#eventVenueText').textContent = settings.eventVenue;
@@ -220,7 +240,7 @@ function renderPublicSettings() {
   $('#greetingText').textContent = settings.publicGreeting;
   const retentionText = $('#privacyRetentionText');
   if (retentionText) retentionText.textContent = settings.privacyRetentionText || DEFAULT_PUBLIC_SETTINGS.privacyRetentionText;
-  document.title = `${settings.eventName} 모바일 초대장`;
+  document.title = `${organizer} ${eventName} 모바일 초대장`;
 
   const status = $('#registrationStatus');
   const submit = $('#submitButton');
@@ -664,20 +684,13 @@ async function handleApplicationSubmit(event) {
   values.usesCenter=values.disabledPerson&&centerServiceChoice==='use';
   values.programName='';
   values.note='';
-  values.sensitiveConsent=Boolean(form.elements.sensitiveConsent?.checked);
-  values.privacyConsentConfirmed=Boolean(
-    form.elements.privacyConsentConfirmed?.checked
-  );
-  values.ageConfirmed=Boolean(form.elements.ageConfirmed?.checked);
+  values.privacyConsentConfirmed=Boolean(form.elements.privacyConsentConfirmed?.checked);
+  values.ageConfirmed=values.privacyConsentConfirmed;
+  values.sensitiveConsent=values.disabledPerson&&values.privacyConsentConfirmed;
   values.privacyVersion=
     publicState.settings.privacyConsentVersion||CURRENT_PRIVACY_VERSION;
   values.startedAt=Number(form.dataset.startedAt||Date.now());
 
-  if(values.disabledPerson&&!values.sensitiveConsent){
-    showToast('편의제공 관련 정보 처리를 위한 별도 동의가 필요합니다.',5200);
-    form.elements.sensitiveConsent?.focus();
-    return;
-  }
 
   submitButton.disabled=true;
   setLoading(true,'개인 참가 신청을 등록하고 QR을 발급하고 있습니다.');
@@ -767,11 +780,8 @@ function updateIndividualApplicationUi(){
 
   const disabledPerson=Boolean(form.elements.disabledPerson?.checked);
   const details=$('#accessibilityDetails');
-  const sensitiveRow=$('#sensitiveConsentRow');
-  const sensitiveBox=form.elements.sensitiveConsent;
 
   details?.classList.toggle('hidden',!disabledPerson);
-  sensitiveRow?.classList.toggle('hidden',!disabledPerson);
 
   const wheelRadios=[
     ...form.querySelectorAll('input[name="wheelchairChoice"]')
@@ -783,14 +793,9 @@ function updateIndividualApplicationUi(){
   wheelRadios.forEach(input=>{input.required=disabledPerson;});
   serviceRadios.forEach(input=>{input.required=disabledPerson;});
 
-  if(sensitiveBox){
-    sensitiveBox.required=disabledPerson;
-  }
-
   if(!disabledPerson){
     wheelRadios.forEach(input=>{input.checked=false;});
     serviceRadios.forEach(input=>{input.checked=false;});
-    if(sensitiveBox)sensitiveBox.checked=false;
   }
 }
 function openSensitiveModal(){$('#sensitiveModalBackdrop')?.classList.remove('hidden');$('#sensitiveModalBackdrop')?.setAttribute('aria-hidden','false');document.body.classList.add('modal-open')}
