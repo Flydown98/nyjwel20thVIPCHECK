@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#101a38" />
+  <meta name="robots" content="noindex,nofollow" />
+  <meta name="referrer" content="no-referrer" />
+  <title>20주년 행사 QR 키오스크</title>
+  <link rel="stylesheet" href="./kiosk.css?v=1.0" />
+</head>
+<body>
+  <div id="loginOverlay" class="login-overlay">
+    <section class="login-card" aria-labelledby="loginTitle">
+      <div class="anniversary-mark">20</div>
+      <p class="eyebrow">NYJWEL · KIOSK</p>
+      <h1 id="loginTitle">현장 QR 키오스크</h1>
+      <p class="login-copy">관리자 계정으로 한 번 로그인하면 이 기기에서 QR 접수 전용 화면으로 작동합니다.</p>
+      <form id="loginForm" class="login-form" autocomplete="on">
+        <label>아이디<input id="username" autocomplete="username" required /></label>
+        <label>비밀번호<input id="password" type="password" autocomplete="current-password" required /></label>
+        <button id="loginButton" type="submit">키오스크 시작</button>
+      </form>
+      <p id="loginMessage" class="login-message hidden" role="alert"></p>
+    </section>
+  </div>
+
+  <main class="kiosk-shell">
+    <header class="kiosk-header">
+      <div>
+        <p class="eyebrow">남양주시장애인복지관</p>
+        <h1 id="eventName">개관 20주년 기념행사</h1>
+        <p id="eventMeta" class="event-meta">현장 QR 접수</p>
+      </div>
+      <div class="header-actions">
+        <button id="fullscreenButton" class="header-button" type="button">전체화면</button>
+        <button id="logoutButton" class="header-button subtle" type="button">종료</button>
+      </div>
+    </header>
+
+    <section class="status-strip" aria-label="접수 현황">
+      <div><span>등록</span><strong id="totalCount">-</strong></div>
+      <div><span>도착</span><strong id="arrivedCount">-</strong></div>
+      <div><span>미도착</span><strong id="pendingCount">-</strong></div>
+      <div class="connection"><span id="connectionDot" class="dot"></span><strong id="connectionText">서버 확인 중</strong></div>
+    </section>
+
+    <section class="scanner-section">
+      <div class="scanner-heading">
+        <div>
+          <p class="step">STEP 1</p>
+          <h2>QR을 카메라에 보여주세요</h2>
+          <p>휴대폰 또는 출력물의 개인 QR을 사각형 안에 맞춰주세요.</p>
+        </div>
+        <button id="scannerToggle" class="scanner-toggle" type="button">카메라 시작</button>
+      </div>
+      <div id="reader" class="reader" aria-label="QR 카메라 화면">
+        <div class="reader-placeholder">
+          <div class="qr-symbol">⌗</div>
+          <strong>카메라 대기 중</strong>
+          <span>‘카메라 시작’을 눌러주세요.</span>
+        </div>
+      </div>
+      <div id="scanStatus" class="scan-status idle"><span class="pulse"></span><strong>QR 인식 대기</strong></div>
+    </section>
+
+    <section id="resultSection" class="result-section ready" aria-live="polite">
+      <p class="step">STEP 2</p>
+      <div id="resultContent" class="result-content">
+        <div class="ready-icon">✓</div>
+        <h2>스캔하면 좌석이 크게 표시됩니다</h2>
+        <p>접수가 끝나도 카메라는 계속 켜져 있어 다음 분이 바로 이용할 수 있습니다.</p>
+      </div>
+    </section>
+
+    <details class="manual-panel">
+      <summary>카메라가 작동하지 않을 때 · 코드 직접 입력</summary>
+      <form id="manualForm" class="manual-form">
+        <input id="manualCode" autocomplete="off" placeholder="QR 코드 또는 티켓 코드" />
+        <button type="submit">접수 확인</button>
+      </form>
+    </details>
+
+    <footer class="kiosk-footer">
+      <span id="stationLabel">키오스크</span>
+      <span>문의가 필요하면 안내데스크 직원에게 말씀해 주세요.</span>
+    </footer>
+  </main>
+
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="../config.js"></script>
+  <script src="./kiosk.js?v=1.0"></script>
+</body>
+</html>
