@@ -99,7 +99,7 @@
   flex:1 1 auto!important;
   min-width:0!important;
   display:grid!important;
-  grid-template-columns:repeat(15,minmax(0,1fr))!important;
+  grid-template-columns:repeat(10,minmax(0,1fr))!important;
   gap:2px!important;
 }
 .runway-row-label{
@@ -532,3 +532,28 @@ body.admin-pwa-standalone .admin-app-install-trigger{
 @keyframes scannerPulse{50%{opacity:.35;transform:scale(.78)}}
 #reader video{max-height:min(58vh,520px)!important;object-fit:cover!important}#reader__scan_region{min-height:320px!important}
 @media(max-width:650px){.fast-scanner-box{min-height:300px}.native-scanner-video{height:52vh;min-height:300px}}
+
+
+/* =====================================================================
+   v2.8.1 — 10+10 좌석배치도 버그 수정
+   기존 15칸 그리드 잔여설정 제거
+   ===================================================================== */
+.runway-side-seats{
+  grid-template-columns:repeat(10,minmax(0,1fr))!important;
+  width:100%!important;
+}
+.runway-seat{
+  min-height:34px!important;
+}
+@media(max-width:700px){
+  .runway-seat-map{
+    min-width:760px!important;
+  }
+  .runway-row{
+    min-width:740px!important;
+  }
+}
+
+/* v2.8.2 참여불가 버튼 */
+.button.danger-outline{border-color:#fecaca;background:#fff;color:#b91c1c}
+.button.danger-outline:hover{background:#fef2f2}

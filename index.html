@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#152238" />
   <title>개관 20주년 모바일 초대장</title>
-  <link rel="stylesheet" href="public.css?v=3.8" />
+  <link rel="stylesheet" href="public.css?v=4.2" />
 </head>
 <body>
   <section id="introOverlay" class="intro-overlay invitation-experience" aria-label="남양주시장애인복지관 20주년 초대장 열기">
@@ -239,6 +239,17 @@
       <p class="lookup-help">신청한 휴대폰과 다른 기기에서도 이름과 연락처가 일치하면 확인할 수 있습니다.</p>
     </section>
 
+
+    <section id="cancelledTicketSection" class="invite-section cancelled-ticket-section hidden" aria-live="polite">
+      <div class="cancelled-ticket-card">
+        <div class="cancelled-ticket-icon">×</div>
+        <p class="section-kicker">APPLICATION STATUS</p>
+        <h2>참가 신청이 취소되었습니다.</h2>
+        <p id="cancelledTicketMessage">기존 QR은 더 이상 사용할 수 없습니다.</p>
+        <a class="outline-button cancelled-new-application" href="./#application">새로 참가 신청하기</a>
+      </div>
+    </section>
+
     <section id="ticketSection" class="invite-section ticket-section hidden" aria-live="polite">
       <div class="section-heading centered">
         <p class="section-kicker">MOBILE TICKET</p>
@@ -446,6 +457,6 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="config.js"></script>
-  <script src="public.js?v=3.8"></script>
+  <script src="public.js?v=4.2"></script>
 </body>
 </html>

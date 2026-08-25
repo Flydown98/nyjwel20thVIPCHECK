@@ -186,7 +186,12 @@ function publicApiRequest(action, payload = {}) {
           return;
         }
         if (!response || response.ok !== true) {
-          fail(new Error(response?.error || '신청 처리 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.'));
+          const error=new Error(
+            response?.error ||
+            '신청 처리 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.'
+          );
+          error.code=String(response?.errorCode||'');
+          fail(error);
           return;
         }
         const data = response.data;
@@ -272,6 +277,40 @@ function lastSeatSyncAt(){
   try{return localStorage.getItem(LAST_PUBLIC_SEAT_SYNC_KEY)||'';}catch(_){return'';}
 }
 
+function clearCachedTicketSnapshot(){
+  try{localStorage.removeItem(LAST_PUBLIC_TICKET_CACHE_KEY);}catch(_){}
+}
+
+function isTerminalTicketError(error){
+  const code=String(error?.code||'').trim().toUpperCase();
+  if(code==='TICKET_INACTIVE'||code==='TICKET_NOT_FOUND')return true;
+
+  const message=String(error?.message||'');
+  return /참가 신청이 취소|참여불가 처리|사용이 중지된 개인 티켓|유효하지 않은 개인 티켓/.test(message);
+}
+
+function showCancelledTicketState(message='참가 신청이 취소되었습니다.'){
+  clearInterval(ticketRefreshTimer);
+  clearInterval(seatLayoutRefreshTimer);
+
+  publicState.ticket=null;
+  forgetRememberedTicket();
+  clearCachedTicketSnapshot();
+  clearTicketCodeFromUrl();
+
+  $('#ticketSection')?.classList.add('hidden');
+
+  const section=$('#cancelledTicketSection');
+  if(section){
+    section.classList.remove('hidden');
+    const text=$('#cancelledTicketMessage');
+    if(text)text.textContent=message+' 기존 QR은 더 이상 사용할 수 없습니다.';
+    setTimeout(()=>section.scrollIntoView({behavior:'smooth',block:'center'}),80);
+  }
+
+  updateRememberedTicketUi();
+}
+
 function formatSeatSyncTime(value){
   if(!value)return'';
   const date=new Date(value);
@@ -354,6 +393,7 @@ function clearQrContainer() {
 
 function compactSeatLabel(value){const seats=String(value||'').split(',').map(v=>v.trim()).filter(Boolean);if(!seats.length)return'좌석 배정 중';return seats.length<=4?seats.join(' · '):`${seats[0]} ~ ${seats[seats.length-1]} (${seats.length}석)`}
 function renderTicket(ticket,{existing=false,remember=false,message='',scroll=true}={}){
+  $('#cancelledTicketSection')?.classList.add('hidden');
   publicState.ticket=ticket;
   if(remember)rememberTicketCode(ticket.id);
   cacheTicketSnapshot(ticket);
@@ -536,7 +576,7 @@ async function downloadTicketImage() {
     ctx.font = '500 31px Arial, sans-serif';
     ctx.fillText(publicState.settings.eventOrganizer, 540, 205);
     ctx.fillStyle = '#ffffff';
-    ctx.font = '500 60px Georgia, "Noto Sans KR", sans-serif';
+    ctx.font = '700 60px "Noto Sans KR", "Malgun Gothic", Arial, sans-serif';
     let nextY = drawCenteredWrappedText(ctx, displayEventName(publicState.settings), 540, 290, 850, 76, 2);
 
     ctx.fillStyle = '#ead1a5';
@@ -626,6 +666,7 @@ function clearTicketCodeFromUrl() {
 
 async function handleForgetTicket() {
   forgetRememberedTicket();
+  clearCachedTicketSnapshot();
   clearTicketCodeFromUrl();
   showToast('이 휴대폰에서 개인 티켓 자동 표시를 해제했습니다.');
 }
@@ -633,8 +674,10 @@ async function handleForgetTicket() {
 function handleNewApplication(event) {
   event.preventDefault();
   forgetRememberedTicket();
+  clearCachedTicketSnapshot();
   clearTicketCodeFromUrl();
   publicState.ticket = null;
+  $('#cancelledTicketSection')?.classList.add('hidden');
   $('#ticketSection').classList.add('hidden');
   $('#applicationForm').reset();
   $('#applicationForm').dataset.startedAt = String(Date.now());
@@ -660,6 +703,12 @@ async function loadRememberedTicket({ scroll = true } = {}) {
     showToast('저장된 개인 티켓을 자동으로 불러왔습니다.');
     return true;
   } catch (error) {
+    if(isTerminalTicketError(error)){
+      showCancelledTicketState('참가 신청이 취소되었습니다.');
+      showToast('참가 취소가 확인되어 기존 QR을 사용할 수 없습니다.',4800);
+      return false;
+    }
+
     const cached=cachedTicketSnapshot(code);
     if(cached?.ticket){
       if(cached.settings){
@@ -721,6 +770,12 @@ async function loadTicketFromUrl() {
     renderTicket(result.participant, { existing: true, message: '개인 티켓 링크로 신청 정보를 불러왔습니다.' });
     return true;
   } catch (error) {
+    if(isTerminalTicketError(error)){
+      showCancelledTicketState('참가 신청이 취소되었습니다.');
+      showToast('참가 취소가 확인되어 기존 QR을 사용할 수 없습니다.',4800);
+      return false;
+    }
+
     const cached=cachedTicketSnapshot(code);
     if(cached?.ticket){
       if(cached.settings){
@@ -1008,7 +1063,35 @@ async function loadPublicSeatLayout(){
   renderDetailedSeatMap();
   updateSeatDetailConnectionStatus();
 }
-async function syncCurrentTicket(){if(!publicState.ticket?.id||document.hidden)return;try{const before=String(publicState.ticket.seat||''),r=await publicApiRequest('publicTicket',{code:publicState.ticket.id});if(r.settings)publicState.settings={...publicState.settings,...r.settings};if(r.participant){const changed=before!==String(r.participant.seat||'');renderTicket(r.participant,{existing:true,scroll:false,message:changed?'좌석 정보가 변경되어 최신 내용으로 갱신되었습니다.':'현재 좌석 정보가 최신 상태입니다.'});if(changed)showToast('최신 좌석 정보가 반영되었습니다.',4200)}}catch(_){updateSeatDetailConnectionStatus();}}
+async function syncCurrentTicket(){
+  if(!publicState.ticket?.id||document.hidden)return;
+
+  try{
+    const before=String(publicState.ticket.seat||'');
+    const r=await publicApiRequest('publicTicket',{code:publicState.ticket.id});
+
+    if(r.settings)publicState.settings={...publicState.settings,...r.settings};
+
+    if(r.participant){
+      const changed=before!==String(r.participant.seat||'');
+      renderTicket(r.participant,{
+        existing:true,
+        scroll:false,
+        message:changed
+          ?'좌석 정보가 변경되어 최신 내용으로 갱신되었습니다.'
+          :'현재 좌석 정보가 최신 상태입니다.'
+      });
+      if(changed)showToast('최신 좌석 정보가 반영되었습니다.',4200);
+    }
+  }catch(error){
+    if(isTerminalTicketError(error)){
+      showCancelledTicketState('참가 신청이 취소되었습니다.');
+      showToast('참가 취소가 확인되어 기존 QR을 사용할 수 없습니다.',4800);
+      return;
+    }
+    updateSeatDetailConnectionStatus();
+  }
+}
 function startTicketLiveSync(){clearInterval(ticketRefreshTimer);ticketRefreshTimer=setInterval(syncCurrentTicket,Math.max(5,Number(publicState.settings.ticketRefreshSeconds)||15)*1000);clearInterval(seatLayoutRefreshTimer);seatLayoutRefreshTimer=setInterval(loadPublicSeatLayout,60000)}
 
 

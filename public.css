@@ -189,7 +189,7 @@ body.modal-open{overflow:hidden}
 }
 .public-side{
   display:grid!important;
-  grid-template-columns:repeat(15,minmax(0,1fr))!important;
+  grid-template-columns:repeat(10,minmax(0,1fr))!important;
   gap:1px!important;
 }
 .public-seat-dot{
@@ -1490,7 +1490,7 @@ body.intro-playing{
 }
 .seat-detail-side{
   display:grid;
-  grid-template-columns:repeat(15,1fr);
+  grid-template-columns:repeat(10,1fr);
   gap:3px;
 }
 .seat-detail-runway-cell{
@@ -1574,3 +1574,41 @@ body.intro-playing{
 .seat-detail-canvas{width:980px}
 .seat-detail-stage{width:540px}
 .seat-detail-side{grid-template-columns:repeat(10,1fr)}
+
+
+/* =====================================================================
+   v2.8.1 — 공개 좌석도 10+10 강제 정합성
+   ===================================================================== */
+.public-side{
+  grid-template-columns:repeat(10,minmax(0,1fr))!important;
+}
+.seat-detail-side{
+  grid-template-columns:repeat(10,minmax(0,1fr))!important;
+}
+.public-runway-map{
+  max-width:760px;
+  margin-left:auto;
+  margin-right:auto;
+}
+
+
+/* v2.8.2 참가 취소/참여불가 상태 */
+.cancelled-ticket-section{padding-top:34px;padding-bottom:34px}
+.cancelled-ticket-card{
+  width:min(620px,100%);margin:0 auto;padding:34px 28px;
+  border:1px solid #e5e7eb;border-radius:24px;background:#fff;
+  text-align:center;box-shadow:0 18px 50px rgba(15,23,42,.08)
+}
+.cancelled-ticket-icon{
+  width:64px;height:64px;display:grid;place-items:center;margin:0 auto 15px;
+  border-radius:50%;background:#f1f5f9;color:#64748b;font-size:34px;font-weight:800
+}
+.cancelled-ticket-card h2{
+  margin:5px 0 11px;color:#1e293b;font-size:clamp(25px,5vw,34px);line-height:1.25
+}
+.cancelled-ticket-card>p:not(.section-kicker){
+  margin:0 auto 21px;color:#64748b;line-height:1.65
+}
+.cancelled-new-application{
+  display:inline-flex;justify-content:center;width:auto;min-width:180px
+}
