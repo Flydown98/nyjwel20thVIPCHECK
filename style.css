@@ -99,7 +99,7 @@
   flex:1 1 auto!important;
   min-width:0!important;
   display:grid!important;
-  grid-template-columns:repeat(10,minmax(0,1fr))!important;
+  grid-template-columns:repeat(6,minmax(0,1fr))!important;
   gap:2px!important;
 }
 .runway-row-label{
@@ -539,7 +539,7 @@ body.admin-pwa-standalone .admin-app-install-trigger{
    기존 15칸 그리드 잔여설정 제거
    ===================================================================== */
 .runway-side-seats{
-  grid-template-columns:repeat(10,minmax(0,1fr))!important;
+  grid-template-columns:repeat(6,minmax(0,1fr))!important;
   width:100%!important;
 }
 .runway-seat{
@@ -592,3 +592,13 @@ body.admin-pwa-standalone .admin-app-install-trigger{
 
 /* v3.0 동반좌석 / 재정렬 / 엑셀 */
 .seat-ops-grid{display:grid;grid-template-columns:1.35fr 1fr;gap:14px}.seat-op-box{padding:16px;border:1px solid #e2e8f0;border-radius:16px;background:#f8fafc}.seat-op-box h4{margin:0 0 8px}.inline-form{display:grid;grid-template-columns:1fr auto;gap:8px;margin:12px 0}.companion-search-results{display:grid;gap:7px;max-height:280px;overflow:auto;margin-bottom:12px}.companion-result-item{display:flex;align-items:center;gap:10px;padding:10px 11px;border:1px solid #dde5ef;border-radius:12px;background:#fff;cursor:pointer}.companion-result-item span{display:grid;gap:2px}.companion-result-item small{color:#64748b}.button-row{display:flex;gap:8px;flex-wrap:wrap}.excel-import-grid{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:9px;align-items:center}.excel-import-preview{margin-top:14px}.excel-preview-summary{display:flex;gap:14px;align-items:center;margin-bottom:10px}.excel-preview-table-wrap{overflow:auto;max-height:380px}.excel-preview-table{width:100%;border-collapse:collapse;font-size:.82rem}.excel-preview-table th,.excel-preview-table td{padding:8px 9px;border-bottom:1px solid #e5e7eb;text-align:left;white-space:nowrap}.table-sub-badge{display:inline-block;margin-top:4px;padding:2px 6px;border-radius:999px;background:#eef2ff;color:#4338ca;font-size:.65rem}.table-sub-badge.unavailable{background:#f1f5f9;color:#64748b}@media(max-width:800px){.seat-ops-grid{grid-template-columns:1fr}.excel-import-grid{grid-template-columns:1fr}}
+
+/* v3.1 180석 */
+.runway-seat-map{min-width:820px!important}.runway-row{min-width:800px!important}.runway-side-seats{display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:5px!important;width:100%!important}.runway-left .runway-side-seats,.runway-right .runway-side-seats{max-width:270px}.seat-reset-button{margin-top:10px;width:100%}.seat-reset-note{margin-top:7px}@media(max-width:700px){.runway-seat-map{min-width:760px!important}.runway-row{min-width:740px!important}}
+
+/* v3.2 현장운영 */
+.field-stats-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:0 0 16px}.field-stats-grid article{padding:14px;border:1px solid #dce5ef;border-radius:15px;background:#fff}.field-stats-grid span{display:block;color:#64748b;font-size:.75rem}.field-stats-grid strong{display:block;margin-top:4px;font-size:1.65rem;color:#0f274a}.onsite-registration-form{display:grid;grid-template-columns:1fr 1fr 1.2fr auto auto auto;gap:8px;align-items:center}.onsite-registration-form label{font-size:.8rem;white-space:nowrap}.gift-control{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:12px 0;padding:10px 12px;border-radius:12px;background:#fff7ed;border:1px solid #fed7aa}.gift-control.done{background:#ecfdf5;border-color:#a7f3d0}.gift-control small{color:#64748b}@media(max-width:900px){.field-stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.onsite-registration-form{grid-template-columns:1fr}}
+
+/* v3.2.1 관리자 비밀번호 단독 로그인 */
+.password-only-login{max-width:420px;margin-left:auto;margin-right:auto;width:100%}
+.password-only-login label{text-align:left}

@@ -1,6 +1,6 @@
 'use strict';
 
-const ADMIN_UI_VERSION = '2.8-FASTSCAN-300';
+const ADMIN_UI_VERSION = '3.1-180-GROUP';
 
 const CONFIG = window.NYJ20_CONFIG || {};
 const API_URL = String(CONFIG.appsScriptUrl || '').trim();
@@ -22,7 +22,7 @@ const DEFAULT_SETTINGS = Object.freeze({
   publicGreeting: '남양주시장애인복지관의 스무 해를 함께해 주신 여러분을 초대합니다.',
   privacyRetentionText: '행사 종료 후 결과 정리 및 문의 대응 완료 시까지(최대 30일)',
   registrationOpen: true,
-  registrationCapacity: 300,
+  registrationCapacity: 180,
   autoAssignSeat: true
 });
 
@@ -128,7 +128,7 @@ function showLogin(message = '') {
   const box = $('#loginMessage');
   box.textContent = message;
   box.classList.toggle('hidden', !message);
-  setTimeout(() => $('#adminUsername')?.focus(), 80);
+  setTimeout(() => $('#adminPassword')?.focus(), 80);
 }
 function hideLogin() {
   $('#loginOverlay').classList.add('hidden');
@@ -291,8 +291,8 @@ async function jsonpRequest(action, payload = {}, { auth = true } = {}) {
   }
 }
 
-async function login(username, password) {
-  const data = await jsonpRequest('adminLogin', { username, password }, { auth:false });
+async function login(password) {
+  const data = await jsonpRequest('adminLogin', { password }, { auth:false });
   saveSession(data);
   hideLogin();
   await refreshFromServer({ silent:true });
@@ -349,6 +349,7 @@ async function refreshFromServer({ silent=false, full=false }={}) {
     lastCoreRefreshAt=Date.now();
 
     renderAll();
+    refreshFieldStats();
     setStatus('connected','연결됨');
     hideLogin();
     scheduleRefresh();
@@ -412,6 +413,7 @@ async function reflowOrganizationSeats(){
   const r=await jsonpRequest('adminReflowSeats',{});
   showToast(`${r.movedCount}명의 좌석을 재정렬했습니다.`,5000);await refreshFromServer({silent:true});
 }
+async function reassignAllSeatsV31(){const active=state.participants.filter(p=>String(p.participationStatus||'참여')!=='미참여'),arrived=active.filter(p=>p.arrived).length;if(!confirm(`현재 접수자의 좌석을 새 180석 구조로 다시 배정할까요?\n\n• 도착 완료 ${arrived}명은 이동하지 않습니다.\n• 기존 VIP 참가자는 새 VIP 24석으로 이동합니다.\n• 휠체어 이용자만 앞 4줄 우선석에 갑니다.\n• 동반그룹은 휠체어 이용자와 최대 2명까지 우선 같이 배정합니다.`))return;const r=await jsonpRequest('adminReassignAllSeats',{});showToast(`전체 재배정 완료 · ${r.movedCount}명 / VIP ${r.vipCount}명 / 휠체어 ${r.wheelchairCount}명`,6500);await refreshFromServer({silent:true,full:true});}
 function normalizeExcelImportRow(row){
   const map={};Object.entries(row||{}).forEach(([k,v])=>map[String(k).replace(/\s+/g,'').toLowerCase()]=v);
   const pick=(...names)=>{for(const n of names){const key=n.replace(/\s+/g,'').toLowerCase();if(Object.prototype.hasOwnProperty.call(map,key))return map[key]}return''};
@@ -434,6 +436,14 @@ async function importExcelParticipants(){
   $('#excelImportButton').disabled=true;
   try{const r=await jsonpRequest('adminImportExcelRows',{rows:excelImportRows});showToast(`가져오기 완료 · 성공 ${r.success}명 / 실패 ${r.failed}명`,5200);await refreshFromServer({silent:true})}finally{$('#excelImportButton').disabled=false}
 }
+
+async function refreshFieldStats(){try{const s=await jsonpRequest('fieldStats',{});$('#fieldStatRegistered').textContent=s.registered??0;$('#fieldStatArrived').textContent=s.arrived??0;$('#fieldStatWheelchair').textContent=s.wheelchair??0;$('#fieldStatGift').textContent=s.giftReceived??0;$('#fieldStatRaffle').textContent=s.raffleEligible??0;}catch(_){}}
+function giftControlHtml(p){const done=Boolean(p?.giftReceived);return `<div class="gift-control ${done?'done':''}"><strong>${done?'🎁 기념품 지급완료':'🎁 기념품 미지급'}</strong>${done&&p.giftReceivedAt?`<small>${escapeHtml(formatDateTime(p.giftReceivedAt))}</small>`:''}<button class="button small ${done?'secondary':'primary'}" data-result="${done?'undo-gift':'gift'}" data-id="${escapeHtml(p.id)}" type="button">${done?'지급취소':'지급 완료'}</button></div>`;}
+async function submitOnsiteRegistration(event){event.preventDefault();const form=event.currentTarget;if(!form.reportValidity())return;const r=await jsonpRequest('adminOnsiteRegister',{name:String(form.elements.name?.value||'').trim(),phone:String(form.elements.phone?.value||'').trim(),organization:String(form.elements.organization?.value||'').trim(),disabledPerson:Boolean(form.elements.disabledPerson?.checked),wheelchairUser:Boolean(form.elements.wheelchairUser?.checked)});form.reset();updateCache(r.participant);showToast(`${r.participant.name} 님 현장등록 완료 · ${r.participant.seat||'좌석 미배정'}`,5200);refreshFieldStats();}
+async function emergencyRows(){const rows=await jsonpRequest('emergencyList',{});return Array.isArray(rows)?rows:[];}
+function csvCellV32(v){return `"${String(v??'').replace(/"/g,'""')}"`;}
+async function downloadEmergencyCsv(){const rows=await emergencyRows();const header=['접수번호','이름','전화번호','소속기관','좌석','휠체어','도착','기념품','QR코드'];const lines=[header.map(csvCellV32).join(',')];rows.forEach(r=>lines.push([r.number,r.name,r.phone,r.organization,r.seat,r.wheelchair,r.arrived,r.gift,r.qr].map(csvCellV32).join(',')));const blob=new Blob(['\uFEFF'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`20주년_비상용참가자명단_${new Date().toISOString().slice(0,10)}.csv`;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);}
+async function printEmergencyList(){const rows=await emergencyRows(),w=window.open('','_blank');if(!w){showToast('팝업 차단을 해제해 주세요.',4200);return;}w.document.write(`<html><head><title>비상용 참가자명단</title><style>body{font-family:Arial,"Malgun Gothic",sans-serif;padding:20px}table{width:100%;border-collapse:collapse;font-size:12px}th,td{border:1px solid #aaa;padding:5px}th{background:#eee}</style></head><body><h2>남양주시장애인복지관 개관 20주년 비상용 참가자명단</h2><p>출력시각 ${new Date().toLocaleString()}</p><table><thead><tr><th>No</th><th>이름</th><th>전화</th><th>소속기관</th><th>좌석</th><th>휠체어</th><th>도착</th><th>기념품</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${escapeHtml(r.number)}</td><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.phone)}</td><td>${escapeHtml(r.organization||'')}</td><td>${escapeHtml(r.seat||'')}</td><td>${r.wheelchair}</td><td>${r.arrived}</td><td>${r.gift}</td></tr>`).join('')}</tbody></table></body></html>`);w.document.close();setTimeout(()=>w.print(),300);}
 
 function renderAll() {
   $('#headerEventName').textContent = state.settings.eventName;
@@ -560,9 +570,9 @@ function seatButton(code,meta,p){
 }
 
 function runwayRow(row,leftN,rightN,mm,om){let l='',r='';for(let i=1;i<=leftN;i++){const c=`${row}L-${String(i).padStart(2,'0')}`;l+=seatButton(c,mm.get(c),om.get(c))}for(let i=1;i<=rightN;i++){const c=`${row}R-${String(i).padStart(2,'0')}`;r+=seatButton(c,mm.get(c),om.get(c))}return `<div class="runway-row"><div class="runway-side runway-left"><span class="runway-row-label">${row}L</span><div class="runway-side-seats">${l}</div></div><div class="runway-spine"><span>${row}</span></div><div class="runway-side runway-right"><div class="runway-side-seats">${r}</div><span class="runway-row-label">${row}R</span></div></div>`}
-function renderSeatMap(){const mm=seatMetaByCode(),om=seatOccupantMap();$('#seatMap').innerHTML='ABCDEFGHIJKLMNO'.split('').map(r=>runwayRow(r,10,10,mm,om)).join('');if($('#extraSeatMap'))$('#extraSeatMap').innerHTML=''}
+function renderSeatMap(){const mm=seatMetaByCode(),om=seatOccupantMap();$('#seatMap').innerHTML='ABCDEFGHIJKLMNO'.split('').map(r=>runwayRow(r,6,6,mm,om)).join('');if($('#extraSeatMap'))$('#extraSeatMap').innerHTML=''}
 function renderSettings(){
-  $('#eventName').value=state.settings.eventName||'';$('#eventDate').value=state.settings.eventDate||'';$('#eventVenue').value=state.settings.eventVenue||'';$('#eventOrganizer').value=state.settings.eventOrganizer||'';$('#autoRefreshSeconds').value=state.settings.autoRefreshSeconds||15;$('#publicSubtitle').value=state.settings.publicSubtitle||'';$('#publicGreeting').value=state.settings.publicGreeting||'';$('#privacyRetentionText').value=state.settings.privacyRetentionText||'';$('#registrationOpen').value=String(state.settings.registrationOpen!==false);$('#registrationCapacity').value=state.settings.registrationCapacity||300;$('#autoAssignSeat').value=String(state.settings.autoAssignSeat!==false);$('#ticketRefreshSeconds').value=state.settings.ticketRefreshSeconds||15;$('#stationName').value=session.station||'관리자 웹';
+  $('#eventName').value=state.settings.eventName||'';$('#eventDate').value=state.settings.eventDate||'';$('#eventVenue').value=state.settings.eventVenue||'';$('#eventOrganizer').value=state.settings.eventOrganizer||'';$('#autoRefreshSeconds').value=state.settings.autoRefreshSeconds||15;$('#publicSubtitle').value=state.settings.publicSubtitle||'';$('#publicGreeting').value=state.settings.publicGreeting||'';$('#privacyRetentionText').value=state.settings.privacyRetentionText||'';$('#registrationOpen').value=String(state.settings.registrationOpen!==false);$('#registrationCapacity').value=state.settings.registrationCapacity||180;$('#autoAssignSeat').value=String(state.settings.autoAssignSeat!==false);$('#ticketRefreshSeconds').value=state.settings.ticketRefreshSeconds||15;$('#stationName').value=session.station||'관리자 웹';
 }
 function findById(id){return state.participants.find(p=>p.id===id)}
 function findMatches(q){
@@ -578,6 +588,7 @@ async function checkIn(pOrCode){
     const r=await jsonpRequest('checkIn',{code});
     updateCache(r.participant);
     showCheckinResult(r.participant,r.already,r.prize||null);
+    refreshFieldStats();
     showToast(
       r.already
         ?'이미 도착 처리된 참가자입니다.'
@@ -629,6 +640,7 @@ function showCheckinResult(p,already=false,prize=null){
     <p>연락처 ${escapeHtml(maskPhone(p.phone))}</p>
     ${p.note?`<p class="participant-note"><strong>관리자 메모</strong><br>${escapeHtml(p.note)}</p>`:''}
     <p class="small-text">${p.arrived?'도착 시각: '+escapeHtml(formatDateTime(p.checkInAt)):'아직 도착하지 않았습니다.'}</p>
+    ${giftControlHtml(p)}
     <div class="result-actions">
       ${p.arrived
         ?`<button class="button secondary" data-result="undo" data-id="${escapeHtml(p.id)}">도착 취소</button>`
@@ -1176,6 +1188,10 @@ async function setupAdminPwa(){
 }
 
 function bindEvents(){
+  $('#onsiteRegistrationForm')?.addEventListener('submit',e=>submitOnsiteRegistration(e).catch(err=>showToast(err.message,5200)));
+  $('#downloadEmergencyCsvButton')?.addEventListener('click',()=>downloadEmergencyCsv().catch(err=>showToast(err.message,5200)));
+  $('#printEmergencyListButton')?.addEventListener('click',()=>printEmergencyList().catch(err=>showToast(err.message,5200)));
+  $('#reassignAllSeatsButton')?.addEventListener('click',()=>reassignAllSeatsV31().catch(err=>showToast(err.message,6000)));
   $('#companionSearchButton')?.addEventListener('click',renderCompanionSearch);
   $('#companionSearchInput')?.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();renderCompanionSearch()}});
   $('#linkCompanionButton')?.addEventListener('click',()=>linkCompanions().catch(err=>showToast(err.message,5200)));
@@ -1184,7 +1200,7 @@ function bindEvents(){
   $('#excelPreviewButton')?.addEventListener('click',()=>previewExcelImport().catch(err=>showToast(err.message,5200)));
   $('#excelImportButton')?.addEventListener('click',()=>importExcelParticipants().catch(err=>showToast(err.message,5200)));
 
-  $('#loginForm').addEventListener('submit',async e=>{e.preventDefault();const b=$('#loginButton');b.disabled=true;$('#loginMessage').classList.add('hidden');try{await login($('#adminUsername').value.trim(),$('#adminPassword').value)}catch(err){showLogin(err.message)}finally{b.disabled=false}});$$('.nav-button').forEach(b=>b.addEventListener('click',()=>switchView(b.dataset.view)));$$('[data-go]').forEach(b=>b.addEventListener('click',()=>switchView(b.dataset.go)));$('#refreshDashboardButton').addEventListener('click',()=>refreshFromServer({full:true}).catch(()=>{}));$('#exportCsvButton').addEventListener('click',exportCsv);$('#exportCsvDashboardButton').addEventListener('click',exportCsv);$('#participantSearch').addEventListener('input',renderParticipants);$('#participantStatusFilter').addEventListener('change',renderParticipants);
+  $('#loginForm').addEventListener('submit',async e=>{e.preventDefault();const b=$('#loginButton');b.disabled=true;$('#loginMessage').classList.add('hidden');try{await login($('#adminPassword').value)}catch(err){showLogin(err.message)}finally{b.disabled=false}});$$('.nav-button').forEach(b=>b.addEventListener('click',()=>switchView(b.dataset.view)));$$('[data-go]').forEach(b=>b.addEventListener('click',()=>switchView(b.dataset.go)));$('#refreshDashboardButton').addEventListener('click',()=>refreshFromServer({full:true}).catch(()=>{}));$('#exportCsvButton').addEventListener('click',exportCsv);$('#exportCsvDashboardButton').addEventListener('click',exportCsv);$('#participantSearch').addEventListener('input',renderParticipants);$('#participantStatusFilter').addEventListener('change',renderParticipants);
   $('#drawSearch')?.addEventListener('input',renderPrizeDraw);
   $('#drawPendingOnly')?.addEventListener('change',renderPrizeDraw);
   $('#drawExportButton')?.addEventListener('click',exportDrawCsv);
@@ -1195,10 +1211,10 @@ function bindEvents(){
   $('#seatParticipantSearchResults').addEventListener('click',e=>{const b=e.target.closest('[data-seat-search-pick]');if(!b)return;selectedSeatParticipantId=b.dataset.seatSearchPick;updateSeatSelectedPersonBanner();const p=findById(selectedSeatParticipantId);showToast(`${p?.name||'참가자'} 선택됨. 배정할 좌석을 클릭하세요.`);});
   $('#participantForm').addEventListener('submit',async e=>{e.preventDefault();const form=e.currentTarget,b=form.querySelector('button');b.disabled=true;try{const v=Object.fromEntries(new FormData(form).entries());v.usesCenter=v.usesCenter==='true';v.wheelchairUser=v.wheelchairUser==='true';v.disabledPerson=v.disabledPerson==='true';if(!v.disabledPerson){v.usesCenter=false;v.wheelchairUser=false;}v.programName='';const p=await jsonpRequest('createParticipant',v);updateCache(p);form.reset();showToast('개인 참가자를 등록했습니다.')}catch(err){showToast(err.message,4500)}finally{b.disabled=false}});
   $('#participantTableBody').addEventListener('click',async e=>{const b=e.target.closest('[data-action]');if(!b)return;const p=findById(b.dataset.id);if(!p)return;try{if(b.dataset.action==='qr')showQr(p);if(b.dataset.action==='edit')showEdit(p);if(b.dataset.action==='toggle')p.arrived?await undoCheckIn(p):await checkIn(p);if(b.dataset.action==='delete'&&confirm(`${p.name} 님을 참여불가 처리할까요?\n\n처리하면 기존 QR은 사용할 수 없고 배정 좌석은 즉시 비워집니다.`)){const r=await jsonpRequest('deleteParticipant',{code:p.id});state.participants=state.participants.filter(x=>x.id!==p.id);renderAll();showToast(r.releasedSeat?`참여불가 처리했습니다. ${r.releasedSeat} 좌석이 비워졌습니다.`:'참여불가 처리했습니다.')}}catch(err){showToast(err.message,4500)}});
-  $('#toggleScannerButton').addEventListener('click',async()=>scannerRunning?await stopScanner():await startScanner());$('#manualCheckinForm').addEventListener('submit',e=>{e.preventDefault();const m=findMatches($('#manualCheckinInput').value);$('#manualSearchResults').innerHTML=m.length?m.map(p=>`<button class="search-result-button" data-manual-id="${escapeHtml(p.id)}"><strong>${escapeHtml(p.name)}${p.wheelchairUser?' · ♿':''}</strong><br><span>${escapeHtml(p.seat||'미배정')} · ${p.organization?escapeHtml(p.organization)+' · ':''}${escapeHtml(maskPhone(p.phone))}</span></button>`).join(''):'<div class="empty-state">찾지 못했습니다.</div>'});$('#manualSearchResults').addEventListener('click',e=>{const b=e.target.closest('[data-manual-id]');if(!b)return;const p=findById(b.dataset.manualId);if(p)showCheckinResult(p,p.arrived,prizeForParticipant(p))});$('#checkinResult').addEventListener('click',async e=>{const b=e.target.closest('[data-result]');if(!b)return;try{const resultAction=b.dataset.result;if(resultAction==='undo-prize'){state.prizes=await jsonpRequest('undoPrizeRedeem',{seat:b.dataset.seat});const currentId=$('#checkinResult [data-result="qr"]')?.dataset.id||'';const current=currentId?findById(currentId):null;if(current)showCheckinResult(current,true,prizeForParticipant(current));renderPrizeDraw();renderParticipants();showToast('상품 수령 처리를 취소했습니다.');return;}const p=findById(b.dataset.id);if(!p)return;if(resultAction==='checkin')await checkIn(p);if(resultAction==='undo')await undoCheckIn(p);if(resultAction==='qr')showQr(p);if(resultAction==='redeem-prize'){const r=await jsonpRequest('redeemPrize',{code:p.id});await loadBootstrapExtras({force:true,silent:true});showCheckinResult(findById(p.id),true,r.prize);renderPrizeDraw();showToast(r.already?'이미 상품 수령 완료된 당첨자입니다.':'상품 수령완료 처리했습니다.');}}catch(err){showToast(err.message,4500)}});
+  $('#toggleScannerButton').addEventListener('click',async()=>scannerRunning?await stopScanner():await startScanner());$('#manualCheckinForm').addEventListener('submit',e=>{e.preventDefault();const m=findMatches($('#manualCheckinInput').value);$('#manualSearchResults').innerHTML=m.length?m.map(p=>`<button class="search-result-button" data-manual-id="${escapeHtml(p.id)}"><strong>${escapeHtml(p.name)}${p.wheelchairUser?' · ♿':''}</strong><br><span>${escapeHtml(p.seat||'미배정')} · ${p.organization?escapeHtml(p.organization)+' · ':''}${escapeHtml(maskPhone(p.phone))}</span></button>`).join(''):'<div class="empty-state">찾지 못했습니다.</div>'});$('#manualSearchResults').addEventListener('click',e=>{const b=e.target.closest('[data-manual-id]');if(!b)return;const p=findById(b.dataset.manualId);if(p)showCheckinResult(p,p.arrived,prizeForParticipant(p))});$('#checkinResult').addEventListener('click',async e=>{const b=e.target.closest('[data-result]');if(!b)return;try{const resultAction=b.dataset.result;if(resultAction==='undo-prize'){state.prizes=await jsonpRequest('undoPrizeRedeem',{seat:b.dataset.seat});const currentId=$('#checkinResult [data-result="qr"]')?.dataset.id||'';const current=currentId?findById(currentId):null;if(current)showCheckinResult(current,true,prizeForParticipant(current));renderPrizeDraw();renderParticipants();showToast('상품 수령 처리를 취소했습니다.');return;}const p=findById(b.dataset.id);if(!p)return;if(resultAction==='checkin')await checkIn(p);if(resultAction==='undo')await undoCheckIn(p);if(resultAction==='qr')showQr(p);if(resultAction==='gift'||resultAction==='undo-gift'){const received=resultAction==='gift',r=await jsonpRequest('setGiftReceived',{code:p.id,received});updateCache(r.participant);showCheckinResult(r.participant,r.participant.arrived,prizeForParticipant(r.participant));showToast(received?(r.already?'이미 지급된 참가자입니다.':'기념품 지급완료 처리했습니다.'):'기념품 지급상태를 취소했습니다.');refreshFieldStats();return;}if(resultAction==='redeem-prize'){const r=await jsonpRequest('redeemPrize',{code:p.id});await loadBootstrapExtras({force:true,silent:true});showCheckinResult(findById(p.id),true,r.prize);renderPrizeDraw();showToast(r.already?'이미 상품 수령 완료된 당첨자입니다.':'상품 수령완료 처리했습니다.');}}catch(err){showToast(err.message,4500)}});
   const seatClick=async e=>{const b=e.target.closest('[data-seat-code]');if(!b)return;const code=b.dataset.seatCode;if(selectedSeatParticipantId){const p=findById(selectedSeatParticipantId);if(!p){selectedSeatParticipantId='';updateSeatSelectedPersonBanner();return;}try{await assignSelectedPersonToSeat(p,code)}catch(err){showToast(err.message,5200)}return;}showSeatAssignmentModal(code)};$('#seatMap').addEventListener('click',seatClick);$('#extraSeatMap')?.addEventListener('click',seatClick);
   $('#seatZoneForm').addEventListener('submit',async e=>{e.preventDefault();try{state.seatMeta=await jsonpRequest('saveSeatMeta',{seats:$('#seatZoneSeats').value.trim(),category:$('#seatZoneCategory').value.trim()||'일반',autoAssignable:$('#seatZoneAuto').value==='true',enabled:$('#seatZoneEnabled').value==='true',wheelchairEligible:$('#seatZoneWheelchair').value==='true',note:$('#seatZoneNote').value.trim()});renderSeatMap();showToast('좌석 구역을 저장했습니다.')}catch(err){showToast(err.message,5200)}});
-  $('#eventSettingsForm').addEventListener('submit',async e=>{e.preventDefault();const b=e.currentTarget.querySelector('button');b.disabled=true;session.station=$('#stationName').value.trim()||'관리자 웹';localStorage.setItem(STORAGE.STATION,session.station);const s={eventName:$('#eventName').value.trim(),eventDate:$('#eventDate').value.trim(),eventVenue:$('#eventVenue').value.trim(),eventOrganizer:$('#eventOrganizer').value.trim(),autoRefreshSeconds:Number($('#autoRefreshSeconds').value)||15,publicSubtitle:$('#publicSubtitle').value.trim(),publicGreeting:$('#publicGreeting').value.trim(),privacyRetentionText:$('#privacyRetentionText').value.trim(),registrationOpen:$('#registrationOpen').value==='true',registrationCapacity:Math.min(300,Number($('#registrationCapacity').value)||300),autoAssignSeat:$('#autoAssignSeat').value==='true',ticketRefreshSeconds:Number($('#ticketRefreshSeconds').value)||15};try{state.settings=await jsonpRequest('saveSettings',s);renderAll();scheduleRefresh();showToast('설정을 저장했습니다.')}catch(err){showToast(err.message,4500)}finally{b.disabled=false}});
+  $('#eventSettingsForm').addEventListener('submit',async e=>{e.preventDefault();const b=e.currentTarget.querySelector('button');b.disabled=true;session.station=$('#stationName').value.trim()||'관리자 웹';localStorage.setItem(STORAGE.STATION,session.station);const s={eventName:$('#eventName').value.trim(),eventDate:$('#eventDate').value.trim(),eventVenue:$('#eventVenue').value.trim(),eventOrganizer:$('#eventOrganizer').value.trim(),autoRefreshSeconds:Number($('#autoRefreshSeconds').value)||15,publicSubtitle:$('#publicSubtitle').value.trim(),publicGreeting:$('#publicGreeting').value.trim(),privacyRetentionText:$('#privacyRetentionText').value.trim(),registrationOpen:$('#registrationOpen').value==='true',registrationCapacity:Math.min(180,Number($('#registrationCapacity').value)||180),autoAssignSeat:$('#autoAssignSeat').value==='true',ticketRefreshSeconds:Number($('#ticketRefreshSeconds').value)||15};try{state.settings=await jsonpRequest('saveSettings',s);renderAll();scheduleRefresh();showToast('설정을 저장했습니다.')}catch(err){showToast(err.message,4500)}finally{b.disabled=false}});
   $('#logoutButton').addEventListener('click',logout);$('#logoutButtonTop').addEventListener('click',logout);$('#closeModalButton').addEventListener('click',closeModal);$('#modalBackdrop').addEventListener('click',e=>{if(e.target.id==='modalBackdrop')closeModal()});document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
 }
 

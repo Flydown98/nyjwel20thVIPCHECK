@@ -189,7 +189,7 @@ body.modal-open{overflow:hidden}
 }
 .public-side{
   display:grid!important;
-  grid-template-columns:repeat(10,minmax(0,1fr))!important;
+  grid-template-columns:repeat(6,minmax(0,1fr))!important;
   gap:1px!important;
 }
 .public-seat-dot{
@@ -1490,7 +1490,7 @@ body.intro-playing{
 }
 .seat-detail-side{
   display:grid;
-  grid-template-columns:repeat(10,1fr);
+  grid-template-columns:repeat(6,1fr);
   gap:3px;
 }
 .seat-detail-runway-cell{
@@ -1580,10 +1580,10 @@ body.intro-playing{
    v2.8.1 — 공개 좌석도 10+10 강제 정합성
    ===================================================================== */
 .public-side{
-  grid-template-columns:repeat(10,minmax(0,1fr))!important;
+  grid-template-columns:repeat(6,minmax(0,1fr))!important;
 }
 .seat-detail-side{
-  grid-template-columns:repeat(10,minmax(0,1fr))!important;
+  grid-template-columns:repeat(6,minmax(0,1fr))!important;
 }
 .public-runway-map{
   max-width:760px;
@@ -1617,3 +1617,9 @@ body.intro-playing{
 .device-ticket-wallet-list{width:min(680px,100%);margin:0 auto;display:grid;gap:10px}
 .device-wallet-ticket{width:100%;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:15px 17px;border:1px solid #dce5ef;border-radius:16px;background:#fff;color:#1e293b;text-align:left;cursor:pointer}
 .device-wallet-ticket span{display:grid;gap:3px}.device-wallet-ticket small{color:#64748b}.device-wallet-ticket b{color:#1d4ed8;white-space:nowrap}.wallet-loading{text-align:center;color:#64748b}
+
+/* v3.1 180석 + 특수 다중신청 */
+.public-side{grid-template-columns:repeat(6,minmax(0,1fr))!important}.seat-detail-side{grid-template-columns:repeat(6,minmax(0,1fr))!important}.seat-detail-canvas{width:760px!important}.public-runway-map{max-width:620px!important}.special-group-application{margin-top:18px;border:1px solid #d8e1ec;border-radius:20px;background:#f8fafc;overflow:hidden}.special-group-application summary{display:flex;justify-content:space-between;gap:12px;padding:18px 20px;cursor:pointer;list-style:none}.special-group-application summary::-webkit-details-marker{display:none}.special-group-application summary span{color:#64748b;font-size:.82rem}.special-group-body{padding:0 20px 20px}.special-group-guide{margin:0 0 16px;padding:14px 15px;border-radius:14px;background:#eef6ff;color:#334155;line-height:1.65}.group-member-heading{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin:18px 0 10px}.group-member-heading p{margin:4px 0 0;color:#64748b;font-size:.82rem}.group-member-list{display:grid;gap:10px}.group-member-card{padding:14px;border:1px solid #dce5ef;border-radius:15px;background:#fff}.group-member-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.group-member-remove{border:0;background:transparent;color:#b91c1c;font-weight:800;cursor:pointer}.group-member-checks{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:10px}.group-member-checks label{display:flex;align-items:center;gap:6px;font-size:.82rem}.group-application-summary{margin:14px 0;padding:11px 13px;border-radius:12px;background:#0f274a;color:#fff;font-weight:800}.wheelchair-user-check small{display:block;margin-top:3px;color:#64748b;font-weight:500}
+
+/* v3.2 모바일 식순 */
+.schedule-modal{width:min(760px,94vw)!important}.schedule-guide{color:#64748b}.mobile-schedule-image{display:block;width:100%;max-width:640px;max-height:68vh;object-fit:contain;margin:16px auto;border-radius:18px;border:1px solid #e2e8f0;background:#f8fafc}

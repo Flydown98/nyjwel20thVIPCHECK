@@ -16,9 +16,9 @@ const DEFAULT_PUBLIC_SETTINGS = Object.freeze({
   publicGreeting: '남양주시장애인복지관의 스무 해를 함께해 주신 여러분을 초대합니다.',
   privacyRetentionText: '행사 종료 후 결과 정리 및 문의 대응 완료 시까지(최대 30일)',
   registrationOpen: true,
-  registrationCapacity: 300,
+  registrationCapacity: 180,
   registeredCount: 0,
-  remainingCount: 300,
+  remainingCount: 180,
   autoAssignSeat: true,
   introVideoEnabled: false,
   introVideoUrl: 'assets/intro.mp4',
@@ -456,6 +456,7 @@ function startAdditionalParticipantApplication(){
 function renderTicket(ticket,{existing=false,remember=false,message='',scroll=true}={}){
   $('#cancelledTicketSection')?.classList.add('hidden');
   publicState.ticket=ticket;
+  $('#openScheduleButton')?.classList.toggle('hidden',!ticket.arrived);
   if(remember)rememberTicketCode(ticket.id);
   cacheTicketSnapshot(ticket);
   setTimeout(renderDeviceTicketWallet,120);
@@ -878,25 +879,15 @@ async function handleApplicationSubmit(event) {
   values.organization=String(form.elements.organization?.value||'').trim();
   values.disabledPerson=Boolean(form.elements.disabledPerson?.checked);
 
-  const wheelchairChoice=String(
-    form.querySelector('input[name="wheelchairChoice"]:checked')?.value||''
-  );
   const centerServiceChoice=String(
     form.querySelector('input[name="centerServiceChoice"]:checked')?.value||''
   );
-
-  if(values.disabledPerson&&!wheelchairChoice){
-    showToast('휠체어 사용 또는 미사용을 선택해 주세요.',5200);
-    form.querySelector('input[name="wheelchairChoice"]')?.focus();
-    return;
-  }
   if(values.disabledPerson&&!centerServiceChoice){
     showToast('남양주시장애인복지관 서비스 이용 여부를 선택해 주세요.',5200);
     form.querySelector('input[name="centerServiceChoice"]')?.focus();
     return;
   }
-
-  values.wheelchairUser=values.disabledPerson&&wheelchairChoice==='use';
+  values.wheelchairUser=Boolean(form.elements.wheelchairUser?.checked);
   values.usesCenter=values.disabledPerson&&centerServiceChoice==='use';
   values.programName='';
   values.note='';
@@ -947,24 +938,9 @@ async function handleApplicationSubmit(event) {
 
 function defaultPublicSeatMeta(){
   const out=[];let order=1;
-  const vip=new Set([
-    'AL-08','AL-09','AL-10','AR-01','AR-02','AR-03',
-    'BL-08','BL-09','BL-10','BR-01','BR-02','BR-03',
-    'CL-08','CL-09','CL-10','CR-01','CR-02','CR-03',
-    'DL-08','DL-09','DL-10','DR-01','DR-02','DR-03'
-  ]);
-  const disabled=new Set();
-  ['A','B','C'].forEach(row=>{
-    for(let n=1;n<=7;n++)disabled.add(`${row}L-${String(n).padStart(2,'0')}`);
-    for(let n=4;n<=10;n++)disabled.add(`${row}R-${String(n).padStart(2,'0')}`);
-  });
-  'ABCDEFGHIJKLMNO'.split('').forEach(row=>['L','R'].forEach(side=>{
-    for(let n=1;n<=10;n++){
-      const code=`${row}${side}-${String(n).padStart(2,'0')}`;
-      out.push({code,row,side,number:n,category:vip.has(code)?'VIP':disabled.has(code)?'장애인(휠체어)':'일반',enabled:true,wheelchairEligible:disabled.has(code),order:order++});
-    }
-  }));
-  return out;
+  const vip=new Set(['AL-04','AL-05','AL-06','AR-01','AR-02','AR-03','BL-04','BL-05','BL-06','BR-01','BR-02','BR-03','CL-04','CL-05','CL-06','CR-01','CR-02','CR-03','DL-04','DL-05','DL-06','DR-01','DR-02','DR-03']);
+  const wheel=new Set();['A','B','C','D'].forEach(r=>{for(let n=1;n<=3;n++)wheel.add(`${r}L-${String(n).padStart(2,'0')}`);for(let n=4;n<=6;n++)wheel.add(`${r}R-${String(n).padStart(2,'0')}`);});
+  'ABCDEFGHIJKLMNO'.split('').forEach(row=>['L','R'].forEach(side=>{for(let n=1;n<=6;n++){const code=`${row}${side}-${String(n).padStart(2,'0')}`;out.push({code,row,side,number:n,category:vip.has(code)?'VIP':wheel.has(code)?'장애인(휠체어)':'일반',enabled:true,wheelchairEligible:wheel.has(code),order:order++});}}));return out;
 }
 
 function publicSeatDot(code,m,selected){
@@ -977,7 +953,7 @@ function publicSeatDot(code,m,selected){
 }
 
 function publicRow(row,lN,rN,map,selected){let l='',r='';for(let i=1;i<=lN;i++){const c=`${row}L-${String(i).padStart(2,'0')}`;l+=publicSeatDot(c,map.get(c),selected.has(c))}for(let i=1;i<=rN;i++){const c=`${row}R-${String(i).padStart(2,'0')}`;r+=publicSeatDot(c,map.get(c),selected.has(c))}return `<div class="public-runway-row"><div class="public-side">${l}</div><div class="public-runway-spine">${row}</div><div class="public-side">${r}</div></div>`}
-function renderPublicSeatMap(){const a=$('#publicSeatMap');if(!a)return;const src=publicState.seatMeta.length?publicState.seatMeta:defaultPublicSeatMeta(),map=new Map(src.map(s=>[String(s.code).toUpperCase(),s])),selected=new Set(String(publicState.ticket?.seat||'').split(',').map(v=>v.trim().toUpperCase()).filter(Boolean));a.innerHTML='ABCDEFGHIJKLMNO'.split('').map(r=>publicRow(r,10,10,map,selected)).join('');if($('#publicExtraSeatMap'))$('#publicExtraSeatMap').innerHTML=''}
+function renderPublicSeatMap(){const a=$('#publicSeatMap');if(!a)return;const src=publicState.seatMeta.length?publicState.seatMeta:defaultPublicSeatMeta(),map=new Map(src.map(s=>[String(s.code).toUpperCase(),s])),selected=new Set(String(publicState.ticket?.seat||'').split(',').map(v=>v.trim().toUpperCase()).filter(Boolean));a.innerHTML='ABCDEFGHIJKLMNO'.split('').map(r=>publicRow(r,6,6,map,selected)).join('');if($('#publicExtraSeatMap'))$('#publicExtraSeatMap').innerHTML=''}
 
 let seatDetailZoom=1;
 
@@ -997,11 +973,11 @@ function detailedSeatCell(code,meta,selected){
 function detailedSeatRow(row,map,selected){
   let left='',right='';
 
-  for(let n=1;n<=10;n++){
+  for(let n=1;n<=6;n++){
     const code=`${row}L-${String(n).padStart(2,'0')}`;
     left+=detailedSeatCell(code,map.get(code),selected.has(code));
   }
-  for(let n=1;n<=10;n++){
+  for(let n=1;n<=6;n++){
     const code=`${row}R-${String(n).padStart(2,'0')}`;
     right+=detailedSeatCell(code,map.get(code),selected.has(code));
   }
@@ -1158,29 +1134,13 @@ function startTicketLiveSync(){clearInterval(ticketRefreshTimer);ticketRefreshTi
 
 
 function updateIndividualApplicationUi(){
-  const form=$('#applicationForm');
-  if(!form)return;
-
+  const form=$('#applicationForm');if(!form)return;
   const disabledPerson=Boolean(form.elements.disabledPerson?.checked);
-  const details=$('#accessibilityDetails');
-
-  details?.classList.toggle('hidden',!disabledPerson);
-
-  const wheelRadios=[
-    ...form.querySelectorAll('input[name="wheelchairChoice"]')
-  ];
-  const serviceRadios=[
-    ...form.querySelectorAll('input[name="centerServiceChoice"]')
-  ];
-
-  wheelRadios.forEach(input=>{input.required=disabledPerson;});
-  serviceRadios.forEach(input=>{input.required=disabledPerson;});
-
-  if(!disabledPerson){
-    wheelRadios.forEach(input=>{input.checked=false;});
-    serviceRadios.forEach(input=>{input.checked=false;});
-  }
+  $('#accessibilityDetails')?.classList.toggle('hidden',!disabledPerson);
+  const radios=[...form.querySelectorAll('input[name="centerServiceChoice"]')];
+  radios.forEach(x=>x.required=disabledPerson);if(!disabledPerson)radios.forEach(x=>x.checked=false);
 }
+
 function openSensitiveModal(){$('#sensitiveModalBackdrop')?.classList.remove('hidden');$('#sensitiveModalBackdrop')?.setAttribute('aria-hidden','false');document.body.classList.add('modal-open')}
 function closeSensitiveModal(){$('#sensitiveModalBackdrop')?.classList.add('hidden');$('#sensitiveModalBackdrop')?.setAttribute('aria-hidden','true');document.body.classList.remove('modal-open')}
 
@@ -1516,7 +1476,21 @@ function setupIntroVideo() {
   updateIntroPlayPauseButton();
 }
 
+
+let groupMemberSequence=0;
+function groupMemberTemplate(){groupMemberSequence++;return `<article class="group-member-card" data-group-member><div class="group-member-top"><strong>참가자 <span data-member-number></span></strong><button class="group-member-remove" type="button" data-remove-member>삭제</button></div><label><span>이름 <b>*</b></span><input data-member-name maxlength="40" required placeholder="참가자 이름" /></label><div class="group-member-checks"><label><input data-member-disabled type="checkbox" /><span>장애인 당사자</span></label><label><input data-member-wheelchair type="checkbox" /><span>휠체어 사용</span></label><label><input data-member-center type="checkbox" /><span>복지관 서비스 이용</span></label></div></article>`;}
+function renumberGroupMembers(){const cards=[...document.querySelectorAll('#groupMemberList [data-group-member]')];cards.forEach((c,i)=>{const n=c.querySelector('[data-member-number]');if(n)n.textContent=String(i+1)});renderGroupApplicationSummary();}
+function addGroupMember(){const list=$('#groupMemberList');if(!list)return;const count=list.querySelectorAll('[data-group-member]').length;if(count>=10){showToast('한 번에 최대 10명까지 신청할 수 있습니다.',4200);return;}list.insertAdjacentHTML('beforeend',groupMemberTemplate());renumberGroupMembers();}
+function renderGroupApplicationSummary(){const cards=[...document.querySelectorAll('#groupMemberList [data-group-member]')],disabled=cards.filter(c=>c.querySelector('[data-member-disabled]')?.checked).length,wheel=cards.filter(c=>c.querySelector('[data-member-wheelchair]')?.checked).length;const t=$('#groupApplicationSummary');if(t)t.textContent=`총 ${cards.length}명 · 장애인 당사자 ${disabled}명 · 휠체어 ${wheel}명`;}
+function collectGroupMembers(){return [...document.querySelectorAll('#groupMemberList [data-group-member]')].map(c=>({name:String(c.querySelector('[data-member-name]')?.value||'').trim(),disabledPerson:Boolean(c.querySelector('[data-member-disabled]')?.checked),wheelchairUser:Boolean(c.querySelector('[data-member-wheelchair]')?.checked),usesCenter:Boolean(c.querySelector('[data-member-center]')?.checked)}));}
+async function handleGroupApplicationSubmit(event){event.preventDefault();const form=event.currentTarget;if(!form.reportValidity())return;const members=collectGroupMembers();if(members.length<2||members.some(m=>!m.name)){showToast('참가자 2명 이상의 이름을 모두 입력해 주세요.',4200);return;}const btn=$('#groupSubmitButton');btn.disabled=true;setLoading(true,`${members.length}명의 신청과 QR을 발급하고 있습니다.`);try{const r=await publicApiRequest('publicRegisterGroup',{phone:String(form.elements.phone?.value||'').trim(),organization:String(form.elements.organization?.value||'').trim(),members,privacyConsentConfirmed:Boolean(form.elements.privacyConsentConfirmed?.checked),privacyVersion:publicState.settings.privacyConsentVersion||CURRENT_PRIVACY_VERSION});const ps=Array.isArray(r.participants)?r.participants:[];ps.forEach(p=>rememberTicketCode(p.id));await renderDeviceTicketWallet();if(ps[0])renderTicket(ps[0],{existing:false,remember:true,scroll:true});showToast(`${ps.length}명 신청 완료 · 장애인 ${r.counts?.disabled||0}명 · 휠체어 ${r.counts?.wheelchair||0}명`,6500);form.reset();$('#groupMemberList').innerHTML='';addGroupMember();addGroupMember();}catch(err){showToast(err.message,6000)}finally{setLoading(false);btn.disabled=false;}}
+function bindGroupApplication(){const list=$('#groupMemberList');if(!list)return;if(!list.children.length){addGroupMember();addGroupMember();}$('#addGroupMemberButton')?.addEventListener('click',addGroupMember);list.addEventListener('click',e=>{const b=e.target.closest('[data-remove-member]');if(!b)return;const cards=list.querySelectorAll('[data-group-member]');if(cards.length<=2){showToast('다중신청은 최소 2명이 필요합니다.',3500);return;}b.closest('[data-group-member]')?.remove();renumberGroupMembers();});list.addEventListener('change',renderGroupApplicationSummary);$('#groupApplicationForm')?.addEventListener('submit',handleGroupApplicationSubmit);$('#groupApplicationForm input[name="phone"]')?.addEventListener('input',e=>normalizePhoneInput(e.currentTarget));document.querySelectorAll('.groupPrivacyDetailsButton').forEach(btn=>btn.addEventListener('click',()=>$('#privacyDetailsButton')?.click()));}
+
+function openScheduleModal(){$('#scheduleBackdrop')?.classList.remove('hidden');document.body.classList.add('modal-open');}
+function closeScheduleModal(){$('#scheduleBackdrop')?.classList.add('hidden');document.body.classList.remove('modal-open');}
+
 async function initialize() {
+  bindGroupApplication();
   setupIntroVideo();
   $('#applicationForm').dataset.startedAt = String(Date.now());
   $('#applicationForm input[name="phone"]').addEventListener('input', event => normalizePhoneInput(event.currentTarget));
@@ -1525,6 +1499,9 @@ async function initialize() {
   $('#applicationForm input[name="disabledPerson"]')?.addEventListener('change', updateIndividualApplicationUi);
   updateIndividualApplicationUi();
   $('#lookupForm').addEventListener('submit', handleLookupSubmit);
+  $('#openScheduleButton')?.addEventListener('click',openScheduleModal);
+  $('#closeScheduleButton')?.addEventListener('click',closeScheduleModal);
+  $('#scheduleBackdrop')?.addEventListener('click',e=>{if(e.target===e.currentTarget)closeScheduleModal();});
   $('#openSeatDetailButton')?.addEventListener('click', openSeatDetailModal);
   $('#seatDetailCloseButton')?.addEventListener('click', closeSeatDetailModal);
   $('#seatDetailDoneButton')?.addEventListener('click', closeSeatDetailModal);
