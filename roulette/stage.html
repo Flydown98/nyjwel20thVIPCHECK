@@ -1,0 +1,8 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#000000"><title>20주년 행운추첨 · Marble Roulette</title><link rel="stylesheet" href="stage.css?v=2.0"><script type="importmap">{"imports":{"box2d-wasm":"https://unpkg.com/box2d-wasm@7.0.0/dist/es/Box2D.js"}}</script></head><body>
+<div id="stageLoading" class="stage-loading"><div class="spinner"></div><h2>원본 Marble Roulette 엔진 준비 중</h2><p>참가자 데이터는 이미 준비되어 있습니다.</p></div>
+<div id="stageHud" class="hud"><div><small id="prizeNo"></small><strong id="prizeName">행운추첨</strong></div><div class="center"><b id="marbleCount"></b><span id="modeLabel"></span></div><button id="fullscreen">전체화면</button></div>
+<div id="readyOverlay" class="ready-overlay hidden"><div class="ready-card"><span>READY</span><h1 id="readyTitle">행운추첨</h1><p id="readyMeta"></p><button id="start">구슬 떨어뜨리기</button><small>SPACE 키로도 시작할 수 있습니다.</small></div></div>
+<div id="result" class="result hidden"><div id="confetti"></div><div class="result-card"><small>LUCKY WINNER</small><div id="resultImage"></div><h1 id="resultPrize"></h1><div id="winners"></div><p id="saveStatus">당첨 결과를 서버에 저장하고 있습니다.</p><div class="result-actions"><button id="retry" class="hidden">저장 다시 시도</button><button id="back">다음 추첨 준비실로</button></div></div></div>
+<div id="error" class="error hidden"><h2>현장용 준비 데이터가 없습니다.</h2><p>준비실에서 먼저 ‘현장 추첨 데이터 준비’를 눌러주세요.</p><a href="./">준비실 열기</a></div>
+<footer>Marble Roulette physics / maps / renderer based on original source by lazygyu · MIT License</footer>
+<script src="../config.js"></script><script type="module" src="stage.js?v=2.0"></script></body></html>
