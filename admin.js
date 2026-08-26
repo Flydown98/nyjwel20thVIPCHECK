@@ -342,6 +342,49 @@ function switchView(name) {
   if(name==='draw') renderPrizeDraw();
   window.scrollTo({top:0,behavior:'smooth'});
 }
+
+let excelImportRows=[];
+
+function renderCompanionSearch(){
+  const box=$('#companionSearchResults');
+  if(!box)return;
+  const q=String($('#companionSearchInput')?.value||'').trim().toLowerCase();
+  if(!q){box.innerHTML='<div class="empty-state compact">이름이나 기관을 검색하세요.</div>';return;}
+  const rows=state.participants.filter(p=>String(p.name||'').toLowerCase().includes(q)||String(p.organization||'').toLowerCase().includes(q)).slice(0,50);
+  box.innerHTML=rows.length?rows.map(p=>`<label class="companion-result-item"><input type="checkbox" value="${escapeHtml(p.id)}" /><span><strong>${escapeHtml(p.name)}</strong><small>${escapeHtml(p.organization||'소속기관 없음')} · ${escapeHtml(p.seat||'미배정')}${p.companionGroup?` · 동반 ${escapeHtml(p.companionGroup)}`:''}</small></span></label>`).join(''):'<div class="empty-state compact">검색 결과가 없습니다.</div>';
+}
+function selectedCompanionIds(){return[...document.querySelectorAll('#companionSearchResults input:checked')].map(x=>x.value)}
+async function linkCompanions(){const ids=selectedCompanionIds();if(ids.length<2){showToast('같이 앉을 사람을 2명 이상 선택해 주세요.',4200);return;}const r=await jsonpRequest('adminLinkCompanions',{ids});showToast(`${r.count}명을 동반좌석 그룹으로 묶었습니다.`);await refreshFromServer({silent:true});renderCompanionSearch()}
+async function clearCompanions(){const ids=selectedCompanionIds();if(!ids.length){showToast('묶기 해제할 참가자를 선택해 주세요.',4200);return;}await jsonpRequest('adminClearCompanions',{ids});showToast('동반좌석 묶기를 해제했습니다.');await refreshFromServer({silent:true});renderCompanionSearch()}
+async function reflowOrganizationSeats(){
+  const movable=state.participants.filter(p=>!p.arrived&&String(p.participationStatus||'참여')!=='미참여').length;
+  if(!confirm(`미도착 참가자 ${movable}명을 대상으로 좌석을 재정렬할까요?\n\n동반그룹 → 같은 소속기관 순으로 최대한 붙여 배치합니다.\n이미 도착한 참가자는 이동하지 않습니다.`))return;
+  const r=await jsonpRequest('adminReflowSeats',{});
+  showToast(`${r.movedCount}명의 좌석을 재정렬했습니다.`,5000);await refreshFromServer({silent:true});
+}
+function normalizeExcelImportRow(row){
+  const map={};Object.entries(row||{}).forEach(([k,v])=>map[String(k).replace(/\s+/g,'').toLowerCase()]=v);
+  const pick=(...names)=>{for(const n of names){const key=n.replace(/\s+/g,'').toLowerCase();if(Object.prototype.hasOwnProperty.call(map,key))return map[key]}return''};
+  return{name:String(pick('이름','성명','참가자명','name')||'').trim(),phone:String(pick('핸드폰번호','휴대폰번호','연락처','전화번호','phone')||'').trim(),organization:String(pick('소속기관','기관명','소속','organization')||'').trim(),seat:String(pick('좌석','좌석번호','seat')||'').trim(),status:String(pick('참여상태','상태','status')||'').trim()};
+}
+async function previewExcelImport(){
+  const file=$('#excelImportFile')?.files?.[0];if(!file){showToast('엑셀 또는 CSV 파일을 선택해 주세요.',4200);return}
+  if(typeof XLSX==='undefined'){showToast('엑셀 읽기 모듈을 불러오지 못했습니다.',5200);return}
+  const buffer=await file.arrayBuffer(),book=XLSX.read(buffer,{type:'array'}),sheet=book.Sheets[book.SheetNames[0]];
+  excelImportRows=XLSX.utils.sheet_to_json(sheet,{defval:''}).map(normalizeExcelImportRow).filter(r=>r.name);
+  const preview=$('#excelImportPreview');
+  if(!excelImportRows.length){preview.innerHTML='<div class="empty-state">이름 열을 찾을 수 없습니다.</div>';$('#excelImportButton').disabled=true;return}
+  const unavailable=excelImportRows.filter(r=>r.seat==='미참여'||r.status==='미참여').length;
+  preview.innerHTML=`<div class="excel-preview-summary"><strong>${excelImportRows.length}명</strong><span>미참여 ${unavailable}명</span></div><div class="excel-preview-table-wrap"><table class="excel-preview-table"><thead><tr><th>이름</th><th>핸드폰</th><th>소속기관</th><th>좌석</th></tr></thead><tbody>${excelImportRows.slice(0,30).map(r=>`<tr><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.phone)}</td><td>${escapeHtml(r.organization||'-')}</td><td>${escapeHtml(r.seat||'자동배정')}</td></tr>`).join('')}</tbody></table></div>`;
+  $('#excelImportButton').disabled=false;
+}
+async function importExcelParticipants(){
+  if(!excelImportRows.length)return;
+  if(!confirm(`${excelImportRows.length}명을 참가자명단에 추가할까요?`))return;
+  $('#excelImportButton').disabled=true;
+  try{const r=await jsonpRequest('adminImportExcelRows',{rows:excelImportRows});showToast(`가져오기 완료 · 성공 ${r.success}명 / 실패 ${r.failed}명`,5200);await refreshFromServer({silent:true})}finally{$('#excelImportButton').disabled=false}
+}
+
 function renderAll() {
   $('#headerEventName').textContent = state.settings.eventName;
   $('#lastSyncLabel').textContent = `마지막 동기화: ${formatDateTime(state.serverTime)}`;
@@ -387,7 +430,7 @@ function filteredParticipants() {
 
   return [...state.participants].filter(p=>{
     const hay=[
-      p.id,p.number,p.name,p.phone,p.organization,p.seat,p.note,
+      p.id,p.number,p.name,p.phone,p.organization,p.seat,p.note,p.companionGroup,p.participationStatus,
       p.usesCenter?'복지관 이용':'',
       p.wheelchairUser?'휠체어':'',
       p.disabledPerson?'장애인 당사자':''
@@ -421,10 +464,10 @@ function renderParticipants() {
 
       return `<tr>
         <td>${String(p.number).padStart(4,'0')}</td>
-        <td><strong>${escapeHtml(p.name)}</strong><br><span class="small-text">${escapeHtml(p.organization||'소속 없음')} · ${escapeHtml(p.id)}</span></td>
+        <td><strong>${escapeHtml(p.name)}</strong><br><span class="small-text">${escapeHtml(p.organization||'소속 없음')} · ${escapeHtml(p.id)}</span>${p.companionGroup?`<br><span class="table-sub-badge">동반 ${escapeHtml(p.companionGroup)}</span>`:''}${String(p.participationStatus||'참여')==='미참여'?'<br><span class="table-sub-badge unavailable">미참여</span>':''}</td>
         <td>${escapeHtml(maskPhone(p.phone))}</td>
         <td><span>${centerInfo}</span>${flags?`<br><span class="small-text">${escapeHtml(flags)}</span>`:''}</td>
-        <td><strong>${escapeHtml(p.seat||'미배정')}</strong></td>
+        <td><strong>${String(p.participationStatus||'참여')==='미참여'?'미참여':escapeHtml(p.seat||'미배정')}</strong></td>
         <td>${prizeHtml}</td>
         <td><span class="badge ${p.arrived?'arrived':'pending'}">${p.arrived?'도착':'미도착'}</span></td>
         <td><div class="row-actions">
@@ -1083,6 +1126,14 @@ async function setupAdminPwa(){
 }
 
 function bindEvents(){
+  $('#companionSearchButton')?.addEventListener('click',renderCompanionSearch);
+  $('#companionSearchInput')?.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();renderCompanionSearch()}});
+  $('#linkCompanionButton')?.addEventListener('click',()=>linkCompanions().catch(err=>showToast(err.message,5200)));
+  $('#clearCompanionButton')?.addEventListener('click',()=>clearCompanions().catch(err=>showToast(err.message,5200)));
+  $('#reflowOrganizationButton')?.addEventListener('click',()=>reflowOrganizationSeats().catch(err=>showToast(err.message,5200)));
+  $('#excelPreviewButton')?.addEventListener('click',()=>previewExcelImport().catch(err=>showToast(err.message,5200)));
+  $('#excelImportButton')?.addEventListener('click',()=>importExcelParticipants().catch(err=>showToast(err.message,5200)));
+
   $('#loginForm').addEventListener('submit',async e=>{e.preventDefault();const b=$('#loginButton');b.disabled=true;$('#loginMessage').classList.add('hidden');try{await login($('#adminUsername').value.trim(),$('#adminPassword').value)}catch(err){showLogin(err.message)}finally{b.disabled=false}});$$('.nav-button').forEach(b=>b.addEventListener('click',()=>switchView(b.dataset.view)));$$('[data-go]').forEach(b=>b.addEventListener('click',()=>switchView(b.dataset.go)));$('#refreshDashboardButton').addEventListener('click',()=>refreshFromServer().catch(()=>{}));$('#exportCsvButton').addEventListener('click',exportCsv);$('#exportCsvDashboardButton').addEventListener('click',exportCsv);$('#participantSearch').addEventListener('input',renderParticipants);$('#participantStatusFilter').addEventListener('change',renderParticipants);
   $('#drawSearch')?.addEventListener('input',renderPrizeDraw);
   $('#drawPendingOnly')?.addEventListener('change',renderPrizeDraw);

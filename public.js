@@ -35,38 +35,58 @@ function isConfiguredUrl(url) {
   return /^https:\/\/script\.google\.com\/macros\/s\/.+\/exec(?:\?.*)?$/i.test(url) && !url.includes('PASTE_YOUR');
 }
 
-function getRememberedTicketCode() {
-  try {
-    return String(localStorage.getItem(DEVICE_TICKET_STORAGE_KEY) || '').trim().toUpperCase();
-  } catch (error) {
-    return '';
-  }
+function getRememberedTicketCodes(){
+  try{
+    const raw=localStorage.getItem('nyj20.publicTicketCodes.v2');
+    if(raw){
+      const parsed=JSON.parse(raw);
+      if(Array.isArray(parsed))return [...new Set(parsed.map(v=>String(v||'').trim().toUpperCase()).filter(Boolean))];
+    }
+    const legacy=String(localStorage.getItem('nyj20.publicTicketCode.v1')||'').trim().toUpperCase();
+    if(legacy){
+      localStorage.setItem('nyj20.publicTicketCodes.v2',JSON.stringify([legacy]));
+      localStorage.removeItem('nyj20.publicTicketCode.v1');
+      return[legacy];
+    }
+  }catch(_){}
+  return[];
 }
-
-function rememberTicketCode(code) {
-  const normalized = String(code || '').trim().toUpperCase();
-  if (!normalized) return;
-  try {
-    localStorage.setItem(DEVICE_TICKET_STORAGE_KEY, normalized);
-  } catch (error) {
-    // 시크릿 모드나 저장공간 제한 환경에서는 자동 기억만 생략합니다.
-  }
+function getRememberedTicketCode(){
+  const codes=getRememberedTicketCodes();
+  return codes[codes.length-1]||'';
+}
+function rememberTicketCode(code){
+  const value=String(code||'').trim().toUpperCase();
+  if(!value)return;
+  try{
+    const codes=getRememberedTicketCodes().filter(v=>v!==value);
+    codes.push(value);
+    localStorage.setItem('nyj20.publicTicketCodes.v2',JSON.stringify(codes.slice(-20)));
+  }catch(_){}
   updateRememberedTicketUi();
 }
-
-function forgetRememberedTicket() {
-  try {
-    localStorage.removeItem(DEVICE_TICKET_STORAGE_KEY);
-  } catch (error) {
-    // 저장공간 접근이 막힌 환경에서는 별도 처리가 필요하지 않습니다.
-  }
+function forgetRememberedTicket(code=''){
+  try{
+    if(!code){
+      localStorage.removeItem('nyj20.publicTicketCodes.v2');
+      localStorage.removeItem('nyj20.publicTicketCode.v1');
+    }else{
+      const target=String(code).trim().toUpperCase();
+      const next=getRememberedTicketCodes().filter(v=>v!==target);
+      if(next.length)localStorage.setItem('nyj20.publicTicketCodes.v2',JSON.stringify(next));
+      else localStorage.removeItem('nyj20.publicTicketCodes.v2');
+    }
+  }catch(_){}
   updateRememberedTicketUi();
 }
 
 function updateRememberedTicketUi() {
-  const hasCode = Boolean(getRememberedTicketCode());
+  const codes=getRememberedTicketCodes();
+  const hasCode=codes.length>0;
   $('#rememberedTicketNotice')?.classList.toggle('hidden', !hasCode);
   $('#forgetTicketButton')?.classList.toggle('hidden', !hasCode);
+  const count=$('#deviceTicketCount');
+  if(count)count.textContent=String(codes.length);
 }
 
 function showToast(message, duration = 3200) {
@@ -392,11 +412,53 @@ function clearQrContainer() {
 }
 
 function compactSeatLabel(value){const seats=String(value||'').split(',').map(v=>v.trim()).filter(Boolean);if(!seats.length)return'좌석 배정 중';return seats.length<=4?seats.join(' · '):`${seats[0]} ~ ${seats[seats.length-1]} (${seats.length}석)`}
+
+async function renderDeviceTicketWallet(){
+  const section=$('#deviceTicketWallet'),list=$('#deviceTicketWalletList');
+  if(!section||!list)return;
+  const codes=getRememberedTicketCodes();
+  if(codes.length<2){section.classList.add('hidden');list.innerHTML='';return;}
+  section.classList.remove('hidden');
+  list.innerHTML='<p class="wallet-loading">이 기기에 저장된 참가자를 확인하고 있습니다.</p>';
+  const participants=[];
+  for(const code of codes.slice().reverse()){
+    try{
+      const r=await publicApiRequest('publicTicket',{code});
+      if(r?.participant)participants.push(r.participant);
+    }catch(error){
+      if(isTerminalTicketError(error))forgetRememberedTicket(code);
+    }
+  }
+  if(!participants.length){section.classList.add('hidden');return;}
+  list.innerHTML=participants.map(p=>`
+    <button class="device-wallet-ticket" data-device-ticket="${p.id}" type="button">
+      <span><strong>${p.name}</strong><small>${p.seat?compactSeatLabel(p.seat):'좌석 확인 중'}</small></span><b>QR 보기</b>
+    </button>`).join('');
+  list.querySelectorAll('[data-device-ticket]').forEach(btn=>btn.addEventListener('click',async()=>{
+    try{
+      const r=await publicApiRequest('publicTicket',{code:btn.dataset.deviceTicket});
+      if(r?.participant)renderTicket(r.participant,{existing:true,remember:true,scroll:true});
+    }catch(error){showToast(error.message,4500);}
+  }));
+}
+function startAdditionalParticipantApplication(){
+  const form=$('#applicationForm');
+  if(!form)return;
+  form.reset();
+  updateIndividualApplicationUi();
+  form.dataset.startedAt=String(Date.now());
+  $('#ticketSection')?.classList.add('hidden');
+  $('#cancelledTicketSection')?.classList.add('hidden');
+  $('#application')?.scrollIntoView({behavior:'smooth',block:'start'});
+  setTimeout(()=>form.elements.name?.focus(),300);
+}
+
 function renderTicket(ticket,{existing=false,remember=false,message='',scroll=true}={}){
   $('#cancelledTicketSection')?.classList.add('hidden');
   publicState.ticket=ticket;
   if(remember)rememberTicketCode(ticket.id);
   cacheTicketSnapshot(ticket);
+  setTimeout(renderDeviceTicketWallet,120);
 
   const s=publicState.settings;
   $('#ticketNumber').textContent=`NO. ${String(ticket.number).padStart(4,'0')}`;
@@ -1470,6 +1532,7 @@ async function initialize() {
   $('#seatZoomOutButton')?.addEventListener('click',()=>{seatDetailZoom=Math.max(.75,seatDetailZoom-.25);applySeatDetailZoom()});
   $('#seatZoomResetButton')?.addEventListener('click',()=>{seatDetailZoom=1;applySeatDetailZoom()});
   $('#seatZoomInButton')?.addEventListener('click',()=>{seatDetailZoom=Math.min(1.75,seatDetailZoom+.25);applySeatDetailZoom()});
+  $('#additionalParticipantButton')?.addEventListener('click',startAdditionalParticipantApplication);
   $('#downloadTicketButton').addEventListener('click', downloadTicketImage);
   $('#downloadQrButton').addEventListener('click', downloadQrOnly);
   $('#copyLinkButton').addEventListener('click', copyTicketLink);

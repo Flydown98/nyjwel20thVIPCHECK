@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#172554" />
   <title>20주년 행사 관리자</title>
-  <link rel="stylesheet" href="style.css?v=4.2" />
+  <link rel="stylesheet" href="style.css?v=5.0" />
   <link rel="manifest" href="admin-manifest.webmanifest" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/admin-app-icon-180.png" />
   <meta name="mobile-web-app-capable" content="yes" />
@@ -13,6 +13,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="20주년 관리자" />
 
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
   <div id="loginOverlay" class="login-overlay">
@@ -74,7 +75,7 @@
       </div>
       <div class="two-column">
         <article class="panel"><div class="panel-heading"><h3>최근 도착</h3><span class="small-text">최근 8명</span></div><div id="recentCheckins" class="empty-state">아직 도착한 참가자가 없습니다.</div></article>
-        <article class="panel"><h3>빠른 실행</h3><div class="quick-actions"><button class="button primary" data-go="checkin" type="button">QR 스캔 시작</button><button class="button secondary" data-go="seats" type="button">좌석배치도 보기</button><button class="button secondary lucky-button" data-go="draw" type="button">행운추첨 관리</button><button id="exportCsvDashboardButton" class="button secondary" type="button">명단 CSV</button></div></article>
+        <article class="panel"><h3>빠른 실행</h3><div class="quick-actions"><button class="button primary" data-go="checkin" type="button">QR 스캔 시작</button><button class="button secondary" data-go="seats" type="button">좌석배치도 보기</button><button class="button secondary lucky-button" data-go="draw" type="button">행운추첨 관리</button><a class="button secondary marble-quick-button" href="roulette/" target="_blank" rel="noopener">마블룰렛</a><button id="exportCsvDashboardButton" class="button secondary" type="button">명단 CSV</button></div></article>
       </div>
     </section>
 
@@ -94,6 +95,16 @@
           <label class="wide">관리자 메모 <span class="small-text">(내부용)</span><textarea name="note" maxlength="500" rows="3" placeholder="직원 내부 확인이 필요한 내용만 입력"></textarea></label>
           <div class="form-actions wide"><button class="button primary" type="submit">개인 참가자 등록</button></div>
         </form>
+      </article>
+      <article class="panel excel-import-panel">
+        <div class="panel-heading"><div><h3>엑셀 참가자명단 가져오기</h3><p class="help-text">.xlsx / .xls / .csv · 권장 열: 이름, 핸드폰번호, 소속기관, 좌석</p></div></div>
+        <div class="excel-import-grid">
+          <input id="excelImportFile" type="file" accept=".xlsx,.xls,.csv" />
+          <button id="excelPreviewButton" class="button secondary" type="button">미리보기</button>
+          <button id="excelImportButton" class="button primary" type="button" disabled>참가자명단에 넣기</button>
+        </div>
+        <p class="small-text">좌석 칸에 <strong>미참여</strong>라고 적으면 명단에는 저장되지만 좌석배치도에는 배정하지 않습니다.</p>
+        <div id="excelImportPreview" class="excel-import-preview"></div>
       </article>
       <article class="panel">
         <div class="filter-row">
@@ -130,6 +141,22 @@
       <div class="vip-location-banner"><strong>★ 귀빈(VIP) 지정석 24석</strong><span>A~D · 런웨이 좌우 각 3석</span><small>AL/BL/CL/DL-08~10 · AR/BR/CR/DR-01~03 · 일반 자동배정 제외</small></div>
       <div class="disabled-priority-banner"><strong>♿ 장애인(휠체어) 지정석 42석</strong><span>A · B · C 앞 3줄</span><small>각 줄 L-01~07 및 R-04~10을 사용합니다. 중앙 VIP 6석은 유지하며 장애인 당사자는 접수 순서대로 AL-01부터 오른쪽 방향으로 선착순 배정됩니다.</small></div>
 
+      <article class="panel seat-operations-panel">
+        <div class="panel-heading"><div><h3>동반좌석 · 기관별 재정렬</h3><p class="help-text">도착한 사람은 움직이지 않고 미도착 참가자만 재배치합니다.</p></div></div>
+        <div class="seat-ops-grid">
+          <section class="seat-op-box">
+            <h4>이름으로 같이 앉기</h4>
+            <div class="inline-form"><input id="companionSearchInput" type="search" placeholder="이름 또는 소속기관 검색" /><button id="companionSearchButton" class="button secondary" type="button">검색</button></div>
+            <div id="companionSearchResults" class="companion-search-results"><div class="empty-state compact">이름이나 기관을 검색하세요.</div></div>
+            <div class="button-row"><button id="linkCompanionButton" class="button primary" type="button">선택한 사람 같이 앉기</button><button id="clearCompanionButton" class="button secondary" type="button">묶기 해제</button></div>
+          </section>
+          <section class="seat-op-box">
+            <h4>기관·동반그룹 기준 좌석 재정렬</h4>
+            <p class="small-text">동반그룹과 같은 소속기관을 최대한 가까운 연속 좌석으로 배치합니다.</p>
+            <button id="reflowOrganizationButton" class="button primary" type="button">좌석 재정렬 하기</button>
+          </section>
+        </div>
+      </article>
       <article class="panel seat-person-search-panel">
         <div class="panel-heading"><div><h3>사람을 먼저 찾아 좌석 지정</h3><span class="small-text">개인 참가자를 이름·핸드폰 번호·소속기관으로 바로 검색합니다.</span></div></div>
         <form id="seatParticipantSearchForm" class="seat-person-search-form">
@@ -152,6 +179,15 @@
         </div>
         <span id="drawCountLabel" class="small-text"></span>
       </div>
+      <article class="panel marble-roulette-launch-panel">
+        <div class="marble-roulette-launch-copy">
+          <span class="marble-roulette-badge">MARBLE ROULETTE</span>
+          <h3>도착 참가자 자동 행운권 추첨</h3>
+          <p>현재 <strong>도착 처리된 좌석만</strong> 자동으로 룰렛에 넣습니다. 1~10번 상품을 설정하고 당첨 인원과 1등/꼴찌 방식을 선택해 바로 추첨할 수 있습니다.</p>
+        </div>
+        <a class="button marble-roulette-open-button" href="roulette/" target="_blank" rel="noopener">마블룰렛 추첨 열기 →</a>
+      </article>
+
       <div class="draw-stat-grid">
         <article><span>당첨 좌석</span><strong id="drawStatTotal">0</strong></article>
         <article><span>수령완료</span><strong id="drawStatRedeemed">0</strong></article>
@@ -226,6 +262,6 @@ JL-03 | 기념품 세트"></textarea>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="config.js"></script>
-  <script src="admin.js?v=4.2"></script>
+  <script src="admin.js?v=5.0"></script>
 </body>
 </html>

@@ -557,3 +557,38 @@ body.admin-pwa-standalone .admin-app-install-trigger{
 /* v2.8.2 참여불가 버튼 */
 .button.danger-outline{border-color:#fecaca;background:#fff;color:#b91c1c}
 .button.danger-outline:hover{background:#fef2f2}
+
+
+/* =====================================================================
+   v2.9 마블룰렛 연결
+   ===================================================================== */
+.marble-roulette-launch-panel{
+  display:flex;align-items:center;justify-content:space-between;gap:24px;
+  overflow:hidden;position:relative;
+  background:linear-gradient(135deg,#111827,#312e81 58%,#6d28d9)!important;
+  color:#fff!important;border:0!important;
+}
+.marble-roulette-launch-panel::after{
+  content:'';position:absolute;width:220px;height:220px;border-radius:50%;
+  right:-60px;top:-110px;background:rgba(255,255,255,.08);pointer-events:none;
+}
+.marble-roulette-launch-copy{position:relative;z-index:1;max-width:720px}
+.marble-roulette-launch-copy h3{margin:7px 0 8px;font-size:1.35rem;color:#fff}
+.marble-roulette-launch-copy p{margin:0;color:rgba(255,255,255,.78);line-height:1.65}
+.marble-roulette-badge{
+  display:inline-flex;padding:5px 9px;border:1px solid rgba(255,255,255,.25);
+  border-radius:999px;font-size:.68rem;font-weight:900;letter-spacing:.12em;
+  background:rgba(255,255,255,.08)
+}
+.marble-roulette-open-button{
+  position:relative;z-index:1;flex:0 0 auto;background:#fff!important;color:#312e81!important;
+  border:0!important;font-weight:950!important;box-shadow:0 12px 30px rgba(0,0,0,.2)
+}
+.marble-quick-button{text-decoration:none}
+@media(max-width:700px){
+  .marble-roulette-launch-panel{align-items:stretch;flex-direction:column}
+  .marble-roulette-open-button{width:100%;justify-content:center}
+}
+
+/* v3.0 동반좌석 / 재정렬 / 엑셀 */
+.seat-ops-grid{display:grid;grid-template-columns:1.35fr 1fr;gap:14px}.seat-op-box{padding:16px;border:1px solid #e2e8f0;border-radius:16px;background:#f8fafc}.seat-op-box h4{margin:0 0 8px}.inline-form{display:grid;grid-template-columns:1fr auto;gap:8px;margin:12px 0}.companion-search-results{display:grid;gap:7px;max-height:280px;overflow:auto;margin-bottom:12px}.companion-result-item{display:flex;align-items:center;gap:10px;padding:10px 11px;border:1px solid #dde5ef;border-radius:12px;background:#fff;cursor:pointer}.companion-result-item span{display:grid;gap:2px}.companion-result-item small{color:#64748b}.button-row{display:flex;gap:8px;flex-wrap:wrap}.excel-import-grid{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:9px;align-items:center}.excel-import-preview{margin-top:14px}.excel-preview-summary{display:flex;gap:14px;align-items:center;margin-bottom:10px}.excel-preview-table-wrap{overflow:auto;max-height:380px}.excel-preview-table{width:100%;border-collapse:collapse;font-size:.82rem}.excel-preview-table th,.excel-preview-table td{padding:8px 9px;border-bottom:1px solid #e5e7eb;text-align:left;white-space:nowrap}.table-sub-badge{display:inline-block;margin-top:4px;padding:2px 6px;border-radius:999px;background:#eef2ff;color:#4338ca;font-size:.65rem}.table-sub-badge.unavailable{background:#f1f5f9;color:#64748b}@media(max-width:800px){.seat-ops-grid{grid-template-columns:1fr}.excel-import-grid{grid-template-columns:1fr}}

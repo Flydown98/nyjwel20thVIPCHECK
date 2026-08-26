@@ -1612,3 +1612,8 @@ body.intro-playing{
 .cancelled-new-application{
   display:inline-flex;justify-content:center;width:auto;min-width:180px
 }
+
+/* v3.0 다중 참가자 QR */
+.device-ticket-wallet-list{width:min(680px,100%);margin:0 auto;display:grid;gap:10px}
+.device-wallet-ticket{width:100%;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:15px 17px;border:1px solid #dce5ef;border-radius:16px;background:#fff;color:#1e293b;text-align:left;cursor:pointer}
+.device-wallet-ticket span{display:grid;gap:3px}.device-wallet-ticket small{color:#64748b}.device-wallet-ticket b{color:#1d4ed8;white-space:nowrap}.wallet-loading{text-align:center;color:#64748b}

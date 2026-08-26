@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#152238" />
   <title>개관 20주년 모바일 초대장</title>
-  <link rel="stylesheet" href="public.css?v=4.2" />
+  <link rel="stylesheet" href="public.css?v=5.0" />
 </head>
 <body>
   <section id="introOverlay" class="intro-overlay invitation-experience" aria-label="남양주시장애인복지관 20주년 초대장 열기">
@@ -148,7 +148,7 @@
           <h2>참가 신청</h2>
           <span class="application-personal-badge">1인 1신청 · 1인 1QR</span>
         </div>
-        <p class="application-important-copy">개인별 QR로 좌석 확인과 행운추첨이 진행됩니다. <strong>참가자마다 본인 신청서를 작성해 주세요.</strong></p>
+        <p class="application-important-copy">개인별 QR로 좌석 확인과 행운추첨이 진행됩니다. <strong>한 휴대폰으로 가족·동행자도 계속 추가 신청할 수 있습니다.</strong></p>
       </div>
 
       <div id="registrationStatus" class="registration-status loading">신청 가능 여부를 확인하고 있습니다.</div>
@@ -250,6 +250,14 @@
       </div>
     </section>
 
+    <section id="deviceTicketWallet" class="invite-section device-ticket-wallet hidden">
+      <div class="section-heading centered compact-heading">
+        <p class="section-kicker">MY TICKETS</p><h2>이 기기에서 신청한 참가자</h2>
+        <p>한 휴대폰으로 여러 사람을 신청한 경우 각 참가자의 QR을 다시 열 수 있습니다.</p>
+      </div>
+      <div id="deviceTicketWalletList" class="device-ticket-wallet-list"></div>
+    </section>
+
     <section id="ticketSection" class="invite-section ticket-section hidden" aria-live="polite">
       <div class="section-heading centered">
         <p class="section-kicker">MOBILE TICKET</p>
@@ -291,6 +299,7 @@
       </article>
 
       <section id="publicSeatGuide" class="public-seat-guide"><div class="section-heading centered compact-heading"><p class="section-kicker">SEAT MAP</p><h3>내 좌석 위치</h3><p>파란색과 노란 테두리가 현재 좌석입니다. 전체 배치도는 ‘좌석 자세히 보기’에서 크게 확인할 수 있습니다.</p></div><div class="public-stage">무대 · 단상</div><div class="public-runway-head">RUNWAY</div><div id="publicSeatMap" class="public-runway-map"></div><div id="publicExtraSeatMap" class="hidden"></div></section><div class="ticket-actions">
+        <button id="additionalParticipantButton" class="outline-button" type="button">이 휴대폰으로 다른 참가자 추가 신청</button>
         <button id="downloadTicketButton" class="submit-button" type="button">모바일 티켓 이미지 저장</button>
         <button id="downloadQrButton" class="outline-button" type="button">QR만 PNG로 저장</button>
         <button id="copyLinkButton" class="text-button" type="button">내 티켓 링크 복사</button>
@@ -457,6 +466,6 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="config.js"></script>
-  <script src="public.js?v=4.2"></script>
+  <script src="public.js?v=5.0"></script>
 </body>
 </html>
