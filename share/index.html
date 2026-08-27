@@ -52,19 +52,20 @@
           <textarea id="shareMessage"></textarea>
           <button id="copyMessageButton" class="secondary" type="button" style="margin-top:9px;width:100%">문구 + 링크 복사</button>
         </div>
-        <div class="direct">공유 주소: https://flydown98.github.io/nyjwel20thVIPCHECK/invite-card/</div>
+        <div class="direct">연결 주소: https://flydown98.github.io/nyjwel20thVIPCHECK/</div>
       </section>
 
       <aside class="panel">
-        <h2>받는 사람이 보는 화면</h2>
-        <p class="help">이 링크를 받으면 아래와 같은 간단한 모바일 초대장 카드가 먼저 열리고, 버튼을 눌러 실제 행사 안내·참가신청으로 들어갑니다.</p>
+        <h2>카카오톡에 들어갈 초대장 이미지</h2>
+        <p class="help">아래 이미지가 카카오 메시지의 메인 이미지로 들어갑니다. 이미지 또는 버튼을 누르면 중간 페이지 없이 실제 모바일 초대장으로 바로 이동합니다.</p>
         <div class="phone">
-          <iframe class="preview" src="../invite-card/" title="모바일 초대장 미리보기"></iframe>
+          <a class="kakao-card-preview-link" href="https://flydown98.github.io/nyjwel20thVIPCHECK/" target="_blank" rel="noopener"><img class="kakao-card-preview-image" src="../assets/kakao_invitation_card_3x4.jpg" alt="카카오톡 전송용 20주년 초대장 카드"></a>
         </div>
       </aside>
     </div>
   </main>
   <div id="toast" class="toast"></div>
-  <script src="share.js?v=1"></script>
+  <script src="kakao-config.js?v=1"></script>
+  <script src="share.js?v=2"></script>
 </body>
 </html>
