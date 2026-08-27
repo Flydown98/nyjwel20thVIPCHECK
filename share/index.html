@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#12092b">
   <title>20주년 모바일 초대장 보내기</title>
   <link rel="stylesheet" href="style.css?v=1">
+  <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.8.2/kakao.min.js" crossorigin="anonymous"></script>
 </head>
 <body>
   <main class="shell">
@@ -22,11 +23,20 @@
       <section class="panel">
         <h2>초대장 공유</h2>
         <p class="help">
-          휴대폰에서 <strong>초대장 보내기</strong>를 누르면 기본 공유창이 열립니다.
-          설치된 카카오톡·문자·메신저 등을 선택해서 바로 보낼 수 있습니다.
+          <strong>카카오톡 카드 초대장 보내기</strong>를 누르면 카카오톡의 공식 공유 화면이 열리고,
+          이미지·행사 정보·버튼이 포함된 카드형 초대장을 보낼 수 있습니다.
+          문자나 다른 앱은 아래 보조 공유 버튼을 이용하세요.
         </p>
+        <div class="kakao-main-action">
+          <button id="kakaoShareButton" class="kakao-button" type="button">
+            <span class="kakao-symbol">💬</span>
+            <span><strong>카카오톡 카드 초대장 보내기</strong><small>이미지 + 행사정보 + 버튼 형태로 전송</small></span>
+          </button>
+          <p id="kakaoStatus" class="kakao-status">카카오톡 카드 공유 준비 중...</p>
+        </div>
+
         <div class="actions">
-          <button id="shareButton" class="primary" type="button">✈ 초대장 보내기</button>
+          <button id="shareButton" class="secondary" type="button">↗ 문자·기타 앱으로 보내기</button>
           <button id="copyButton" class="secondary" type="button">🔗 링크 복사</button>
           <button id="qrButton" class="secondary" type="button">▦ QR 크게 보기</button>
           <a class="action secondary" href="https://flydown98.github.io/nyjwel20thVIPCHECK/" target="_blank" rel="noopener">↗ 실제 신청 페이지</a>
