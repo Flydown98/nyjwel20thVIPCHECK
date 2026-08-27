@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#12092b">
+  <title>20주년 모바일 초대장 보내기</title>
+  <link rel="stylesheet" href="style.css?v=1">
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div class="title">
+        <p>20TH ANNIVERSARY · STAFF SHARE</p>
+        <h1>모바일 초대장 보내기</h1>
+        <small>직원용 공유 페이지 · 로그인 없이 바로 사용할 수 있습니다.</small>
+      </div>
+      <a class="action secondary" href="https://flydown98.github.io/nyjwel20thVIPCHECK/invite-card/" target="_blank" rel="noopener">초대장 열기</a>
+    </header>
+
+    <div class="grid">
+      <section class="panel">
+        <h2>초대장 공유</h2>
+        <p class="help">
+          휴대폰에서 <strong>초대장 보내기</strong>를 누르면 기본 공유창이 열립니다.
+          설치된 카카오톡·문자·메신저 등을 선택해서 바로 보낼 수 있습니다.
+        </p>
+        <div class="actions">
+          <button id="shareButton" class="primary" type="button">✈ 초대장 보내기</button>
+          <button id="copyButton" class="secondary" type="button">🔗 링크 복사</button>
+          <button id="qrButton" class="secondary" type="button">▦ QR 크게 보기</button>
+          <a class="action secondary" href="https://flydown98.github.io/nyjwel20thVIPCHECK/" target="_blank" rel="noopener">↗ 실제 신청 페이지</a>
+        </div>
+
+        <div id="qrBox" class="qrbox">
+          <img src="../assets/invitation_share_qr.png" alt="모바일 초대장 QR">
+          <p>상대방이 앞에 있다면 이 QR을 보여주세요.<br>스캔하면 바로 모바일 초대장 카드가 열립니다.</p>
+        </div>
+
+        <div class="message">
+          <label for="shareMessage">보낼 메시지</label>
+          <textarea id="shareMessage"></textarea>
+          <button id="copyMessageButton" class="secondary" type="button" style="margin-top:9px;width:100%">문구 + 링크 복사</button>
+        </div>
+        <div class="direct">공유 주소: https://flydown98.github.io/nyjwel20thVIPCHECK/invite-card/</div>
+      </section>
+
+      <aside class="panel">
+        <h2>받는 사람이 보는 화면</h2>
+        <p class="help">이 링크를 받으면 아래와 같은 간단한 모바일 초대장 카드가 먼저 열리고, 버튼을 눌러 실제 행사 안내·참가신청으로 들어갑니다.</p>
+        <div class="phone">
+          <iframe class="preview" src="../invite-card/" title="모바일 초대장 미리보기"></iframe>
+        </div>
+      </aside>
+    </div>
+  </main>
+  <div id="toast" class="toast"></div>
+  <script src="share.js?v=1"></script>
+</body>
+</html>
