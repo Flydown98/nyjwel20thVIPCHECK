@@ -200,3 +200,33 @@ button{font:inherit}
   .poster-tap-area{width:100%;height:68%}
   .kiosk-toolbar-copy span{display:none}
 }
+
+/* v3.5.1 intro_mobile kiosk */
+.kiosk-media-frame{
+  position:relative;display:grid;place-items:center;
+  width:100%;height:100%;max-height:94vh;overflow:hidden;
+  border-radius:22px;background:#000;
+  box-shadow:0 30px 80px rgba(0,0,0,.5);
+}
+.kiosk-intro-video{
+  display:block;width:100%;height:100%;max-height:94vh;
+  object-fit:contain;background:#000;
+}
+.kiosk-poster-fallback{
+  width:100%;height:100%;max-height:94vh;object-fit:contain;
+  border-radius:0;box-shadow:none;
+}
+.media-touch-hint{
+  position:absolute;left:50%;bottom:24px;transform:translateX(-50%);
+  z-index:5;pointer-events:none;padding:11px 20px;
+  border:1px solid rgba(255,255,255,.18);border-radius:999px;
+  color:#fff;background:rgba(13,7,30,.62);backdrop-filter:blur(10px);
+  font-size:13px;font-weight:900;animation:hintPulse 1.7s ease-in-out infinite;
+}
+@keyframes hintPulse{
+  0%,100%{opacity:.68;transform:translateX(-50%) scale(.98)}
+  50%{opacity:1;transform:translateX(-50%) scale(1)}
+}
+@media(max-width:900px){
+  .kiosk-media-frame,.kiosk-intro-video,.kiosk-poster-fallback{max-height:68vh}
+}
