@@ -435,7 +435,6 @@ function renderPublicProgram(){
 
   list.innerHTML=items.map((item,index)=>`
     <article class="program-timeline-item">
-      <div class="program-number">${String(index+1).padStart(2,'0')}</div>
       <div class="program-time">${safeProgramText(item.time||'')}</div>
       <div class="program-copy">
         <h3>${safeProgramText(item.title)}</h3>
