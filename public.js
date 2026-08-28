@@ -940,27 +940,18 @@ function defaultPublicSeatMeta(){
   const out=[];let order=1;
   const vip=new Set();
   'ABCDEFGHIJK'.split('').forEach(row=>{
-    ['L','R'].forEach(side=>{
-      for(let n=1;n<=6;n++)vip.add(`${row}${side}-${String(n).padStart(2,'0')}`);
-    });
+    for(let n=4;n<=6;n++)vip.add(`${row}L-${String(n).padStart(2,'0')}`);
+    for(let n=1;n<=3;n++)vip.add(`${row}R-${String(n).padStart(2,'0')}`);
   });
-
   const wheelchair=new Set();
   ['L','M','N','O'].forEach(row=>{
     for(let n=1;n<=3;n++)wheelchair.add(`${row}L-${String(n).padStart(2,'0')}`);
     for(let n=4;n<=6;n++)wheelchair.add(`${row}R-${String(n).padStart(2,'0')}`);
   });
-
   'ABCDEFGHIJKLMNOPQRSTUVWXY'.split('').forEach(row=>['L','R'].forEach(side=>{
     for(let n=1;n<=6;n++){
       const code=`${row}${side}-${String(n).padStart(2,'0')}`;
-      out.push({
-        code,row,side,number:n,
-        category:vip.has(code)?'내빈·수상자':wheelchair.has(code)?'장애인(휠체어)':'일반',
-        enabled:true,
-        wheelchairEligible:wheelchair.has(code),
-        order:order++
-      });
+      out.push({code,row,side,number:n,category:vip.has(code)?'내빈·수상자':wheelchair.has(code)?'장애인(휠체어)':'일반',enabled:true,wheelchairEligible:wheelchair.has(code),order:order++});
     }
   }));
   return out;

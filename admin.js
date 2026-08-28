@@ -422,9 +422,9 @@ async function reassignAllSeatsV31(){
   if(!confirm(
     `현재 접수자의 좌석을 새 도면 기준 300석으로 다시 정리할까요?\n\n`+
     `• A~Y 25행 × 좌6 + 우6 = 총 300석\n`+
-    `• A~K 전체 132석은 내빈·수상자석으로 잠급니다.\n`+
+    `• A~K 각 행의 런웨이 인접 6석씩, 총 66석만 내빈·수상자석으로 잠급니다.\n`+
     `• 기존 VIP 참가자는 새 내빈·수상자 구역으로 옮깁니다.\n`+
-    `• 일반 참가자는 A~K를 사용하지 않고 뒤쪽 일반석으로 재배정됩니다.\n`+
+    `• A~K의 바깥쪽 6석(L01~03, R04~06)은 일반 참가자도 사용할 수 있습니다.\n`+
     `• 휠체어 이용자는 L~O 우선석을 사용합니다.\n`+
     `• 이미 도착 처리된 ${arrived}명은 안전을 위해 현재 좌석을 유지합니다.\n\n`+
     `행사 시작 전에 실행해 주세요.`
@@ -432,7 +432,7 @@ async function reassignAllSeatsV31(){
 
   const r=await jsonpRequest('adminReassignAllSeats',{});
   showToast(
-    `300석 재배정 완료 · ${r.movedCount}명 이동 / 내빈·수상자석 132석 / 휠체어 ${r.wheelchairCount}명`,
+    `300석 재배정 완료 · ${r.movedCount}명 이동 / 내빈·수상자석 66석 / 휠체어 ${r.wheelchairCount}명`,
     7000
   );
   await refreshFromServer({silent:true,full:true});

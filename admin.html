@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#172554" />
   <title>20주년 행사 관리자</title>
-  <link rel="stylesheet" href="style.css?v=5.5" />
+  <link rel="stylesheet" href="style.css?v=5.6" />
   <link rel="manifest" href="admin-manifest.webmanifest" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/admin-app-icon-180.png" />
   <meta name="mobile-web-app-capable" content="yes" />
@@ -138,8 +138,8 @@
     </section>
 
     <section id="view-seats" class="view">
-      <div class="section-heading"><div><p class="eyebrow">RUNWAY SEATING · 300</p><h2>좌석 배치도</h2><p class="small-text"><strong>도면 기준 좌·우 6석 블록 50줄 = 총 300석</strong><br>실제 화면은 <strong>A~Y 25행 × (좌 6석 + 런웨이 + 우 6석)</strong>으로 표시합니다. <strong>A~K 전체 132석은 내빈·수상자석</strong>이며 일반 자동배정에서 제외합니다.</p></div><div class="legend"><span><i class="legend-dot vip"></i>내빈·수상자 132석</span><span><i class="legend-dot disabled-priority"></i>휠체어 우선 24석</span><span><i class="legend-dot pending"></i>배정완료</span><span><i class="legend-dot arrived"></i>현장도착</span><span><i class="legend-dot empty"></i>빈 좌석</span></div></div>
-      <div class="vip-location-banner"><strong>★ 내빈·수상자 지정석 132석</strong><span>A~K 전체 · 무대 앞쪽 11개 행</span><small>각 행 왼쪽 6석 + 오른쪽 6석을 모두 지정석으로 사용 · 일반 자동배정 제외</small></div>
+      <div class="section-heading"><div><p class="eyebrow">RUNWAY SEATING · 300</p><h2>좌석 배치도</h2><p class="small-text"><strong>도면 기준 좌·우 6석 블록 50줄 = 총 300석</strong><br>실제 화면은 <strong>A~Y 25행 × (좌 6석 + 런웨이 + 우 6석)</strong>으로 표시합니다. <strong>A~K 각 행에서 런웨이에 가까운 6석씩 총 66석은 내빈·수상자석</strong>이며 일반 자동배정에서 제외합니다.</p></div><div class="legend"><span><i class="legend-dot vip"></i>내빈·수상자 66석</span><span><i class="legend-dot disabled-priority"></i>휠체어 우선 24석</span><span><i class="legend-dot pending"></i>배정완료</span><span><i class="legend-dot arrived"></i>현장도착</span><span><i class="legend-dot empty"></i>빈 좌석</span></div></div>
+      <div class="vip-location-banner"><strong>★ 내빈·수상자 지정석 66석</strong><span>A~K · 각 행 런웨이 인접 6석</span><small>왼쪽 L04~L06 3석 + 오른쪽 R01~R03 3석 · 바깥쪽 좌석은 일반석 사용</small></div>
       <div class="disabled-priority-banner"><strong>♿ 휠체어 우선석 24석</strong><span>L · M · N · O</span><small>각 행 L-01~03 및 R-04~06 · 내빈·수상자 구역과 겹치지 않도록 바로 뒤쪽에 배치</small></div>
 
       <article class="panel seat-operations-panel">
@@ -154,7 +154,7 @@
           <section class="seat-op-box">
             <h4>기관·동반그룹 기준 좌석 재정렬</h4>
             <p class="small-text">동반그룹과 같은 소속기관을 최대한 가까운 연속 좌석으로 배치합니다.</p>
-            <button id="reflowOrganizationButton" class="button primary" type="button">좌석 재정렬 하기</button><button id="reassignAllSeatsButton" class="button danger-outline seat-reset-button" type="button">300석 구조 적용 · 현재 접수자 재배정</button><p class="small-text seat-reset-note">새 도면 기준 A~Y 300석으로 미도착 참가자를 한 번에 다시 정리합니다. A~K는 내빈·수상자석으로 보호하고 도착자는 유지합니다.</p>
+            <button id="reflowOrganizationButton" class="button primary" type="button">좌석 재정렬 하기</button><button id="reassignAllSeatsButton" class="button danger-outline seat-reset-button" type="button">300석 구조 적용 · 현재 접수자 재배정</button><p class="small-text seat-reset-note">새 도면 기준 A~Y 300석으로 미도착 참가자를 한 번에 다시 정리합니다. A~K 중앙 6석씩은 내빈·수상자석으로 보호하고, 바깥쪽 좌석은 일반석으로 사용합니다. 도착자는 유지합니다.</p>
           </section>
         </div>
       </article>
@@ -263,6 +263,6 @@ JL-03 | 기념품 세트"></textarea>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="config.js"></script>
-  <script src="admin.js?v=5.5"></script>
+  <script src="admin.js?v=5.6"></script>
 </body>
 </html>
