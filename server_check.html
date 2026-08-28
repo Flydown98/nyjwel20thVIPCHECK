@@ -24,13 +24,13 @@ button{margin-top:18px;border:0;border-radius:12px;padding:13px 18px;background:
 <body>
 <main>
 <h1>Apps Script 서버 연결 진단</h1>
-<p class="lead">개인정보를 보내지 않고 <b>health → POST bridge → publicBootstrap (관리자 화면은 v3.0.1부터 경량 bootstrapCore 사용)</b> 순서로 확인합니다.</p>
+<p class="lead">개인정보를 보내지 않고 <b>health → publicBootstrap 직접 GET → POST bridge (관리자 화면은 v3.0.1부터 경량 bootstrapCore 사용)</b> 순서로 확인합니다.</p>
 
 <div class="row"><div class="label">config.js 주소</div><div id="url" class="status pending">확인 중</div></div>
 <div class="row"><div class="label">GET health</div><div id="health" class="status pending">대기 중</div></div>
 <div class="row"><div class="label">배포된 서버 버전</div><div id="version" class="status pending">대기 중</div></div>
+<div class="row"><div class="label">publicBootstrap GET</div><div id="bootstrap" class="status pending">대기 중</div></div>
 <div class="row"><div class="label">POST bridge</div><div id="bridge" class="status pending">대기 중</div></div>
-<div class="row"><div class="label">publicBootstrap</div><div id="bootstrap" class="status pending">대기 중</div></div>
 
 <button id="run" type="button">다시 진단하기</button>
 <div id="log" class="log">진단 시작 준비 중…</div>
@@ -38,11 +38,11 @@ button{margin-top:18px;border:0;border-radius:12px;padding:13px 18px;background:
 <div class="guide">
 <b>정상 기준</b><br>
 • health: 성공<br>
-• 서버 버전: <code>7.4.1</code><br>
+• 서버 버전: <code>7.5.0</code><br>
 • POST bridge: 성공<br>
 • publicBootstrap: 성공<br><br>
 health부터 실패하면 배포 URL/공개 권한 문제일 가능성이 큽니다.<br>
-health는 성공하지만 bridge가 실패하면 현재 Apps Script 배포가 오래된 버전일 가능성이 큽니다.
+health는 성공하지만 publicBootstrap GET이 실패하면 Apps Script가 아직 7.5.0으로 배포되지 않았을 가능성이 큽니다. POST bridge는 신청/QR 처리용 호환 경로입니다.
 </div>
 </main>
 <script>
@@ -51,7 +51,7 @@ health는 성공하지만 bridge가 실패하면 현재 Apps Script 배포가 �
   const API=String(cfg.appsScriptUrl||'').trim();
   const $=id=>document.getElementById(id);
   const logEl=$('log');
-  const EXPECTED='7.4.1';
+  const EXPECTED='7.5.0';
 
   function log(msg){
     logEl.textContent += `\n[${new Date().toLocaleTimeString()}] ${msg}`;

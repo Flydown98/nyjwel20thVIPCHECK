@@ -119,6 +119,54 @@ function createBridgeRequestId(prefix = 'pub') {
  * 개인정보를 URL 쿼리스트링에 넣지 않기 위한 Apps Script POST 브리지.
  * 실제 요청값은 숨김 form의 POST 본문으로 전송하고, URL에는 무작위 requestId만 사용합니다.
  */
+
+function publicJsonpGet(action,timeoutMs=12000){
+  return new Promise((resolve,reject)=>{
+    if(!isConfiguredUrl(API_URL)){
+      reject(new Error('Apps Script 웹 앱 주소가 아직 설정되지 않았습니다.'));
+      return;
+    }
+
+    const callbackName=`__nyj20_get_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const script=document.createElement('script');
+    let finished=false;
+
+    function cleanup(){
+      if(finished)return;
+      finished=true;
+      clearTimeout(timer);
+      script.remove();
+      try{delete window[callbackName]}catch(_){window[callbackName]=undefined}
+    }
+
+    const timer=setTimeout(()=>{
+      cleanup();
+      reject(new Error('공개 행사정보 응답 시간이 초과되었습니다.'));
+    },timeoutMs);
+
+    window[callbackName]=response=>{
+      cleanup();
+      if(!response||response.ok!==true){
+        reject(new Error(response?.error||'공개 행사정보를 불러오지 못했습니다.'));
+        return;
+      }
+      resolve(response.data);
+    };
+
+    script.onerror=()=>{
+      cleanup();
+      reject(new Error('공개 행사정보 연결에 실패했습니다.'));
+    };
+
+    const url=new URL(API_URL);
+    url.searchParams.set('action',action);
+    url.searchParams.set('callback',callbackName);
+    url.searchParams.set('_',String(Date.now()));
+    script.src=url.toString();
+    document.head.appendChild(script);
+  });
+}
+
 function publicApiRequest(action, payload = {}) {
   return new Promise((resolve, reject) => {
     if (!isConfiguredUrl(API_URL)) {
@@ -929,8 +977,22 @@ async function loadTicketFromUrl() {
 }
 
 async function loadPublicBootstrap() {
-  const data = await publicApiRequest('publicBootstrap');
-  publicState.settings = { ...DEFAULT_PUBLIC_SETTINGS, ...(data.settings || {}), ...data.counts };
+  let data;
+
+  // 공개 행사정보에는 개인정보가 없으므로 빠르고 안정적인 GET/JSONP를 우선 사용합니다.
+  try{
+    data=await publicJsonpGet('publicBootstrap',12000);
+  }catch(getError){
+    console.warn('direct publicBootstrap failed; bridge fallback',getError);
+    // 구버전 Apps Script가 아직 배포되어 있어도 작동하도록 POST bridge fallback 유지.
+    data=await publicApiRequest('publicBootstrap');
+  }
+
+  publicState.settings = {
+    ...DEFAULT_PUBLIC_SETTINGS,
+    ...(data.settings || {}),
+    ...data.counts
+  };
   renderPublicSettings();
 }
 
