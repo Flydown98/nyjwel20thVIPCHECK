@@ -1623,3 +1623,9 @@ body.intro-playing{
 
 /* v3.2 모바일 식순 */
 .schedule-modal{width:min(760px,94vw)!important}.schedule-guide{color:#64748b}.mobile-schedule-image{display:block;width:100%;max-width:640px;max-height:68vh;object-fit:contain;margin:16px auto;border-radius:18px;border:1px solid #e2e8f0;background:#f8fafc}
+
+/* v3.3 25행 좌석 상세보기 */
+.seat-detail-canvas{
+  max-height:72vh;
+  overflow:auto;
+}

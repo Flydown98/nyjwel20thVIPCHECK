@@ -1,6 +1,6 @@
 'use strict';
 
-const ADMIN_UI_VERSION = '3.1-180-GROUP';
+const ADMIN_UI_VERSION = '3.3-300-AK-VIP';
 
 const CONFIG = window.NYJ20_CONFIG || {};
 const API_URL = String(CONFIG.appsScriptUrl || '').trim();
@@ -22,7 +22,7 @@ const DEFAULT_SETTINGS = Object.freeze({
   publicGreeting: '남양주시장애인복지관의 스무 해를 함께해 주신 여러분을 초대합니다.',
   privacyRetentionText: '행사 종료 후 결과 정리 및 문의 대응 완료 시까지(최대 30일)',
   registrationOpen: true,
-  registrationCapacity: 180,
+  registrationCapacity: 300,
   autoAssignSeat: true
 });
 
@@ -413,7 +413,30 @@ async function reflowOrganizationSeats(){
   const r=await jsonpRequest('adminReflowSeats',{});
   showToast(`${r.movedCount}명의 좌석을 재정렬했습니다.`,5000);await refreshFromServer({silent:true});
 }
-async function reassignAllSeatsV31(){const active=state.participants.filter(p=>String(p.participationStatus||'참여')!=='미참여'),arrived=active.filter(p=>p.arrived).length;if(!confirm(`현재 접수자의 좌석을 새 180석 구조로 다시 배정할까요?\n\n• 도착 완료 ${arrived}명은 이동하지 않습니다.\n• 기존 VIP 참가자는 새 VIP 24석으로 이동합니다.\n• 휠체어 이용자만 앞 4줄 우선석에 갑니다.\n• 동반그룹은 휠체어 이용자와 최대 2명까지 우선 같이 배정합니다.`))return;const r=await jsonpRequest('adminReassignAllSeats',{});showToast(`전체 재배정 완료 · ${r.movedCount}명 / VIP ${r.vipCount}명 / 휠체어 ${r.wheelchairCount}명`,6500);await refreshFromServer({silent:true,full:true});}
+async function reassignAllSeatsV31(){
+  const active=state.participants.filter(
+    p=>String(p.participationStatus||'참여')!=='미참여'
+  );
+  const arrived=active.filter(p=>p.arrived).length;
+
+  if(!confirm(
+    `현재 접수자의 좌석을 새 도면 기준 300석으로 다시 정리할까요?\n\n`+
+    `• A~Y 25행 × 좌6 + 우6 = 총 300석\n`+
+    `• A~K 전체 132석은 내빈·수상자석으로 잠급니다.\n`+
+    `• 기존 VIP 참가자는 새 내빈·수상자 구역으로 옮깁니다.\n`+
+    `• 일반 참가자는 A~K를 사용하지 않고 뒤쪽 일반석으로 재배정됩니다.\n`+
+    `• 휠체어 이용자는 L~O 우선석을 사용합니다.\n`+
+    `• 이미 도착 처리된 ${arrived}명은 안전을 위해 현재 좌석을 유지합니다.\n\n`+
+    `행사 시작 전에 실행해 주세요.`
+  ))return;
+
+  const r=await jsonpRequest('adminReassignAllSeats',{});
+  showToast(
+    `300석 재배정 완료 · ${r.movedCount}명 이동 / 내빈·수상자석 132석 / 휠체어 ${r.wheelchairCount}명`,
+    7000
+  );
+  await refreshFromServer({silent:true,full:true});
+}
 function normalizeExcelImportRow(row){
   const map={};Object.entries(row||{}).forEach(([k,v])=>map[String(k).replace(/\s+/g,'').toLowerCase()]=v);
   const pick=(...names)=>{for(const n of names){const key=n.replace(/\s+/g,'').toLowerCase();if(Object.prototype.hasOwnProperty.call(map,key))return map[key]}return''};
@@ -570,9 +593,9 @@ function seatButton(code,meta,p){
 }
 
 function runwayRow(row,leftN,rightN,mm,om){let l='',r='';for(let i=1;i<=leftN;i++){const c=`${row}L-${String(i).padStart(2,'0')}`;l+=seatButton(c,mm.get(c),om.get(c))}for(let i=1;i<=rightN;i++){const c=`${row}R-${String(i).padStart(2,'0')}`;r+=seatButton(c,mm.get(c),om.get(c))}return `<div class="runway-row"><div class="runway-side runway-left"><span class="runway-row-label">${row}L</span><div class="runway-side-seats">${l}</div></div><div class="runway-spine"><span>${row}</span></div><div class="runway-side runway-right"><div class="runway-side-seats">${r}</div><span class="runway-row-label">${row}R</span></div></div>`}
-function renderSeatMap(){const mm=seatMetaByCode(),om=seatOccupantMap();$('#seatMap').innerHTML='ABCDEFGHIJKLMNO'.split('').map(r=>runwayRow(r,6,6,mm,om)).join('');if($('#extraSeatMap'))$('#extraSeatMap').innerHTML=''}
+function renderSeatMap(){const mm=seatMetaByCode(),om=seatOccupantMap();$('#seatMap').innerHTML='ABCDEFGHIJKLMNOPQRSTUVWXY'.split('').map(r=>runwayRow(r,6,6,mm,om)).join('');if($('#extraSeatMap'))$('#extraSeatMap').innerHTML=''}
 function renderSettings(){
-  $('#eventName').value=state.settings.eventName||'';$('#eventDate').value=state.settings.eventDate||'';$('#eventVenue').value=state.settings.eventVenue||'';$('#eventOrganizer').value=state.settings.eventOrganizer||'';$('#autoRefreshSeconds').value=state.settings.autoRefreshSeconds||15;$('#publicSubtitle').value=state.settings.publicSubtitle||'';$('#publicGreeting').value=state.settings.publicGreeting||'';$('#privacyRetentionText').value=state.settings.privacyRetentionText||'';$('#registrationOpen').value=String(state.settings.registrationOpen!==false);$('#registrationCapacity').value=state.settings.registrationCapacity||180;$('#autoAssignSeat').value=String(state.settings.autoAssignSeat!==false);$('#ticketRefreshSeconds').value=state.settings.ticketRefreshSeconds||15;$('#stationName').value=session.station||'관리자 웹';
+  $('#eventName').value=state.settings.eventName||'';$('#eventDate').value=state.settings.eventDate||'';$('#eventVenue').value=state.settings.eventVenue||'';$('#eventOrganizer').value=state.settings.eventOrganizer||'';$('#autoRefreshSeconds').value=state.settings.autoRefreshSeconds||15;$('#publicSubtitle').value=state.settings.publicSubtitle||'';$('#publicGreeting').value=state.settings.publicGreeting||'';$('#privacyRetentionText').value=state.settings.privacyRetentionText||'';$('#registrationOpen').value=String(state.settings.registrationOpen!==false);$('#registrationCapacity').value=state.settings.registrationCapacity||300;$('#autoAssignSeat').value=String(state.settings.autoAssignSeat!==false);$('#ticketRefreshSeconds').value=state.settings.ticketRefreshSeconds||15;$('#stationName').value=session.station||'관리자 웹';
 }
 function findById(id){return state.participants.find(p=>p.id===id)}
 function findMatches(q){
@@ -1214,7 +1237,7 @@ function bindEvents(){
   $('#toggleScannerButton').addEventListener('click',async()=>scannerRunning?await stopScanner():await startScanner());$('#manualCheckinForm').addEventListener('submit',e=>{e.preventDefault();const m=findMatches($('#manualCheckinInput').value);$('#manualSearchResults').innerHTML=m.length?m.map(p=>`<button class="search-result-button" data-manual-id="${escapeHtml(p.id)}"><strong>${escapeHtml(p.name)}${p.wheelchairUser?' · ♿':''}</strong><br><span>${escapeHtml(p.seat||'미배정')} · ${p.organization?escapeHtml(p.organization)+' · ':''}${escapeHtml(maskPhone(p.phone))}</span></button>`).join(''):'<div class="empty-state">찾지 못했습니다.</div>'});$('#manualSearchResults').addEventListener('click',e=>{const b=e.target.closest('[data-manual-id]');if(!b)return;const p=findById(b.dataset.manualId);if(p)showCheckinResult(p,p.arrived,prizeForParticipant(p))});$('#checkinResult').addEventListener('click',async e=>{const b=e.target.closest('[data-result]');if(!b)return;try{const resultAction=b.dataset.result;if(resultAction==='undo-prize'){state.prizes=await jsonpRequest('undoPrizeRedeem',{seat:b.dataset.seat});const currentId=$('#checkinResult [data-result="qr"]')?.dataset.id||'';const current=currentId?findById(currentId):null;if(current)showCheckinResult(current,true,prizeForParticipant(current));renderPrizeDraw();renderParticipants();showToast('상품 수령 처리를 취소했습니다.');return;}const p=findById(b.dataset.id);if(!p)return;if(resultAction==='checkin')await checkIn(p);if(resultAction==='undo')await undoCheckIn(p);if(resultAction==='qr')showQr(p);if(resultAction==='gift'||resultAction==='undo-gift'){const received=resultAction==='gift',r=await jsonpRequest('setGiftReceived',{code:p.id,received});updateCache(r.participant);showCheckinResult(r.participant,r.participant.arrived,prizeForParticipant(r.participant));showToast(received?(r.already?'이미 지급된 참가자입니다.':'기념품 지급완료 처리했습니다.'):'기념품 지급상태를 취소했습니다.');refreshFieldStats();return;}if(resultAction==='redeem-prize'){const r=await jsonpRequest('redeemPrize',{code:p.id});await loadBootstrapExtras({force:true,silent:true});showCheckinResult(findById(p.id),true,r.prize);renderPrizeDraw();showToast(r.already?'이미 상품 수령 완료된 당첨자입니다.':'상품 수령완료 처리했습니다.');}}catch(err){showToast(err.message,4500)}});
   const seatClick=async e=>{const b=e.target.closest('[data-seat-code]');if(!b)return;const code=b.dataset.seatCode;if(selectedSeatParticipantId){const p=findById(selectedSeatParticipantId);if(!p){selectedSeatParticipantId='';updateSeatSelectedPersonBanner();return;}try{await assignSelectedPersonToSeat(p,code)}catch(err){showToast(err.message,5200)}return;}showSeatAssignmentModal(code)};$('#seatMap').addEventListener('click',seatClick);$('#extraSeatMap')?.addEventListener('click',seatClick);
   $('#seatZoneForm').addEventListener('submit',async e=>{e.preventDefault();try{state.seatMeta=await jsonpRequest('saveSeatMeta',{seats:$('#seatZoneSeats').value.trim(),category:$('#seatZoneCategory').value.trim()||'일반',autoAssignable:$('#seatZoneAuto').value==='true',enabled:$('#seatZoneEnabled').value==='true',wheelchairEligible:$('#seatZoneWheelchair').value==='true',note:$('#seatZoneNote').value.trim()});renderSeatMap();showToast('좌석 구역을 저장했습니다.')}catch(err){showToast(err.message,5200)}});
-  $('#eventSettingsForm').addEventListener('submit',async e=>{e.preventDefault();const b=e.currentTarget.querySelector('button');b.disabled=true;session.station=$('#stationName').value.trim()||'관리자 웹';localStorage.setItem(STORAGE.STATION,session.station);const s={eventName:$('#eventName').value.trim(),eventDate:$('#eventDate').value.trim(),eventVenue:$('#eventVenue').value.trim(),eventOrganizer:$('#eventOrganizer').value.trim(),autoRefreshSeconds:Number($('#autoRefreshSeconds').value)||15,publicSubtitle:$('#publicSubtitle').value.trim(),publicGreeting:$('#publicGreeting').value.trim(),privacyRetentionText:$('#privacyRetentionText').value.trim(),registrationOpen:$('#registrationOpen').value==='true',registrationCapacity:Math.min(180,Number($('#registrationCapacity').value)||180),autoAssignSeat:$('#autoAssignSeat').value==='true',ticketRefreshSeconds:Number($('#ticketRefreshSeconds').value)||15};try{state.settings=await jsonpRequest('saveSettings',s);renderAll();scheduleRefresh();showToast('설정을 저장했습니다.')}catch(err){showToast(err.message,4500)}finally{b.disabled=false}});
+  $('#eventSettingsForm').addEventListener('submit',async e=>{e.preventDefault();const b=e.currentTarget.querySelector('button');b.disabled=true;session.station=$('#stationName').value.trim()||'관리자 웹';localStorage.setItem(STORAGE.STATION,session.station);const s={eventName:$('#eventName').value.trim(),eventDate:$('#eventDate').value.trim(),eventVenue:$('#eventVenue').value.trim(),eventOrganizer:$('#eventOrganizer').value.trim(),autoRefreshSeconds:Number($('#autoRefreshSeconds').value)||15,publicSubtitle:$('#publicSubtitle').value.trim(),publicGreeting:$('#publicGreeting').value.trim(),privacyRetentionText:$('#privacyRetentionText').value.trim(),registrationOpen:$('#registrationOpen').value==='true',registrationCapacity:Math.min(300,Number($('#registrationCapacity').value)||300),autoAssignSeat:$('#autoAssignSeat').value==='true',ticketRefreshSeconds:Number($('#ticketRefreshSeconds').value)||15};try{state.settings=await jsonpRequest('saveSettings',s);renderAll();scheduleRefresh();showToast('설정을 저장했습니다.')}catch(err){showToast(err.message,4500)}finally{b.disabled=false}});
   $('#logoutButton').addEventListener('click',logout);$('#logoutButtonTop').addEventListener('click',logout);$('#closeModalButton').addEventListener('click',closeModal);$('#modalBackdrop').addEventListener('click',e=>{if(e.target.id==='modalBackdrop')closeModal()});document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
 }
 

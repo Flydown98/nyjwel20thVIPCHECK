@@ -602,3 +602,21 @@ body.admin-pwa-standalone .admin-app-install-trigger{
 /* v3.2.1 관리자 비밀번호 단독 로그인 */
 .password-only-login{max-width:420px;margin-left:auto;margin-right:auto;width:100%}
 .password-only-login label{text-align:left}
+
+/* v3.3 — 도면 기준 300석 / A~Y */
+.runway-seat-map{
+  max-height:72vh;
+  overflow:auto;
+  padding-right:6px;
+}
+.runway-row{
+  min-height:48px;
+}
+.vip-location-banner strong::before{content:"";}
+
+/* 내빈·수상자도 기존 VIP 금색을 사용 */
+.seat.category-내빈·수상자,
+.seat[data-category="내빈·수상자"]{
+  background:#e8c66a!important;
+  border-color:#b8912e!important;
+}

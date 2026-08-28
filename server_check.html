@@ -38,7 +38,7 @@ button{margin-top:18px;border:0;border-radius:12px;padding:13px 18px;background:
 <div class="guide">
 <b>정상 기준</b><br>
 • health: 성공<br>
-• 서버 버전: <code>7.2.1</code><br>
+• 서버 버전: <code>7.3.0</code><br>
 • POST bridge: 성공<br>
 • publicBootstrap: 성공<br><br>
 health부터 실패하면 배포 URL/공개 권한 문제일 가능성이 큽니다.<br>
@@ -51,7 +51,7 @@ health는 성공하지만 bridge가 실패하면 현재 Apps Script 배포가 �
   const API=String(cfg.appsScriptUrl||'').trim();
   const $=id=>document.getElementById(id);
   const logEl=$('log');
-  const EXPECTED='7.2.1';
+  const EXPECTED='7.3.0';
 
   function log(msg){
     logEl.textContent += `\n[${new Date().toLocaleTimeString()}] ${msg}`;

@@ -16,9 +16,9 @@ const DEFAULT_PUBLIC_SETTINGS = Object.freeze({
   publicGreeting: '남양주시장애인복지관의 스무 해를 함께해 주신 여러분을 초대합니다.',
   privacyRetentionText: '행사 종료 후 결과 정리 및 문의 대응 완료 시까지(최대 30일)',
   registrationOpen: true,
-  registrationCapacity: 180,
+  registrationCapacity: 300,
   registeredCount: 0,
-  remainingCount: 180,
+  remainingCount: 300,
   autoAssignSeat: true,
   introVideoEnabled: false,
   introVideoUrl: 'assets/intro.mp4',
@@ -938,9 +938,32 @@ async function handleApplicationSubmit(event) {
 
 function defaultPublicSeatMeta(){
   const out=[];let order=1;
-  const vip=new Set(['AL-04','AL-05','AL-06','AR-01','AR-02','AR-03','BL-04','BL-05','BL-06','BR-01','BR-02','BR-03','CL-04','CL-05','CL-06','CR-01','CR-02','CR-03','DL-04','DL-05','DL-06','DR-01','DR-02','DR-03']);
-  const wheel=new Set();['A','B','C','D'].forEach(r=>{for(let n=1;n<=3;n++)wheel.add(`${r}L-${String(n).padStart(2,'0')}`);for(let n=4;n<=6;n++)wheel.add(`${r}R-${String(n).padStart(2,'0')}`);});
-  'ABCDEFGHIJKLMNO'.split('').forEach(row=>['L','R'].forEach(side=>{for(let n=1;n<=6;n++){const code=`${row}${side}-${String(n).padStart(2,'0')}`;out.push({code,row,side,number:n,category:vip.has(code)?'VIP':wheel.has(code)?'장애인(휠체어)':'일반',enabled:true,wheelchairEligible:wheel.has(code),order:order++});}}));return out;
+  const vip=new Set();
+  'ABCDEFGHIJK'.split('').forEach(row=>{
+    ['L','R'].forEach(side=>{
+      for(let n=1;n<=6;n++)vip.add(`${row}${side}-${String(n).padStart(2,'0')}`);
+    });
+  });
+
+  const wheelchair=new Set();
+  ['L','M','N','O'].forEach(row=>{
+    for(let n=1;n<=3;n++)wheelchair.add(`${row}L-${String(n).padStart(2,'0')}`);
+    for(let n=4;n<=6;n++)wheelchair.add(`${row}R-${String(n).padStart(2,'0')}`);
+  });
+
+  'ABCDEFGHIJKLMNOPQRSTUVWXY'.split('').forEach(row=>['L','R'].forEach(side=>{
+    for(let n=1;n<=6;n++){
+      const code=`${row}${side}-${String(n).padStart(2,'0')}`;
+      out.push({
+        code,row,side,number:n,
+        category:vip.has(code)?'내빈·수상자':wheelchair.has(code)?'장애인(휠체어)':'일반',
+        enabled:true,
+        wheelchairEligible:wheelchair.has(code),
+        order:order++
+      });
+    }
+  }));
+  return out;
 }
 
 function publicSeatDot(code,m,selected){
@@ -953,7 +976,7 @@ function publicSeatDot(code,m,selected){
 }
 
 function publicRow(row,lN,rN,map,selected){let l='',r='';for(let i=1;i<=lN;i++){const c=`${row}L-${String(i).padStart(2,'0')}`;l+=publicSeatDot(c,map.get(c),selected.has(c))}for(let i=1;i<=rN;i++){const c=`${row}R-${String(i).padStart(2,'0')}`;r+=publicSeatDot(c,map.get(c),selected.has(c))}return `<div class="public-runway-row"><div class="public-side">${l}</div><div class="public-runway-spine">${row}</div><div class="public-side">${r}</div></div>`}
-function renderPublicSeatMap(){const a=$('#publicSeatMap');if(!a)return;const src=publicState.seatMeta.length?publicState.seatMeta:defaultPublicSeatMeta(),map=new Map(src.map(s=>[String(s.code).toUpperCase(),s])),selected=new Set(String(publicState.ticket?.seat||'').split(',').map(v=>v.trim().toUpperCase()).filter(Boolean));a.innerHTML='ABCDEFGHIJKLMNO'.split('').map(r=>publicRow(r,6,6,map,selected)).join('');if($('#publicExtraSeatMap'))$('#publicExtraSeatMap').innerHTML=''}
+function renderPublicSeatMap(){const a=$('#publicSeatMap');if(!a)return;const src=publicState.seatMeta.length?publicState.seatMeta:defaultPublicSeatMeta(),map=new Map(src.map(s=>[String(s.code).toUpperCase(),s])),selected=new Set(String(publicState.ticket?.seat||'').split(',').map(v=>v.trim().toUpperCase()).filter(Boolean));a.innerHTML='ABCDEFGHIJKLMNOPQRSTUVWXY'.split('').map(r=>publicRow(r,6,6,map,selected)).join('');if($('#publicExtraSeatMap'))$('#publicExtraSeatMap').innerHTML=''}
 
 let seatDetailZoom=1;
 
@@ -1009,7 +1032,7 @@ function renderDetailedSeatMap(){
       .filter(Boolean)
   );
 
-  target.innerHTML='ABCDEFGHIJKLMNO'
+  target.innerHTML='ABCDEFGHIJKLMNOPQRSTUVWXY'
     .split('')
     .map(row=>detailedSeatRow(row,map,selected))
     .join('');
