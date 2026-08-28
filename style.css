@@ -620,3 +620,23 @@ body.admin-pwa-standalone .admin-app-install-trigger{
   background:#e8c66a!important;
   border-color:#b8912e!important;
 }
+
+
+/* v3.4 관리자 공개 초대장 프로그램 편집 */
+#eventSettingsForm textarea{
+  width:100%;
+  min-height:90px;
+  resize:vertical;
+  border:1px solid #d8e0e9;
+  border-radius:12px;
+  padding:11px 12px;
+  font:inherit;
+  line-height:1.55;
+  background:#fff;
+  color:#172033;
+}
+#publicProgramItems{
+  min-height:300px!important;
+  font-family:"Malgun Gothic",sans-serif;
+  white-space:pre;
+}

@@ -1629,3 +1629,157 @@ body.intro-playing{
   max-height:72vh;
   overflow:auto;
 }
+
+
+/* v3.4 — 행사 세부내용 / 신청 단계형 공개 */
+.hero-program-button{border:0;cursor:pointer}
+
+.program-section{
+  position:relative;
+  overflow:hidden;
+  background:
+    radial-gradient(circle at 92% 8%,rgba(193,73,169,.14),transparent 26%),
+    linear-gradient(145deg,#fff 0%,#fbf8fd 55%,#f4f0fa 100%);
+}
+.program-section::after{
+  content:"20";
+  position:absolute;
+  right:-28px;
+  bottom:-70px;
+  font-size:240px;
+  line-height:1;
+  font-weight:900;
+  color:rgba(54,25,86,.035);
+  pointer-events:none;
+}
+.program-visual-head{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:22px;
+  align-items:start;
+  position:relative;
+  z-index:1;
+}
+.program-visual-head h2{margin-bottom:10px}
+.program-visual-head>div:first-child>p:last-child{
+  margin:0;
+  color:#625b6c;
+  line-height:1.75;
+}
+.program-20-mark{
+  display:grid;
+  place-items:center;
+  width:88px;height:88px;
+  border-radius:28px;
+  background:linear-gradient(145deg,#2a1550,#a93e9e);
+  color:#fff;
+  font-size:38px;
+  font-weight:900;
+  box-shadow:0 14px 30px rgba(61,24,82,.18);
+}
+.program-timeline{
+  position:relative;
+  z-index:1;
+  display:grid;
+  gap:0;
+  margin-top:28px;
+  border-top:1px solid #e7deea;
+}
+.program-timeline-item{
+  display:grid;
+  grid-template-columns:48px 105px minmax(0,1fr);
+  gap:15px;
+  padding:18px 0;
+  border-bottom:1px solid #e7deea;
+  align-items:start;
+}
+.program-number{
+  color:#b38a34;
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:1px;
+  padding-top:4px;
+}
+.program-time{
+  color:#4a2b65;
+  font-size:13px;
+  font-weight:900;
+  padding-top:2px;
+}
+.program-copy h3{
+  margin:0;
+  color:#241337;
+  font-size:17px;
+  letter-spacing:-.5px;
+}
+.program-copy p{
+  margin:5px 0 0;
+  color:#736c78;
+  font-size:13px;
+  line-height:1.65;
+}
+.program-change-note{
+  position:relative;
+  z-index:1;
+  margin:18px 0 0;
+  color:#8c8390;
+  font-size:11px;
+}
+
+.application-gateway-section{
+  padding-top:10px;
+  padding-bottom:26px;
+}
+.application-gateway-card{
+  position:relative;
+  overflow:hidden;
+  padding:28px 24px;
+  border-radius:24px;
+  color:#fff;
+  background:
+    radial-gradient(circle at 90% 10%,rgba(225,95,189,.32),transparent 28%),
+    linear-gradient(120deg,#211040,#3b1b60 58%,#722b73);
+  box-shadow:0 18px 38px rgba(34,18,55,.2);
+}
+.application-gateway-card::after{
+  content:"20";
+  position:absolute;
+  right:-20px;top:-18px;
+  font-size:150px;font-weight:900;
+  color:rgba(255,255,255,.06);
+}
+.application-gateway-card .section-kicker{color:#e7c76d}
+.application-gateway-card h2{position:relative;z-index:1;margin:8px 0 8px}
+.application-gateway-card p{position:relative;z-index:1;color:rgba(255,255,255,.72);line-height:1.65}
+.application-reveal-button{
+  position:relative;z-index:1;
+  width:100%;
+  margin-top:16px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  border:1px solid rgba(255,255,255,.16);
+  border-radius:15px;
+  padding:16px 18px;
+  background:linear-gradient(100deg,#fff,#f6e9fa);
+  color:#31164d;
+  font-weight:900;
+  cursor:pointer;
+}
+.application-reveal-button b{transition:transform .2s}
+.application-reveal-button.opened b{transform:rotate(180deg)}
+.application-section{padding-top:0}
+.application-reveal-body.hidden{display:none!important}
+.application-reveal-body{animation:applicationReveal .26s ease both}
+@keyframes applicationReveal{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+
+.ticket-seat-private strong{font-size:1.02rem!important}
+.ticket-seat-private p{margin:6px 0 0;color:#64748b;line-height:1.55}
+
+@media(max-width:620px){
+  .program-visual-head{grid-template-columns:1fr}
+  .program-20-mark{width:62px;height:62px;border-radius:20px;font-size:28px}
+  .program-timeline-item{grid-template-columns:34px 82px minmax(0,1fr);gap:9px;padding:15px 0}
+  .program-time{font-size:11px}
+  .program-copy h3{font-size:15px}
+}

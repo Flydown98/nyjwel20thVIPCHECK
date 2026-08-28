@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#172554" />
   <title>20주년 행사 관리자</title>
-  <link rel="stylesheet" href="style.css?v=5.6" />
+  <link rel="stylesheet" href="style.css?v=6.0" />
   <link rel="manifest" href="admin-manifest.webmanifest" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/admin-app-icon-180.png" />
   <meta name="mobile-web-app-capable" content="yes" />
@@ -154,7 +154,7 @@
           <section class="seat-op-box">
             <h4>기관·동반그룹 기준 좌석 재정렬</h4>
             <p class="small-text">동반그룹과 같은 소속기관을 최대한 가까운 연속 좌석으로 배치합니다.</p>
-            <button id="reflowOrganizationButton" class="button primary" type="button">좌석 재정렬 하기</button><button id="reassignAllSeatsButton" class="button danger-outline seat-reset-button" type="button">300석 구조 적용 · 현재 접수자 재배정</button><p class="small-text seat-reset-note">새 도면 기준 A~Y 300석으로 미도착 참가자를 한 번에 다시 정리합니다. A~K 중앙 6석씩은 내빈·수상자석으로 보호하고, 바깥쪽 좌석은 일반석으로 사용합니다. 도착자는 유지합니다.</p>
+            <button id="reflowOrganizationButton" class="button primary" type="button">좌석 재정렬 하기</button><button id="reassignAllSeatsButton" class="button danger-outline seat-reset-button" type="button">300석 구조 적용 + 현재 접수자 일괄 재배정</button><p class="small-text seat-reset-note">새 도면 기준 A~Y 300석으로 미도착 참가자를 한 번에 다시 정리합니다. A~K 중앙 6석씩은 내빈·수상자석으로 보호하고, 바깥쪽 좌석은 일반석으로 사용합니다. 도착자는 유지합니다.</p>
           </section>
         </div>
       </article>
@@ -225,7 +225,7 @@ JL-03 | 기념품 세트"></textarea>
     </section>
 
     <section id="view-settings" class="view">
-      <div class="section-heading"><div><p class="eyebrow">SETTINGS</p><h2>행사 설정</h2></div></div>
+      <div class="section-heading"><div><p class="eyebrow">SETTINGS</p><h2>행사 설정</h2><p class="help-text">행사명·일시·공개 초대장의 세부 프로그램까지 여기에서 수정할 수 있습니다.</p></div></div>
       <article class="panel">
         <form id="eventSettingsForm" class="form-grid">
           <label class="wide">행사명<input id="eventName" required /></label>
@@ -236,6 +236,13 @@ JL-03 | 기념품 세트"></textarea>
           <label>자동 새로고침(초)<input id="autoRefreshSeconds" type="number" min="5" max="300" /></label>
           <label class="wide">공개 초대장 부제<input id="publicSubtitle" maxlength="120" /></label>
           <label class="wide">초대 인사말<input id="publicGreeting" maxlength="5000" /></label>
+          <label class="wide">행사 세부내용 제목<input id="publicProgramTitle" maxlength="120" placeholder="예: 스무 해의 발자취와 새로운 약속" /></label>
+          <label class="wide">행사 세부내용 소개<textarea id="publicProgramIntro" rows="3" maxlength="1000" placeholder="행사 프로그램 위에 표시할 소개 문구"></textarea></label>
+          <label class="wide">
+            <span>공개 초대장 행사 일정 <em class="small-text">한 줄에 시간|행사명|설명</em></span>
+            <textarea id="publicProgramItems" rows="14" maxlength="12000" placeholder="13:30~14:00|식전 공연|줌바·핏합·셔플·댄스 공연&#10;14:00~14:20|인클루시브 런웨이|Stage 1 · Bridge · Stage 2 · Finale"></textarea>
+            <small class="help-text">행사 이름이나 시간이 바뀌면 이 칸만 수정하고 ‘설정 저장’을 누르면 공개 초대장에 반영됩니다.</small>
+          </label>
           <label class="wide">개인정보 보유기간 안내<input id="privacyRetentionText" maxlength="300" placeholder="예: 행사 종료 후 30일" /></label>
           <label>온라인 신청 상태<select id="registrationOpen"><option value="true">신청 가능</option><option value="false">신청 마감</option></select></label>
           <label>최대 수용 인원<input id="registrationCapacity" type="number" min="1" max="300" /></label>
@@ -263,6 +270,6 @@ JL-03 | 기념품 세트"></textarea>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="config.js"></script>
-  <script src="admin.js?v=5.6"></script>
+  <script src="admin.js?v=6.0"></script>
 </body>
 </html>

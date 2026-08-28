@@ -14,6 +14,9 @@ const DEFAULT_PUBLIC_SETTINGS = Object.freeze({
   eventOrganizer: '남양주시장애인복지관',
   publicSubtitle: '스무번의 계절, 스물한 번째 약속',
   publicGreeting: '남양주시장애인복지관의 스무 해를 함께해 주신 여러분을 초대합니다.',
+  publicProgramTitle: '스무 해의 발자취와 새로운 약속',
+  publicProgramIntro: '공연과 런웨이, 기념식, 사례공유와 비전 선포까지 함께해 주세요.',
+  publicProgramItems: "13:00~13:30|접수 및 행사 안내|QR 확인, 기념품 수령 및 입장 안내\n13:30~14:00|식전 공연|줌바·핏합·셔플·댄스 공연\n14:00~14:20|인클루시브 런웨이|Stage 1 · Bridge 퍼포먼스 · Stage 2 · Finale\n14:20~14:25|기념식 오프닝|개회 및 국민의례\n14:25~14:30|환영사|개관 20주년을 맞아 전하는 환영의 말씀\n14:30~14:35|내빈 소개|함께해 주신 내빈 소개\n14:35~14:55|시상 및 축사|표창·시상과 축하의 말씀\n14:55~15:10|청년사회복지사 사례공유|스마트재활·AI돌봄·미래를 여는 복지관\n15:10~15:15|비전 선포|앞으로의 20년을 향한 비전 선포\n15:15~15:20|단체 사진 촬영 및 폐회|기념촬영 후 행사를 마무리합니다.",
   privacyRetentionText: '행사 종료 후 결과 정리 및 문의 대응 완료 시까지(최대 30일)',
   registrationOpen: true,
   registrationCapacity: 300,
@@ -340,6 +343,66 @@ function formatSeatSyncTime(value){
   });
 }
 
+
+function parsePublicProgramItems(value){
+  return String(value||'')
+    .split(/\r?\n/)
+    .map(line=>line.trim())
+    .filter(Boolean)
+    .map((line,index)=>{
+      const parts=line.split('|');
+      return{
+        time:String(parts[0]||'').trim(),
+        title:String(parts[1]||'').trim()||`프로그램 ${index+1}`,
+        description:parts.slice(2).join('|').trim()
+      };
+    });
+}
+
+function renderPublicProgram(){
+  const settings=publicState.settings;
+  const title=$('#programTitleText');
+  const intro=$('#programIntroText');
+  const list=$('#programTimeline');
+
+  if(title)title.textContent=settings.publicProgramTitle||'행사 안내';
+  if(intro)intro.textContent=settings.publicProgramIntro||'';
+  if(!list)return;
+
+  const items=parsePublicProgramItems(settings.publicProgramItems);
+  if(!items.length){
+    list.innerHTML='<div class="program-empty">세부 일정은 추후 안내될 예정입니다.</div>';
+    return;
+  }
+
+  list.innerHTML=items.map((item,index)=>`
+    <article class="program-timeline-item">
+      <div class="program-number">${String(index+1).padStart(2,'0')}</div>
+      <div class="program-time">${escapeHtml(item.time||'')}</div>
+      <div class="program-copy">
+        <h3>${escapeHtml(item.title)}</h3>
+        ${item.description?`<p>${escapeHtml(item.description)}</p>`:''}
+      </div>
+    </article>
+  `).join('');
+}
+
+function setApplicationExpanded(expanded,{scroll=false}={}){
+  const section=$('#application');
+  const body=$('#applicationRevealBody');
+  const button=$('#revealApplicationButton');
+  if(!section||!body||!button)return;
+
+  body.classList.toggle('hidden',!expanded);
+  button.setAttribute('aria-expanded',String(expanded));
+  button.querySelector('span').textContent=expanded?'참가 신청 접기':'참가 신청하기';
+  button.classList.toggle('opened',expanded);
+
+  if(expanded&&scroll){
+    setTimeout(()=>section.scrollIntoView({behavior:'smooth',block:'start'}),80);
+  }
+}
+
 function renderPublicSettings() {
   const settings = publicState.settings;
   const organizer = String(
@@ -368,6 +431,7 @@ function renderPublicSettings() {
   $('#detailDateText').textContent = settings.eventDate;
   $('#detailVenueText').textContent = settings.eventVenue;
   $('#greetingText').textContent = settings.publicGreeting;
+  renderPublicProgram();
 
   const retentionText = $('#privacyRetentionText');
   if (retentionText) {
@@ -432,7 +496,7 @@ async function renderDeviceTicketWallet(){
   if(!participants.length){section.classList.add('hidden');return;}
   list.innerHTML=participants.map(p=>`
     <button class="device-wallet-ticket" data-device-ticket="${p.id}" type="button">
-      <span><strong>${p.name}</strong><small>${p.seat?compactSeatLabel(p.seat):'좌석 확인 중'}</small></span><b>QR 보기</b>
+      <span><strong>${p.name}</strong><small>개인 QR 발급 완료</small></span><b>QR 보기</b>
     </button>`).join('');
   list.querySelectorAll('[data-device-ticket]').forEach(btn=>btn.addEventListener('click',async()=>{
     try{
@@ -477,12 +541,11 @@ function renderTicket(ticket,{existing=false,remember=false,message='',scroll=tr
   }
   $('#ticketPartyInfo').textContent=profile.join(' · ');
 
-  $('#ticketSeat').textContent=compactSeatLabel(ticket.seat);
   $('#ticketDate').textContent=s.eventDate;
   $('#ticketVenue').textContent=s.eventVenue;
   $('#ticketMessage').textContent=message||(
     existing
-      ?'신청 정보를 확인했습니다. 개인 QR과 현재 좌석을 확인해 주세요.'
+      ?'신청 정보를 확인했습니다. 개인 QR을 확인해 주세요.'
       :'개인 QR 발급이 완료되었습니다. 행사 전 QR을 사진으로 저장해 주세요.'
   );
 
@@ -496,7 +559,6 @@ function renderTicket(ticket,{existing=false,remember=false,message='',scroll=tr
 
   $('#ticketSection').classList.remove('hidden');
   history.replaceState(null,'',ticketLink(ticket.id));
-  renderPublicSeatMap();
   startTicketLiveSync();
 
   if(scroll){
@@ -660,7 +722,7 @@ async function downloadTicketImage() {
     ctx.fillText(ticketProfile, 540, nextY + 170);
 
     const passY = nextY + 220;
-    roundedRect(ctx, 125, passY, 830, 135, 36);
+    roundedRect(ctx, 125, passY, 830, 120, 36);
     ctx.fillStyle = 'rgba(255,255,255,.09)';
     ctx.fill();
     ctx.strokeStyle = 'rgba(255,255,255,.18)';
@@ -668,15 +730,14 @@ async function downloadTicketImage() {
     ctx.stroke();
     ctx.fillStyle = '#ead1a5';
     ctx.font = '700 22px Arial, sans-serif';
-    ctx.fillText('YOUR SEAT', 540, passY + 42);
+    ctx.fillText('ENTRY QR', 540, passY + 40);
     ctx.fillStyle = '#ffffff';
-    ctx.font = '700 31px "Noto Sans KR", Arial, sans-serif';
-    const seatLabel = compactSeatLabel(ticket.seat);
-    ctx.fillText(seatLabel.length>44?seatLabel.slice(0,41)+'…':seatLabel, 540, passY + 94);
+    ctx.font = '700 28px "Noto Sans KR", Arial, sans-serif';
+    ctx.fillText('좌석은 행사 당일 현장에서 안내됩니다.', 540, passY + 84);
 
     const qrSize = 500;
     const qrX = (1080 - qrSize) / 2;
-    const qrY = passY + 195;
+    const qrY = passY + 175;
     roundedRect(ctx, qrX - 25, qrY - 25, qrSize + 50, qrSize + 50, 38);
     ctx.fillStyle = '#ffffff';
     ctx.fill();
@@ -684,7 +745,7 @@ async function downloadTicketImage() {
 
     ctx.fillStyle = 'rgba(255,255,255,.78)';
     ctx.font = '500 26px "Noto Sans KR", Arial, sans-serif';
-    ctx.fillText('현장 접수·좌석 확인·행운추첨 확인 시 이 QR을 제시해 주세요.', 540, qrY + qrSize + 92);
+    ctx.fillText('현장 접수 및 행운추첨 확인 시 이 QR을 제시해 주세요.', 540, qrY + qrSize + 92);
     ctx.strokeStyle = 'rgba(255,255,255,.18)';
     ctx.beginPath();
     ctx.moveTo(120, qrY + qrSize + 135);
@@ -1119,32 +1180,24 @@ async function syncCurrentTicket(){
   if(!publicState.ticket?.id||document.hidden)return;
 
   try{
-    const before=String(publicState.ticket.seat||'');
     const r=await publicApiRequest('publicTicket',{code:publicState.ticket.id});
-
     if(r.settings)publicState.settings={...publicState.settings,...r.settings};
 
     if(r.participant){
-      const changed=before!==String(r.participant.seat||'');
       renderTicket(r.participant,{
         existing:true,
         scroll:false,
-        message:changed
-          ?'좌석 정보가 변경되어 최신 내용으로 갱신되었습니다.'
-          :'현재 좌석 정보가 최신 상태입니다.'
+        message:'신청 정보가 정상적으로 유지되고 있습니다.'
       });
-      if(changed)showToast('최신 좌석 정보가 반영되었습니다.',4200);
     }
   }catch(error){
     if(isTerminalTicketError(error)){
       showCancelledTicketState('참가 신청이 취소되었습니다.');
       showToast('참가 취소가 확인되어 기존 QR을 사용할 수 없습니다.',4800);
-      return;
     }
-    updateSeatDetailConnectionStatus();
   }
 }
-function startTicketLiveSync(){clearInterval(ticketRefreshTimer);ticketRefreshTimer=setInterval(syncCurrentTicket,Math.max(5,Number(publicState.settings.ticketRefreshSeconds)||15)*1000);clearInterval(seatLayoutRefreshTimer);seatLayoutRefreshTimer=setInterval(loadPublicSeatLayout,60000)}
+function startTicketLiveSync(){clearInterval(ticketRefreshTimer);clearInterval(seatLayoutRefreshTimer);ticketRefreshTimer=setInterval(syncCurrentTicket,Math.max(5,Number(publicState.settings.ticketRefreshSeconds)||15)*1000);}
 
 
 function updateIndividualApplicationUi(){
