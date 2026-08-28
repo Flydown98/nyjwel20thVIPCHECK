@@ -1783,3 +1783,44 @@ body.intro-playing{
   .program-time{font-size:11px}
   .program-copy h3{font-size:15px}
 }
+
+
+/* v3.5.4 — CTA 동작 및 상세내용 → 신청 흐름 */
+#program,
+#application{
+  scroll-margin-top:22px;
+}
+.program-highlight-once{
+  animation:programFocusPulse .9s ease;
+}
+@keyframes programFocusPulse{
+  0%{box-shadow:0 0 0 0 rgba(183,66,161,0)}
+  35%{box-shadow:0 0 0 5px rgba(183,66,161,.16)}
+  100%{box-shadow:0 0 0 0 rgba(183,66,161,0)}
+}
+.program-apply-button{
+  position:relative;
+  z-index:2;
+  width:100%;
+  margin-top:22px;
+  padding:17px 18px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  border:0;
+  border-radius:16px;
+  cursor:pointer;
+  color:#fff;
+  background:linear-gradient(105deg,#29134f,#6d2d7e 58%,#bc3da2);
+  box-shadow:0 12px 26px rgba(58,24,76,.20);
+}
+.program-apply-button span{
+  font-size:12px;
+  color:rgba(255,255,255,.68);
+  text-align:left;
+}
+.program-apply-button strong{
+  font-size:15px;
+  white-space:nowrap;
+}

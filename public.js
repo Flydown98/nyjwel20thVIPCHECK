@@ -1629,80 +1629,142 @@ function closeScheduleModal(){$('#scheduleBackdrop')?.classList.add('hidden');do
 async function initialize() {
   bindGroupApplication();
   setupIntroVideo();
-  $('#applicationForm').dataset.startedAt = String(Date.now());
-  $('#applicationForm input[name="phone"]').addEventListener('input', event => normalizePhoneInput(event.currentTarget));
-  $('#lookupForm input[name="phone"]').addEventListener('input', event => normalizePhoneInput(event.currentTarget));
-  $('#applicationForm').addEventListener('submit', handleApplicationSubmit);
-  $('#applicationForm input[name="disabledPerson"]')?.addEventListener('change', updateIndividualApplicationUi);
+
+  // v3.5.4: 공개 초대장 CTA 버튼을 실제 동작에 연결
+  $('#heroProgramButton')?.addEventListener('click',()=>{
+    const program=$('#program');
+    if(program){
+      program.scrollIntoView({behavior:'smooth',block:'start'});
+      program.classList.add('program-highlight-once');
+      setTimeout(()=>program.classList.remove('program-highlight-once'),900);
+    }
+  });
+
+  $('#revealApplicationButton')?.addEventListener('click',()=>{
+    const body=$('#applicationRevealBody');
+    const shouldOpen=Boolean(body?.classList.contains('hidden'));
+    setApplicationExpanded(shouldOpen,{scroll:shouldOpen});
+  });
+
+  $('#programApplyButton')?.addEventListener('click',()=>{
+    setApplicationExpanded(true,{scroll:true});
+  });
+
+  const applicationForm=$('#applicationForm');
+  const lookupForm=$('#lookupForm');
+
+  if(applicationForm){
+    applicationForm.dataset.startedAt=String(Date.now());
+    applicationForm.querySelector('input[name="phone"]')
+      ?.addEventListener('input',event=>normalizePhoneInput(event.currentTarget));
+    applicationForm.addEventListener('submit',handleApplicationSubmit);
+    applicationForm.querySelector('input[name="disabledPerson"]')
+      ?.addEventListener('change',updateIndividualApplicationUi);
+  }
+
   updateIndividualApplicationUi();
-  $('#lookupForm').addEventListener('submit', handleLookupSubmit);
+
+  lookupForm?.querySelector('input[name="phone"]')
+    ?.addEventListener('input',event=>normalizePhoneInput(event.currentTarget));
+  lookupForm?.addEventListener('submit',handleLookupSubmit);
+
   $('#openScheduleButton')?.addEventListener('click',openScheduleModal);
   $('#closeScheduleButton')?.addEventListener('click',closeScheduleModal);
-  $('#scheduleBackdrop')?.addEventListener('click',e=>{if(e.target===e.currentTarget)closeScheduleModal();});
-  $('#openSeatDetailButton')?.addEventListener('click', openSeatDetailModal);
-  $('#seatDetailCloseButton')?.addEventListener('click', closeSeatDetailModal);
-  $('#seatDetailDoneButton')?.addEventListener('click', closeSeatDetailModal);
-  $('#seatDetailBackdrop')?.addEventListener('click',e=>{if(e.target===e.currentTarget)closeSeatDetailModal()});
-  $('#seatZoomOutButton')?.addEventListener('click',()=>{seatDetailZoom=Math.max(.75,seatDetailZoom-.25);applySeatDetailZoom()});
-  $('#seatZoomResetButton')?.addEventListener('click',()=>{seatDetailZoom=1;applySeatDetailZoom()});
-  $('#seatZoomInButton')?.addEventListener('click',()=>{seatDetailZoom=Math.min(1.75,seatDetailZoom+.25);applySeatDetailZoom()});
+  $('#scheduleBackdrop')?.addEventListener('click',e=>{
+    if(e.target===e.currentTarget)closeScheduleModal();
+  });
+
+  // 공개 좌석 UI는 v3.4부터 사용하지 않습니다.
   $('#additionalParticipantButton')?.addEventListener('click',startAdditionalParticipantApplication);
-  $('#downloadTicketButton').addEventListener('click', downloadTicketImage);
-  $('#downloadQrButton').addEventListener('click', downloadQrOnly);
-  $('#copyLinkButton').addEventListener('click', copyTicketLink);
-  $('#forgetTicketButton').addEventListener('click', handleForgetTicket);
-  $('#showRememberedTicketButton').addEventListener('click', () => loadRememberedTicket({ scroll: true }));
-  $('#newApplicationLink').addEventListener('click', handleNewApplication);
-  $('#copyVenueAddressButton')?.addEventListener('click', copyVenueAddress);
+  $('#downloadTicketButton')?.addEventListener('click',downloadTicketImage);
+  $('#downloadQrButton')?.addEventListener('click',downloadQrOnly);
+  $('#copyLinkButton')?.addEventListener('click',copyTicketLink);
+  $('#forgetTicketButton')?.addEventListener('click',handleForgetTicket);
+  $('#showRememberedTicketButton')?.addEventListener('click',()=>loadRememberedTicket({scroll:true}));
+  $('#newApplicationLink')?.addEventListener('click',handleNewApplication);
+  $('#copyVenueAddressButton')?.addEventListener('click',copyVenueAddress);
+
   setupAnniversaryTrailer();
-  $('#privacyDetailsButton')?.addEventListener('click', openPrivacyModal);
-  $('#privacyModalCloseButton')?.addEventListener('click', closePrivacyModal);
-  $('#privacyModalConfirmButton')?.addEventListener('click', closePrivacyModal);
-  $('#privacyModalBackdrop')?.addEventListener('click', event => { if (event.target === event.currentTarget) closePrivacyModal(); });
-  document.addEventListener('keydown', event => { if (event.key === 'Escape' && !$('#privacyModalBackdrop')?.classList.contains('hidden')) closePrivacyModal(); });
+
+  $('#privacyDetailsButton')?.addEventListener('click',openPrivacyModal);
+  $('#privacyModalCloseButton')?.addEventListener('click',closePrivacyModal);
+  $('#privacyModalConfirmButton')?.addEventListener('click',closePrivacyModal);
+  $('#privacyModalBackdrop')?.addEventListener('click',event=>{
+    if(event.target===event.currentTarget)closePrivacyModal();
+  });
+  document.addEventListener('keydown',event=>{
+    if(event.key==='Escape'&&!$('#privacyModalBackdrop')?.classList.contains('hidden')){
+      closePrivacyModal();
+    }
+  });
+
   updateRememberedTicketUi();
 
-  if (!isConfiguredUrl(API_URL)) {
-    $('#setupWarning').classList.remove('hidden');
-    $('#registrationStatus').className = 'registration-status closed';
-    $('#registrationStatus').textContent = '현재 온라인 신청을 준비 중입니다. 잠시 후 다시 확인해 주세요.';
-    $('#submitButton').disabled = true;
+  if(!isConfiguredUrl(API_URL)){
+    $('#setupWarning')?.classList.remove('hidden');
+    if($('#registrationStatus')){
+      $('#registrationStatus').className='registration-status closed';
+      $('#registrationStatus').textContent='현재 온라인 신청을 준비 중입니다. 잠시 후 다시 확인해 주세요.';
+    }
+    if($('#submitButton'))$('#submitButton').disabled=true;
     return;
   }
 
-  try {
+  // 1) 행사 공개정보 연결만 별도로 판단합니다.
+  try{
     await loadPublicBootstrap();
-    
-    const loadedFromUrl = await loadTicketFromUrl();
-    if (!loadedFromUrl) await loadRememberedTicket({ scroll: true });
-    window.addEventListener('focus',()=>syncCurrentTicket());
-    document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncCurrentTicket()});
-  } catch (error) {
-    $('#registrationStatus').className = 'registration-status closed';
-    $('#registrationStatus').textContent = '현재 연결이 원활하지 않습니다. 잠시 후 다시 시도해 주세요.';
-    $('#submitButton').disabled = true;
 
-    const codeFromUrl=new URLSearchParams(window.location.search).get('code')||
-      new URLSearchParams(window.location.search).get('ticket')||
-      getRememberedTicketCode();
-    const cached=cachedTicketSnapshot(codeFromUrl||'');
+    if($('#registrationStatus')&&publicState.settings.registrationOpen){
+      $('#registrationStatus').classList.remove('closed');
+    }
 
-    if(cached?.ticket){
-      if(cached.settings){
-        publicState.settings={...DEFAULT_PUBLIC_SETTINGS,...cached.settings};
-        renderPublicSettings();
+    // 키오스크에서는 행사 내용을 본 뒤 신청영역을 바로 펼칩니다.
+    if(IS_KIOSK_MODE){
+      setTimeout(()=>{
+        setApplicationExpanded(true,{scroll:false});
+        $('#application')?.scrollIntoView({behavior:'auto',block:'start'});
+      },120);
+    }
+  }catch(error){
+    console.error('public bootstrap failed',error);
+
+    if($('#registrationStatus')){
+      $('#registrationStatus').className='registration-status closed';
+      $('#registrationStatus').textContent='현재 행사정보 서버에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.';
+    }
+    if($('#submitButton'))$('#submitButton').disabled=true;
+
+    showToast(
+      `행사정보 연결 실패: ${String(error?.message||'응답 없음')}`,
+      7000
+    );
+    return;
+  }
+
+  // 2) QR/티켓 복원 실패는 행사정보 연결 실패로 취급하지 않습니다.
+  // 공용 키오스크에서는 이전 이용자의 localStorage 티켓을 절대 자동복원하지 않습니다.
+  if(!IS_KIOSK_MODE){
+    try{
+      const loadedFromUrl=await loadTicketFromUrl();
+      if(!loadedFromUrl){
+        try{
+          await loadRememberedTicket({scroll:true});
+        }catch(ticketError){
+          console.warn('remembered ticket restore failed',ticketError);
+          // 이전 QR이 만료/취소되었어도 신규 신청은 정상 이용 가능.
+        }
       }
-      renderTicket(cached.ticket,{
-        existing:true,
-        remember:Boolean(cached.ticket.id),
-        message:'현재 연결이 없어 마지막으로 확인한 티켓 정보를 표시합니다.',
-        scroll:true
-      });
-      showToast('마지막으로 확인한 티켓 정보를 표시합니다.',4200);
-    }else{
-      showToast('현재 연결이 원활하지 않습니다. 잠시 후 다시 시도해 주세요.',5200);
+    }catch(ticketError){
+      console.warn('ticket URL restore failed',ticketError);
+      // URL 티켓 조회 오류 역시 공개 초대장 전체를 막지 않습니다.
     }
   }
-}
 
+  window.addEventListener('focus',()=>{
+    if(!IS_KIOSK_MODE)syncCurrentTicket();
+  });
+  document.addEventListener('visibilitychange',()=>{
+    if(!document.hidden&&!IS_KIOSK_MODE)syncCurrentTicket();
+  });
+}
 initialize();
