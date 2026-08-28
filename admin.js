@@ -425,7 +425,7 @@ async function reassignAllSeatsV31(){
     `• A~Y 25행 × 좌6 + 우6 = 총 300석\n`+
     `• A~K의 런웨이 가까운 6석씩 = 내빈·수상자 66석\n`+
     `• A~K 바깥쪽 6석은 일반석으로 사용\n`+
-    `• 휠체어 이용자는 L~O 우선석 사용\n`+
+    `• 휠체어 이용자는 A~D 바깥쪽 우선석 사용\n`+
     `• 이미 도착한 ${arrived}명은 현재 좌석 유지\n\n`+
     `좌석표 구조 적용과 참가자 재배정을 한 번에 실행합니다.`
   ))return;
@@ -589,14 +589,14 @@ function renderParticipants() {
 }
 function seatMetaByCode(){const m=new Map();state.seatMeta.forEach(s=>m.set(normalizeSeat(s.code),s));return m}
 function seatOccupantMap(){const m=new Map();state.participants.forEach(p=>parseSeatList(p.seat).forEach(c=>m.set(normalizeSeat(c),p)));return m}
-function zoneClass(c){const v=String(c||'').toLowerCase();if(v.includes('vip'))return'zone-vip';if(v.includes('장애인'))return'zone-disabled-priority';if(v.includes('휠체어'))return'zone-wheelchair';if(v.includes('관계자'))return'zone-staff';if(v.includes('추가')||v.includes('예비'))return'zone-extra';if(v.includes('사용안함'))return'zone-disabled';return'zone-general'}
+function zoneClass(c){const v=String(c||'').toLowerCase();if(v.includes('vip')||v.includes('내빈')||v.includes('수상자'))return'zone-vip';if(v.includes('장애인'))return'zone-disabled-priority';if(v.includes('휠체어'))return'zone-wheelchair';if(v.includes('관계자'))return'zone-staff';if(v.includes('추가')||v.includes('예비'))return'zone-extra';if(v.includes('사용안함'))return'zone-disabled';return'zone-general'}
 function isWheelchairPersonSeat(p,code){
   if(!p||!p.wheelchairUser)return false;
   return parseSeatList(p.seat).map(normalizeSeat).includes(normalizeSeat(code));
 }
 function seatButton(code,meta,p){
   const cls=['runway-seat',zoneClass(meta?.category)];
-  const disabledAccessible=String(meta?.category||'').includes('장애인');
+  const disabledAccessible=Boolean(meta?.wheelchairEligible)||String(meta?.category||'').includes('장애인')||String(meta?.category||'').includes('휠체어');
   if(disabledAccessible)cls.push('disabled-priority-seat');
 
   const wcSeat=isWheelchairPersonSeat(p,code);

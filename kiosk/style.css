@@ -1,0 +1,202 @@
+
+:root{
+  --ink:#150c2d;
+  --purple:#2a1550;
+  --purple2:#4d226b;
+  --pink:#c23d9f;
+  --gold:#d8b557;
+  --paper:#fff;
+}
+*{box-sizing:border-box}
+html,body{
+  margin:0;width:100%;height:100%;overflow:hidden;
+  font-family:Pretendard,"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  background:#10091f;color:#fff;
+  -webkit-tap-highlight-color:transparent;
+}
+button{font:inherit}
+.kiosk-shell{position:relative;width:100%;height:100%}
+.hidden{display:none!important}
+
+/* attract screen */
+.attract-screen{
+  position:absolute;inset:0;
+  display:grid;
+  grid-template-columns:minmax(0,1.1fr) minmax(400px,.9fr);
+  gap:0;
+  overflow:hidden;
+  background:#140b2b;
+}
+.attract-backdrop{
+  position:absolute;inset:0;
+  background:
+    radial-gradient(circle at 75% 28%,rgba(208,72,171,.18),transparent 27%),
+    radial-gradient(circle at 18% 75%,rgba(216,181,87,.13),transparent 27%),
+    linear-gradient(145deg,#0d071b,#23113f 50%,#351653);
+}
+.attract-backdrop::after{
+  content:"20";
+  position:absolute;right:-4vw;bottom:-12vh;
+  font-size:min(56vw,880px);line-height:.8;font-weight:900;
+  color:rgba(255,255,255,.025);
+}
+.poster-stage{
+  position:relative;z-index:1;
+  display:grid;place-items:center;
+  height:100%;
+  padding:3vh 2.5vw;
+}
+.poster-image{
+  display:block;
+  max-width:100%;
+  max-height:94vh;
+  width:auto;height:auto;
+  object-fit:contain;
+  border-radius:20px;
+  box-shadow:0 30px 80px rgba(0,0,0,.5);
+}
+.touch-panel{
+  position:relative;z-index:2;
+  align-self:center;
+  margin:4vw;
+  padding:clamp(28px,4vw,56px);
+  border:1px solid rgba(255,255,255,.13);
+  border-radius:34px;
+  background:rgba(22,11,47,.80);
+  backdrop-filter:blur(18px);
+  box-shadow:0 28px 70px rgba(0,0,0,.33);
+}
+.touch-kicker{
+  margin:0 0 12px;
+  color:var(--gold);
+  letter-spacing:2px;font-size:13px;font-weight:900;
+}
+.touch-panel h1{
+  margin:0;
+  font-size:clamp(30px,3.2vw,52px);
+  line-height:1.24;
+  letter-spacing:-2px;
+}
+.touch-guide{
+  margin:20px 0 28px;
+  color:rgba(255,255,255,.70);
+  font-size:clamp(15px,1.4vw,20px);
+  line-height:1.7;
+}
+.touch-start-button{
+  width:100%;
+  min-height:105px;
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  align-items:center;
+  gap:18px;
+  padding:20px 24px;
+  border:0;border-radius:24px;
+  color:#fff;
+  background:linear-gradient(105deg,#5b2a92,#c43ba1);
+  box-shadow:0 18px 36px rgba(113,37,124,.35);
+  cursor:pointer;
+  animation:kioskPulse 2s ease-in-out infinite;
+}
+.touch-start-button:active{transform:scale(.985)}
+.touch-icon{
+  display:grid;place-items:center;
+  width:58px;height:58px;
+  border-radius:18px;
+  background:rgba(255,255,255,.14);
+  font-size:30px;
+}
+.touch-button-copy{text-align:left}
+.touch-button-copy strong{
+  display:block;font-size:clamp(21px,2vw,31px);letter-spacing:-.8px
+}
+.touch-button-copy small{
+  display:block;margin-top:3px;
+  font-size:14px;color:rgba(255,255,255,.73)
+}
+.touch-start-button>b{font-size:34px}
+@keyframes kioskPulse{
+  0%,100%{box-shadow:0 18px 36px rgba(113,37,124,.35)}
+  50%{box-shadow:0 18px 52px rgba(202,64,171,.62)}
+}
+.poster-tap-area{
+  position:absolute;z-index:3;
+  left:0;top:0;width:55%;height:100%;
+  border:0;background:transparent;cursor:pointer;
+}
+
+/* content */
+.content-screen{
+  position:absolute;inset:0;
+  display:grid;
+  grid-template-rows:auto minmax(0,1fr);
+  background:#e7eff2;
+}
+.kiosk-toolbar{
+  min-height:78px;
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  align-items:center;
+  gap:18px;
+  padding:12px 22px;
+  color:#fff;
+  background:linear-gradient(100deg,#160b30,#311650 70%,#53215f);
+  box-shadow:0 4px 18px rgba(22,10,45,.22);
+  z-index:10;
+}
+.kiosk-home-button{
+  min-height:50px;
+  padding:0 18px;
+  border:1px solid rgba(255,255,255,.18);
+  border-radius:14px;
+  color:#fff;
+  background:rgba(255,255,255,.09);
+  font-weight:900;
+  cursor:pointer;
+}
+.kiosk-toolbar-copy strong{display:block;font-size:17px}
+.kiosk-toolbar-copy span{display:block;margin-top:3px;font-size:11px;color:rgba(255,255,255,.62)}
+.idle-box{text-align:right}
+.idle-box small{display:block;color:rgba(255,255,255,.55);font-size:10px}
+.idle-box strong{font-size:20px;color:#f0cf70}
+.iframe-shell{min-height:0;position:relative}
+#invitationFrame{
+  display:block;width:100%;height:100%;
+  border:0;background:#dce9ed;
+}
+.idle-warning{
+  position:absolute;
+  left:50%;bottom:28px;
+  transform:translateX(-50%);
+  z-index:30;
+  min-width:min(620px,90vw);
+  padding:18px 24px;
+  text-align:center;
+  border-radius:20px;
+  color:#25133e;
+  background:#fff4cc;
+  box-shadow:0 18px 50px rgba(0,0,0,.22);
+  border:2px solid #e7bc4c;
+}
+.idle-warning strong{display:block;font-size:19px}
+.idle-warning span{display:block;margin-top:4px;color:#6a5830;font-size:13px}
+
+@media(max-width:900px){
+  .attract-screen{
+    grid-template-columns:1fr;
+    grid-template-rows:minmax(0,1fr) auto;
+  }
+  .poster-stage{padding:2vh 3vw 1vh}
+  .poster-image{max-height:68vh}
+  .touch-panel{
+    margin:0 3vw 3vh;
+    padding:22px;
+    border-radius:24px;
+  }
+  .touch-panel h1{font-size:27px}
+  .touch-guide{margin:10px 0 16px;font-size:14px}
+  .touch-start-button{min-height:78px;padding:13px 16px;border-radius:18px}
+  .touch-icon{width:48px;height:48px;font-size:24px}
+  .poster-tap-area{width:100%;height:68%}
+  .kiosk-toolbar-copy span{display:none}
+}

@@ -1,3 +1,4 @@
+const IS_KIOSK_MODE=new URLSearchParams(location.search).get('kiosk')==='1';
 'use strict';
 
 const PUBLIC_CONFIG = window.NYJ20_CONFIG || {};
@@ -818,6 +819,13 @@ async function loadRememberedTicket({ scroll = true } = {}) {
     const result = await publicApiRequest('publicTicket', { code });
     if (result.settings) publicState.settings = { ...DEFAULT_PUBLIC_SETTINGS, ...result.settings };
     renderPublicSettings();
+    if(IS_KIOSK_MODE){
+      setTimeout(()=>{
+        setApplicationExpanded(true,{scroll:false});
+        const app=$('#application');
+        if(app)app.scrollIntoView({behavior:'instant',block:'start'});
+      },120);
+    }
     renderTicket(result.participant, {
       existing: true,
       remember: true,
@@ -1005,7 +1013,7 @@ function defaultPublicSeatMeta(){
     for(let n=1;n<=3;n++)vip.add(`${row}R-${String(n).padStart(2,'0')}`);
   });
   const wheelchair=new Set();
-  ['L','M','N','O'].forEach(row=>{
+  ['A','B','C','D'].forEach(row=>{
     for(let n=1;n<=3;n++)wheelchair.add(`${row}L-${String(n).padStart(2,'0')}`);
     for(let n=4;n<=6;n++)wheelchair.add(`${row}R-${String(n).padStart(2,'0')}`);
   });
