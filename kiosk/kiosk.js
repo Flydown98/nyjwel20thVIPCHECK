@@ -1,6 +1,6 @@
 const IDLE_LIMIT_SECONDS=60;
 const WARNING_AT_SECONDS=15;
-const INVITATION_URL='../?kiosk=1';
+const INVITATION_URL='../?kiosk=1&fresh=2';
 
 const $=s=>document.querySelector(s);
 
