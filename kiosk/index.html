@@ -13,13 +13,23 @@
       <div class="attract-backdrop"></div>
 
       <div class="poster-stage">
-        <img class="poster-image" src="../assets/kiosk_20th_poster.png" alt="남양주시장애인복지관 개관 20주년 행사 포스터">
+        <div class="kiosk-media-frame">
+          <video id="kioskIntroVideo" class="kiosk-intro-video"
+            src="../assets/intro_mobile.mp4"
+            poster="../assets/kiosk_20th_poster.png"
+            autoplay muted loop playsinline preload="auto"
+            aria-label="남양주시장애인복지관 20주년 인트로 영상"></video>
+          <img id="kioskPosterFallback" class="poster-image kiosk-poster-fallback hidden"
+            src="../assets/kiosk_20th_poster.png"
+            alt="남양주시장애인복지관 개관 20주년 행사 포스터">
+          <div class="media-touch-hint"><span>화면을 터치해 주세요</span></div>
+        </div>
       </div>
 
       <div class="touch-panel">
         <p class="touch-kicker">20TH ANNIVERSARY INVITATION</p>
         <h1>남양주시장애인복지관<br>개관 20주년 기념행사</h1>
-        <p class="touch-guide">화면을 터치하면 행사 안내와 참가 신청을 확인할 수 있습니다.</p>
+        <p class="touch-guide">20주년 인트로 영상을 터치하면 행사 안내와 참가 신청을 확인할 수 있습니다.</p>
 
         <button id="openInvitationButton" class="touch-start-button" type="button">
           <span class="touch-icon">☝</span>

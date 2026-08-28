@@ -853,7 +853,7 @@ async function loadRememberedTicket({ scroll = true } = {}) {
         message:'현재 연결이 없어 마지막으로 확인한 티켓 정보를 표시합니다.',
         scroll
       });
-      showToast('마지막으로 확인한 좌석 정보를 표시합니다.',4200);
+      showToast('마지막으로 확인한 티켓 정보를 표시합니다.',4200);
       return true;
     }
     showToast('저장된 티켓 정보를 확인할 수 없습니다.',4800);
@@ -918,7 +918,7 @@ async function loadTicketFromUrl() {
         existing:true,
         message:'현재 연결이 없어 마지막으로 확인한 티켓 정보를 표시합니다.'
       });
-      showToast('마지막으로 확인한 좌석 정보를 표시합니다.',4200);
+      showToast('마지막으로 확인한 티켓 정보를 표시합니다.',4200);
       return true;
     }
     showToast(error.message,5000);
@@ -1600,15 +1600,6 @@ async function initialize() {
   document.addEventListener('keydown', event => { if (event.key === 'Escape' && !$('#privacyModalBackdrop')?.classList.contains('hidden')) closePrivacyModal(); });
   updateRememberedTicketUi();
 
-  const cachedSeats=cachedSeatLayout();
-  if(cachedSeats.length){
-    publicState.seatMeta=cachedSeats;
-    renderPublicSeatMap();
-  }
-  updateSeatDetailConnectionStatus();
-  window.addEventListener('online',updateSeatDetailConnectionStatus);
-  window.addEventListener('offline',updateSeatDetailConnectionStatus);
-
   if (!isConfiguredUrl(API_URL)) {
     $('#setupWarning').classList.remove('hidden');
     $('#registrationStatus').className = 'registration-status closed';
@@ -1620,7 +1611,6 @@ async function initialize() {
   try {
     await loadPublicBootstrap();
     
-    await loadPublicSeatLayout();
     const loadedFromUrl = await loadTicketFromUrl();
     if (!loadedFromUrl) await loadRememberedTicket({ scroll: true });
     window.addEventListener('focus',()=>syncCurrentTicket());
@@ -1646,7 +1636,7 @@ async function initialize() {
         message:'현재 연결이 없어 마지막으로 확인한 티켓 정보를 표시합니다.',
         scroll:true
       });
-      showToast('마지막으로 확인한 좌석 정보를 표시합니다.',4200);
+      showToast('마지막으로 확인한 티켓 정보를 표시합니다.',4200);
     }else{
       showToast('현재 연결이 원활하지 않습니다. 잠시 후 다시 시도해 주세요.',5200);
     }
