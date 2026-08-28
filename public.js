@@ -393,6 +393,15 @@ function formatSeatSyncTime(value){
 }
 
 
+function safeProgramText(value){
+  return String(value ?? '')
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
+
 function parsePublicProgramItems(value){
   return String(value||'')
     .split(/\r?\n/)
@@ -427,10 +436,10 @@ function renderPublicProgram(){
   list.innerHTML=items.map((item,index)=>`
     <article class="program-timeline-item">
       <div class="program-number">${String(index+1).padStart(2,'0')}</div>
-      <div class="program-time">${escapeHtml(item.time||'')}</div>
+      <div class="program-time">${safeProgramText(item.time||'')}</div>
       <div class="program-copy">
-        <h3>${escapeHtml(item.title)}</h3>
-        ${item.description?`<p>${escapeHtml(item.description)}</p>`:''}
+        <h3>${safeProgramText(item.title)}</h3>
+        ${item.description?`<p>${safeProgramText(item.description)}</p>`:''}
       </div>
     </article>
   `).join('');
@@ -480,7 +489,15 @@ function renderPublicSettings() {
   $('#detailDateText').textContent = settings.eventDate;
   $('#detailVenueText').textContent = settings.eventVenue;
   $('#greetingText').textContent = settings.publicGreeting;
-  renderPublicProgram();
+  try{
+    renderPublicProgram();
+  }catch(programError){
+    console.error('public program render failed',programError);
+    const list=$('#programTimeline');
+    if(list){
+      list.innerHTML='<div class="program-empty">행사 세부 일정을 표시하는 중 문제가 발생했습니다. 행사 기본정보와 참가 신청은 정상적으로 이용할 수 있습니다.</div>';
+    }
+  }
 
   const retentionText = $('#privacyRetentionText');
   if (retentionText) {
@@ -984,7 +1001,6 @@ async function loadPublicBootstrap() {
     data=await publicJsonpGet('publicBootstrap',12000);
   }catch(getError){
     console.warn('direct publicBootstrap failed; bridge fallback',getError);
-    // 구버전 Apps Script가 아직 배포되어 있어도 작동하도록 POST bridge fallback 유지.
     data=await publicApiRequest('publicBootstrap');
   }
 
@@ -993,7 +1009,21 @@ async function loadPublicBootstrap() {
     ...(data.settings || {}),
     ...data.counts
   };
-  renderPublicSettings();
+
+  // 서버 수신과 화면 렌더링을 분리합니다.
+  // 화면 일부 오류가 서버 연결 실패로 오인되지 않게 합니다.
+  try{
+    renderPublicSettings();
+  }catch(renderError){
+    console.error('public settings render failed',renderError);
+    // 최소 필수 정보는 가능한 범위에서 직접 표시
+    const s=publicState.settings;
+    if($('#eventNameText'))$('#eventNameText').textContent=s.eventName||'남양주시장애인복지관 개관 20주년 기념행사';
+    if($('#eventDateText'))$('#eventDateText').textContent=s.eventDate||'';
+    if($('#eventVenueText'))$('#eventVenueText').textContent=s.eventVenue||'';
+  }
+
+  return data;
 }
 
 async function handleApplicationSubmit(event) {
@@ -1735,7 +1765,7 @@ async function initialize() {
     if($('#submitButton'))$('#submitButton').disabled=true;
 
     showToast(
-      `행사정보 연결 실패: ${String(error?.message||'응답 없음')}`,
+      `행사정보 서버 연결 실패: ${String(error?.message||'응답 없음')}`,
       7000
     );
     return;

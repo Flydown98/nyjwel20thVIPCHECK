@@ -1,6 +1,6 @@
 'use strict';
 
-const ADMIN_CACHE = 'nyj20-admin-pwa-v22';
+const ADMIN_CACHE = 'nyj20-admin-pwa-v23';
 const ADMIN_SHELL = [
   './admin.html',
   './admin.js',
