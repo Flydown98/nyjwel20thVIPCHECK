@@ -1,248 +1,326 @@
 'use strict';
 
 /**
- * 20주년 행사 좌석배치 V4 오버라이드
- * ------------------------------------------------------------
- * 사용법:
- * 1) 이 파일을 GitHub 저장소 루트에 seat-layout-v4.js 로 업로드
- * 2) admin.html의 admin.js 다음 줄에 아래 1줄 추가
- *    <script src="seat-layout-v4.js?v=1.0"></script>
+ * 남양주시장애인복지관 20주년 행사
+ * 좌석 자동배치 V5 — FRONT PACK
  *
- * 설계:
- * - 전체 300석: A~Y × (좌 6 + 우 6)
- * - VIP/내빈: A~B 전체 24석
- * - 휠체어 우선: C~D 바깥쪽 8석
- *   CL-01~02, CR-05~06, DL-01~02, DR-05~06
- * - 나머지는 일반석
- * - 일반 자동배정은 VIP/휠체어 지정석을 제외
- * - 일괄 재배정은 기존 하드코딩된 adminReassignAllSeats를 쓰지 않고
- *   좌석 메타를 새 구조로 저장한 뒤 adminReflowSeats를 사용
- * - 이미 도착한 참가자는 서버의 기존 재정렬 규칙에 따라 유지
+ * 핵심 규칙
+ * 1. 관리자가 이미 지정한 VIP/내빈/수상자 좌석은 절대 변경하지 않음.
+ * 2. 이미 도착한 참가자의 좌석도 변경하지 않음.
+ * 3. 사용안함/관계자/휠체어/자동배정 제외 좌석도 보호.
+ * 4. '동행'으로 묶인 참가자는 기존 companionGroup을 최우선 유지.
+ * 5. 동행 정보가 없더라도 같은 기관으로 강하게 판단되는 참가자는 자동으로 동행그룹으로 묶은 뒤 재정렬.
+ * 6. 단, 아래처럼 복지관 이용인으로 보이는 일반값은 같은 기관으로 묶지 않음.
+ *    - 남양주시장애인복지관
+ *    - 남양주장애인복지관
+ *    - 남양주복지관
+ *    - 복지관
+ *    - 없음 / 무소속 / 개인 / 이용인 / 공란
+ * 7. 실제 좌석 재정렬은 기존 서버의 adminReflowSeats를 사용.
+ *
+ * IMPORTANT
+ * - 이 파일은 VIP 위치를 새로 만들거나 기존 VIP 구역을 초기화하지 않습니다.
+ * - 즉 "VIP는 관리자가 직접 지정하고, 자동배정은 그 자리를 피한다"는 방식입니다.
  */
 
 (() => {
-  const ROWS = 'ABCDEFGHIJKLMNOPQRSTUVWXY'.split('');
-  const PAD = n => String(n).padStart(2, '0');
+  const VERSION = '5.0-FRONT-PACK';
 
-  function seatCode(row, side, no) {
-    return `${row}${side}-${PAD(no)}`;
+  const GENERIC_ORG_WORDS = new Set([
+    '',
+    '없음',
+    '무소속',
+    '개인',
+    '개인참가',
+    '개인참가자',
+    '이용인',
+    '복지관이용인',
+    '남양주시장애인복지관',
+    '남양주장애인복지관',
+    '남양주복지관',
+    '남양주시복지관',
+    '우리복지관',
+    '복지관'
+  ]);
+
+  function normalizeOrgName(value) {
+    let s = String(value || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[()（）[\]{}]/g, '')
+      .replace(/[·ㆍ.,/\\_-]/g, '')
+      .replace(/\s+/g, '');
+
+    // 법인 표기/지점 표기의 단순한 표현 차이는 같은 기관으로 보기 쉽게 정리
+    s = s
+      .replace(/사회복지법인/g, '')
+      .replace(/재단법인/g, '')
+      .replace(/사단법인/g, '')
+      .replace(/주식회사/g, '')
+      .replace(/㈜/g, '')
+      .replace(/\(주\)/g, '');
+
+    return s;
   }
 
-  function rowSeats(row) {
-    return [
-      ...Array.from({ length: 6 }, (_, i) => seatCode(row, 'L', i + 1)),
-      ...Array.from({ length: 6 }, (_, i) => seatCode(row, 'R', i + 1))
-    ];
+  function isGenericUserOrganization(value) {
+    const n = normalizeOrgName(value);
+    if (!n) return true;
+
+    if (GENERIC_ORG_WORDS.has(n)) return true;
+
+    // '남양주 + 장애인 + 복지관' 정도만 적힌 경우도 이용인 기본값으로 처리
+    if (
+      n.includes('남양주') &&
+      n.includes('장애인') &&
+      n.includes('복지관') &&
+      !n.includes('협회') &&
+      !n.includes('센터') &&
+      !n.includes('재단') &&
+      !n.includes('공단') &&
+      !n.includes('학교') &&
+      !n.includes('주간') &&
+      !n.includes('보호') &&
+      !n.includes('직업')
+    ) {
+      return true;
+    }
+
+    return false;
   }
 
-  function allSeats() {
-    return ROWS.flatMap(rowSeats);
+  function isProtectedSeatMeta(meta) {
+    const category = String(meta?.category || '').toLowerCase();
+
+    return (
+      meta?.enabled === false ||
+      meta?.autoAssignable === false ||
+      meta?.wheelchairEligible === true ||
+      category.includes('vip') ||
+      category.includes('내빈') ||
+      category.includes('수상자') ||
+      category.includes('관계자') ||
+      category.includes('휠체어') ||
+      category.includes('장애인') ||
+      category.includes('사용안함')
+    );
   }
 
-  // A~B 전체 = 24석. 기존 66석보다 단순하고 대칭적인 VIP 구역.
-  function vipSeats() {
-    return ['A', 'B'].flatMap(rowSeats);
+  function currentVipSeatCodes() {
+    return (state.seatMeta || [])
+      .filter(meta => {
+        const c = String(meta?.category || '').toLowerCase();
+        return c.includes('vip') || c.includes('내빈') || c.includes('수상자');
+      })
+      .map(meta => normalizeSeat(meta.code))
+      .filter(Boolean);
   }
 
-  // 출입·이동 편의를 고려해 런웨이 반대편 바깥쪽 좌석을 휠체어 우선으로 지정.
-  function wheelchairSeats() {
-    return [
-      'CL-01', 'CL-02', 'CR-05', 'CR-06',
-      'DL-01', 'DL-02', 'DR-05', 'DR-06'
-    ];
+  function currentProtectedSeatCodes() {
+    const out = new Set(
+      (state.seatMeta || [])
+        .filter(isProtectedSeatMeta)
+        .map(meta => normalizeSeat(meta.code))
+        .filter(Boolean)
+    );
+
+    // 이미 도착한 사람의 현재 좌석은 무조건 잠금
+    (state.participants || [])
+      .filter(p => p.arrived)
+      .forEach(p => parseSeatList(p.seat).forEach(code => out.add(normalizeSeat(code))));
+
+    return [...out];
   }
 
-  function toSeatInput(codes) {
-    return codes.join(',');
+  function eligibleParticipants() {
+    return (state.participants || []).filter(
+      p => String(p.participationStatus || '참여') !== '미참여'
+    );
   }
 
-  function updateSeatPageCopy() {
+  function inferredOrganizationGroups() {
+    const buckets = new Map();
+
+    eligibleParticipants().forEach(p => {
+      // 사용자가 명시적으로 동행을 지정한 사람은 절대 자동 그룹으로 덮어쓰지 않음
+      if (String(p.companionGroup || '').trim()) return;
+      if (p.arrived) return;
+
+      const raw = String(p.organization || '').trim();
+      if (isGenericUserOrganization(raw)) return;
+
+      const key = normalizeOrgName(raw);
+      if (!key || key.length < 3) return;
+
+      if (!buckets.has(key)) buckets.set(key, []);
+      buckets.get(key).push(p);
+    });
+
+    return [...buckets.entries()]
+      .map(([key, people]) => ({
+        key,
+        organization: people[0]?.organization || key,
+        people
+      }))
+      .filter(group => group.people.length >= 2);
+  }
+
+  async function linkInferredOrganizationGroups() {
+    const groups = inferredOrganizationGroups();
+    let linkedGroups = 0;
+    let linkedPeople = 0;
+    const linkedNames = [];
+
+    for (const group of groups) {
+      const ids = group.people.map(p => p.id).filter(Boolean);
+      if (ids.length < 2) continue;
+
+      // 너무 큰 기관 전체를 하나의 '동행'으로 묶으면 좌석 선택지가 지나치게 좁아질 수 있으므로
+      // 12명 단위로 잘라 "같은 기관끼리 최대한 가까이" 배치하도록 함.
+      for (let i = 0; i < ids.length; i += 12) {
+        const chunk = ids.slice(i, i + 12);
+        if (chunk.length < 2) continue;
+
+        await jsonpRequest('adminLinkCompanions', { ids: chunk });
+        linkedGroups += 1;
+        linkedPeople += chunk.length;
+      }
+
+      linkedNames.push(`${group.organization} ${group.people.length}명`);
+    }
+
+    return { linkedGroups, linkedPeople, linkedNames };
+  }
+
+  function updateSeatV5Copy() {
     const heading = document.querySelector('#view-seats .section-heading .small-text');
     if (heading) {
       heading.innerHTML =
-        '<strong>도면 기준 A~Y 25행 × (좌 6석 + 런웨이 + 우 6석) = 총 300석</strong><br>' +
-        '앞 2개 행(A~B) <strong>24석은 내빈·VIP 지정석</strong>으로 일반 자동배정에서 제외합니다. ' +
-        'C~D 바깥쪽 8석은 <strong>휠체어 우선석</strong>으로 사용합니다.';
+        '<strong>V5 자동배치: 앞자리부터 밀도 있게 채우는 방식</strong><br>' +
+        '관리자가 지정한 VIP·내빈·수상자 좌석은 건드리지 않습니다. ' +
+        '일반 참가자는 <strong>앞줄 우선 → 같은 줄에서는 런웨이 가까운 자리 우선</strong>으로 재정렬하며, ' +
+        '동행자는 붙이고 같은 기관 참가자도 가능한 범위에서 함께 배치합니다.';
     }
 
     const vipBanner = document.querySelector('.vip-location-banner');
     if (vipBanner) {
+      const count = currentVipSeatCodes().length;
       vipBanner.innerHTML =
-        '<strong>★ 내빈·VIP 지정석 24석</strong>' +
-        '<span>A · B 앞 2개 행 전체</span>' +
-        '<small>좌·우 각각 6석씩, 총 24석 · 일반 자동배정 제외</small>';
+        `<strong>★ VIP·내빈·수상자 보호석 ${count}석</strong>` +
+        '<span>관리자가 직접 지정한 좌석만 보호</span>' +
+        '<small>V5는 VIP 위치를 새로 만들지 않으며, 현재 지정된 VIP 좌석을 자동배정 대상에서 제외합니다.</small>';
     }
 
     const wcBanner = document.querySelector('.disabled-priority-banner');
     if (wcBanner) {
       wcBanner.innerHTML =
-        '<strong>♿ 휠체어 우선석 8석</strong>' +
-        '<span>C · D 행 바깥쪽</span>' +
-        '<small>CL-01~02 · CR-05~06 · DL-01~02 · DR-05~06</small>';
-    }
-
-    const legend = document.querySelector('#view-seats .legend');
-    if (legend) {
-      legend.innerHTML =
-        '<span><i class="legend-dot vip"></i>내빈·VIP 24석</span>' +
-        '<span><i class="legend-dot disabled-priority"></i>휠체어 우선 8석</span>' +
-        '<span><i class="legend-dot pending"></i>배정완료</span>' +
-        '<span><i class="legend-dot arrived"></i>현장도착</span>' +
-        '<span><i class="legend-dot empty"></i>빈 좌석</span>';
+        '<strong>♿ 별도 지정석도 보호</strong>' +
+        '<span>휠체어 · 장애인지정 · 관계자 · 사용안함</span>' +
+        '<small>좌석 속성에서 자동배정 제외로 설정한 좌석은 V5가 건드리지 않습니다.</small>';
     }
 
     const resetButton = document.querySelector('#reassignAllSeatsButton');
-    if (resetButton) {
-      resetButton.textContent = 'V4 좌석 구조 적용 + 미도착자 재정렬';
-    }
+    if (resetButton) resetButton.textContent = 'V5 앞자리 밀집배치 실행';
 
     const resetNote = document.querySelector('.seat-reset-note');
     if (resetNote) {
       resetNote.textContent =
-        'A~B 24석은 VIP로 보호하고, C~D 바깥쪽 8석은 휠체어 우선석으로 지정합니다. ' +
-        '나머지는 일반석으로 사용하며 도착자는 유지한 채 미도착 참가자만 다시 정렬합니다.';
-    }
-
-    const syncNotice = document.querySelector('.sync-notice');
-    if (syncNotice && syncNotice.textContent.includes('300석 좌석배정')) {
-      syncNotice.innerHTML =
-        '<strong>관리자 전용 화면</strong> — 1인 1QR·특수 다중신청, ' +
-        '300석 좌석배정, 현장 QR 확인과 행운추첨 상품 수령을 관리합니다.';
+        'VIP는 수동 지정 그대로 보호합니다. 동행자를 먼저 붙이고, 같은 기관은 자동으로 묶은 뒤 ' +
+        '앞자리부터 밀도 있게 재정렬합니다. 남양주시장애인복지관·남양주복지관·없음 등은 이용인 기본값으로 보고 기관 그룹에서 제외합니다.';
     }
   }
 
-  // 좌석 지도는 기존 300석 구조를 유지하되, 실제 seatMeta만으로 색을 표시합니다.
-  // 기존 A~K 강제 VIP 로직은 여기에서 전혀 사용하지 않습니다.
-  if (typeof window.renderSeatMap === 'function' || typeof renderSeatMap === 'function') {
-    window.renderSeatMap = function renderSeatMapV4() {
-      const mm = seatMetaByCode();
-      const om = seatOccupantMap();
+  function organizationPreviewText(groups) {
+    if (!groups.length) return '추가로 자동 묶을 기관 없음';
 
-      const host = document.querySelector('#seatMap');
-      if (!host) return;
+    const visible = groups
+      .slice(0, 8)
+      .map(g => `${g.organization} ${g.people.length}명`)
+      .join('\n• ');
 
-      host.innerHTML = ROWS.map(row => runwayRow(row, 6, 6, mm, om)).join('');
-
-      const extra = document.querySelector('#extraSeatMap');
-      if (extra) extra.innerHTML = '';
-    };
-
-    // 전역 함수 바인딩도 같이 교체
-    try { renderSeatMap = window.renderSeatMap; } catch (_) {}
+    return `자동 기관묶음 ${groups.length}개\n• ${visible}` +
+      (groups.length > 8 ? `\n• 외 ${groups.length - 8}개 기관` : '');
   }
 
-  async function saveZone(codes, category, {
-    autoAssignable = true,
-    enabled = true,
-    wheelchairEligible = false,
-    note = ''
-  } = {}) {
-    return await jsonpRequest('saveSeatMeta', {
-      seats: toSeatInput(codes),
-      category,
-      autoAssignable,
-      enabled,
-      wheelchairEligible,
-      note
-    });
-  }
-
-  async function applySeatLayoutV4() {
-    const everySeat = allSeats();
-    const vip = vipSeats();
-    const wheelchair = wheelchairSeats();
-
-    // 1. 과거 VIP/휠체어/사용안함 메타를 전부 일반석으로 초기화
-    state.seatMeta = await saveZone(everySeat, '일반', {
-      autoAssignable: true,
-      enabled: true,
-      wheelchairEligible: false,
-      note: 'V4 기본 일반석'
-    });
-
-    // 2. VIP
-    state.seatMeta = await saveZone(vip, '내빈·VIP', {
-      autoAssignable: false,
-      enabled: true,
-      wheelchairEligible: false,
-      note: 'A~B 앞 2개 행 VIP 지정석'
-    });
-
-    // 3. 휠체어 우선
-    state.seatMeta = await saveZone(wheelchair, '장애인(휠체어)', {
-      autoAssignable: false,
-      enabled: true,
-      wheelchairEligible: true,
-      note: '출입·이동 편의를 위한 바깥쪽 휠체어 우선석'
-    });
-
-    return { everySeat, vip, wheelchair };
-  }
-
-  async function reassignAllSeatsV4() {
-    const active = state.participants.filter(
-      p => String(p.participationStatus || '참여') !== '미참여'
-    );
-    const arrived = active.filter(p => p.arrived).length;
-    const movable = active.length - arrived;
+  async function reassignAllSeatsV5() {
+    const participants = eligibleParticipants();
+    const arrived = participants.filter(p => p.arrived).length;
+    const explicitCompanions = participants.filter(p => String(p.companionGroup || '').trim()).length;
+    const orgGroups = inferredOrganizationGroups();
+    const vipCount = currentVipSeatCodes().length;
+    const protectedCount = currentProtectedSeatCodes().length;
     const button = document.querySelector('#reassignAllSeatsButton');
 
     const ok = confirm(
-      `V4 좌석 구조로 다시 정리할까요?\n\n` +
-      `• 총 300석: A~Y × 좌6 + 우6\n` +
-      `• A~B 전체 24석: 내빈·VIP 지정석\n` +
-      `• C~D 바깥쪽 8석: 휠체어 우선석\n` +
-      `• 나머지 268석: 일반석\n` +
-      `• 이미 도착한 ${arrived}명은 유지\n` +
-      `• 미도착 ${movable}명만 새 구조 기준으로 재정렬\n\n` +
-      `기존 A~K 중앙 66석 VIP 규칙은 삭제됩니다.`
+      `V5 앞자리 밀집배치를 실행할까요?\n\n` +
+      `자동배치 원칙\n` +
+      `• 현재 VIP/내빈/수상자 ${vipCount}석: 절대 건드리지 않음\n` +
+      `• 전체 보호좌석 ${protectedCount}석: 자동배정 제외\n` +
+      `• 도착자 ${arrived}명: 현재 좌석 유지\n` +
+      `• 명시적 동행그룹 참가자 ${explicitCompanions}명: 붙여 배치\n` +
+      `• 같은 기관으로 판단되는 사람: 가능한 한 함께 배치\n` +
+      `• 남양주시장애인복지관/남양주복지관/없음/개인 등은 기관묶음 제외\n` +
+      `• 일반석은 앞자리부터 밀도 있게 정렬\n\n` +
+      `${organizationPreviewText(orgGroups)}`
     );
+
     if (!ok) return;
 
     const oldText = button?.textContent || '';
     if (button) {
       button.disabled = true;
-      button.textContent = 'V4 좌석 구조 적용 중...';
+      button.textContent = 'V5 기관·동행 분석 중...';
     }
 
     try {
-      showToast('1/2 좌석 구역을 V4 구조로 정리하고 있습니다.', 5000);
-      await applySeatLayoutV4();
+      let autoGrouped = { linkedGroups: 0, linkedPeople: 0, linkedNames: [] };
 
-      // 기존 adminReassignAllSeats는 A~K 66석을 다시 만들어버리므로 사용하지 않습니다.
-      // 기존의 기관/동반그룹 재정렬 API를 새 seatMeta 위에서 실행합니다.
-      showToast('2/2 미도착 참가자를 새 좌석 구조에 맞춰 재정렬합니다.', 6000);
+      if (orgGroups.length) {
+        showToast(`같은 기관으로 판단되는 ${orgGroups.length}개 그룹을 정리하고 있습니다.`, 5000);
+        autoGrouped = await linkInferredOrganizationGroups();
+
+        // companionGroup 값이 서버에 반영된 최신 상태를 다시 읽음
+        await refreshFromServer({ silent: true, full: false });
+      }
+
+      if (button) button.textContent = 'V5 앞자리 밀집배치 중...';
+
+      // 기존 서버 재정렬은
+      // companionGroup → 같은 기관 → 일반 참가자 순으로 연속좌석을 우선 사용하도록 설계되어 있음.
+      // VIP 등 autoAssignable=false 좌석은 후보에서 제외됨.
       const result = await jsonpRequest('adminReflowSeats', {});
 
       await refreshFromServer({ silent: true, full: true });
-      updateSeatPageCopy();
+      updateSeatV5Copy();
 
-      const moved = Number(result?.movedCount || 0);
       showToast(
-        `V4 적용 완료 · 미도착 ${moved}명 재정렬 · 도착자 ${arrived}명 유지`,
-        8000
+        `V5 완료 · ${Number(result?.movedCount || 0)}명 재정렬` +
+        (autoGrouped.linkedPeople ? ` · 같은 기관 ${autoGrouped.linkedPeople}명 자동묶음` : '') +
+        ` · VIP/보호좌석 유지`,
+        9000
       );
     } catch (error) {
-      console.error('[seat-layout-v4]', error);
-      showToast(`V4 좌석 적용 실패: ${error.message || error}`, 9000);
+      console.error(`[seat-layout-v5 ${VERSION}]`, error);
+      showToast(`V5 좌석 재정렬 실패: ${error.message || error}`, 9000);
       throw error;
     } finally {
       if (button) {
         button.disabled = false;
-        button.textContent = oldText || 'V4 좌석 구조 적용 + 미도착자 재정렬';
+        button.textContent = oldText || 'V5 앞자리 밀집배치 실행';
       }
     }
   }
 
-  window.applySeatLayoutV4 = applySeatLayoutV4;
-  window.reassignAllSeatsV31 = reassignAllSeatsV4;
-  try { reassignAllSeatsV31 = reassignAllSeatsV4; } catch (_) {}
+  // 기존 버튼이 호출하는 이름을 V5로 교체
+  window.reassignAllSeatsV31 = reassignAllSeatsV5;
+  window.reassignAllSeatsV5 = reassignAllSeatsV5;
+  window.inferredOrganizationGroupsV5 = inferredOrganizationGroups;
+
+  try { reassignAllSeatsV31 = reassignAllSeatsV5; } catch (_) {}
 
   document.addEventListener('DOMContentLoaded', () => {
-    updateSeatPageCopy();
-
-    // 초기 로딩/새로고침 후 관리자 문구가 다시 옛 내용으로 보이지 않게 한 번 더 보정
-    setTimeout(updateSeatPageCopy, 500);
-    setTimeout(updateSeatPageCopy, 1800);
+    updateSeatV5Copy();
+    setTimeout(updateSeatV5Copy, 500);
+    setTimeout(updateSeatV5Copy, 1800);
   });
 })();
