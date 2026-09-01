@@ -1,0 +1,12 @@
+
+.gm-panel{border:2px solid #dbe7ff}
+.gm-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:16px}
+.gm-section{min-width:0;padding:16px;border:1px solid var(--border);border-radius:14px;background:#fbfcff}
+.gm-section-title{display:flex;justify-content:space-between;gap:12px;margin-bottom:12px}.gm-section-title strong{display:block;color:var(--navy)}.gm-section-title span,.gm-section-title b{display:block;margin-top:3px;color:var(--muted);font-size:.82rem}
+.gm-search-row{display:grid;grid-template-columns:1fr auto;gap:8px}.gm-search-results{display:grid;gap:6px;max-height:280px;overflow:auto;margin-top:9px}
+.gm-result{display:flex;gap:9px;align-items:center;width:100%;padding:10px;border:1px solid var(--border);border-radius:11px;background:#fff;text-align:left}.gm-result.selected{border-color:#93b4ff;background:#eff6ff}.gm-result>b{width:27px;height:27px;display:grid;place-items:center;border-radius:50%;background:#eef2f7}.gm-result.selected>b{background:#2563eb;color:#fff}.gm-result span{min-width:0}.gm-result strong,.gm-result small{display:block}.gm-result small{margin-top:2px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.gm-result em{font-style:normal;color:#1d4ed8;font-size:.72rem}
+.gm-selected{display:flex;flex-wrap:wrap;gap:6px;margin:11px 0}.gm-selected>span{display:inline-flex;align-items:center;gap:4px;padding:5px 8px;border-radius:999px;background:#eef4ff;font-size:.8rem;font-weight:900}.gm-selected button{width:21px;height:21px;border:0;border-radius:50%;background:#fff}
+.gm-label{display:grid;gap:6px;font-weight:900;font-size:.9rem}.gm-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:11px}
+.gm-group-list{display:grid;gap:8px}.gm-group-card{padding:12px;border:1px solid var(--border);border-radius:12px;background:#fff}.gm-group-card strong,.gm-group-card small{display:block}.gm-group-card small{margin-top:2px;color:var(--muted)}.gm-members{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0}.gm-members span{padding:4px 6px;border-radius:7px;background:#f2f4f7;font-size:.76rem}
+.gm-divider{border:0;border-top:1px solid var(--border);margin:20px 0}.gm-message-options{display:grid;grid-template-columns:1fr 1fr;gap:12px}.gm-message-options label{display:grid;gap:6px;font-weight:900;font-size:.9rem}
+@media(max-width:900px){.gm-grid,.gm-message-options{grid-template-columns:1fr}}

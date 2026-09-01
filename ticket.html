@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>20주년 행사 QR 입장권</title>
+<style>
+:root{font-family:Pretendard,"Noto Sans KR","Apple SD Gothic Neo",Arial,sans-serif;color:#172033;background:#f5f7fb}*{box-sizing:border-box}body{margin:0}.wrap{width:min(520px,calc(100% - 28px));margin:28px auto}.card{padding:28px;border:1px solid #d9e0ea;border-radius:22px;background:#fff;text-align:center}.eyebrow{color:#667085;font-size:.75rem;font-weight:900;letter-spacing:.1em}.card h1{color:#172554}.qr{width:244px;min-height:244px;display:grid;place-items:center;margin:20px auto;padding:10px;border:1px solid #e5e7eb;border-radius:18px}.code{display:inline-block;padding:6px 10px;border-radius:999px;background:#eef4ff;color:#1d4ed8;font-size:.78rem;font-weight:900}.help{color:#475467;line-height:1.6}.btn{min-height:46px;display:grid;place-items:center;margin-top:18px;border-radius:12px;background:#2563eb;color:#fff;text-decoration:none;font-weight:900}.error{padding:14px;border-radius:12px;background:#fee2e2;color:#991b1b;font-weight:900}
+</style>
+</head>
+<body><main class="wrap"><section class="card">
+<p class="eyebrow">NAMYANGJU WELFARE CENTER · 20TH</p>
+<h1>20주년 행사 QR 입장권</h1>
+<p>현장 접수대에서 아래 QR을 보여주세요.</p>
+<div id="error" class="error" hidden></div><div id="qr" class="qr"></div><div id="label" class="code"></div>
+<p class="help">화면을 캡처해 두셔도 됩니다. 대표자로 지정된 경우 이 QR 하나로 동행그룹 전체 현장 확인이 가능합니다.</p>
+<a class="btn" href="./">행사 초대장 보기</a>
+</section></main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+(()=>{const p=new URLSearchParams(location.search),code=String(p.get('code')||'').trim().toUpperCase(),e=document.getElementById('error'),q=document.getElementById('qr'),l=document.getElementById('label');if(!/^[A-Z0-9_-]{4,100}$/.test(code)){e.hidden=false;e.textContent='올바른 QR 입장권 정보가 없습니다.';q.hidden=true;l.hidden=true;return}l.textContent='접수코드 '+code;new QRCode(q,{text:'NYJ20|'+code,width:224,height:224,correctLevel:QRCode.CorrectLevel.H})})();
+</script>
+</body></html>
