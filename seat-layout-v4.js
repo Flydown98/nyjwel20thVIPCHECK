@@ -17,8 +17,8 @@
   function allSeatCodes() {
     const out = [];
     ROWS.forEach(row => {
-      for (let n=1;n<=6;n++) out.push(seatCode(row,'L',n));
-      for (let n=1;n<=6;n++) out.push(seatCode(row,'R',n));
+      for (let n=1;n<=8;n++) out.push(seatCode(row,'L',n));
+      for (let n=1;n<=8;n++) out.push(seatCode(row,'R',n));
     });
     return out;
   }
@@ -130,7 +130,8 @@
   function runwayDistance(seat) {
     const p = seatParts(seat);
     if (!p) return 999;
-    return p.side === 'L' ? 6-p.no : p.no-1;
+    if (p.side === 'L') return p.no === 8 ? 7 : (p.no === 7 ? 6 : 6-p.no);
+    return p.no-1;
   }
 
   function compareSeat(a,b) {
@@ -210,14 +211,19 @@
   }
 
   function contiguousBlock(freeSet, size) {
+    const physical = {
+      L:[8,7,1,2,3,4,5,6],
+      R:[1,2,3,4,5,6,7,8]
+    };
     for (const row of ROWS) {
       const candidates = [];
       for (const side of ['L','R']) {
-        for (let start=1; start<=7-size; start++) {
-          const nums = Array.from({length:size},(_,i)=>start+i);
+        const order = physical[side];
+        for (let start=0; start<=order.length-size; start++) {
+          const nums = order.slice(start,start+size);
           const seats = nums.map(n=>seatCode(row,side,n));
           if (!seats.every(s=>freeSet.has(s))) continue;
-          const distance = side==='L' ? 6-Math.max(...nums) : Math.min(...nums)-1;
+          const distance = Math.max(...seats.map(runwayDistance));
           candidates.push({side,seats,distance});
         }
       }
@@ -378,13 +384,13 @@
     const heading = document.querySelector('#view-seats .section-heading .small-text');
     if (heading) {
       heading.innerHTML =
-        '<strong>V4.2 검증형 압축배치</strong><br>' +
+        '<strong>V4.4 · 400석 검증형 압축배치</strong><br>' +
         'VIP·도착자는 고정합니다. 미도착 휠체어 이용자는 휠체어 지정석에 먼저 배정하고, ' +
         '동행자는 반드시 붙이며, 같은 기관은 가까이 두되 <strong>앞자리 밀도를 최우선</strong>으로 합니다.';
     }
 
     const button = document.querySelector('#reassignAllSeatsButton');
-    if (button) button.textContent='V4 검증형 압축배치 실행';
+    if (button) button.textContent='V4 · 400석 압축배치 실행';
 
     const note = document.querySelector('.seat-reset-note');
     if (note) {
@@ -403,7 +409,7 @@
     if (r.genUnassigned.length) warnings.push(`일반/동행 연속석 부족: ${r.genUnassigned.map(p=>p.name).join(', ')}`);
 
     const ok = confirm(
-      `V4.2 검증형 압축배치를 실행할까요?\n\n`+
+      `V4.4 · 400석 검증형 압축배치를 실행할까요?\n\n`+
       `• 휠체어 재배치 대상 ${r.wcPeople.length}명\n`+
       `• 일반 재배치 대상 ${r.genPeople.length}명\n`+
       `• 명시적 동행그룹 ${r.comps.length}개\n`+
@@ -454,7 +460,7 @@
     } finally {
       if (button) {
         button.disabled=false;
-        button.textContent=oldText||'V4 검증형 압축배치 실행';
+        button.textContent=oldText||'V4 · 400석 압축배치 실행';
       }
     }
   }

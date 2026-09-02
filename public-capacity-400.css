@@ -1,0 +1,10 @@
+/* 400석 온라인 신청 마감 안내 */
+.seat350-full-modal.hidden{display:none!important}
+.seat350-full-modal{position:fixed;inset:0;z-index:99999;display:grid;place-items:center;padding:18px}
+.seat350-full-backdrop{position:absolute;inset:0;background:rgba(15,23,42,.66);backdrop-filter:blur(4px)}
+.seat350-full-card{position:relative;width:min(440px,100%);padding:28px 22px 22px;border-radius:22px;background:#fff;text-align:center;box-shadow:0 28px 80px rgba(15,23,42,.3)}
+.seat350-full-icon{display:inline-grid;place-items:center;min-width:62px;height:38px;padding:0 12px;border-radius:999px;background:#fff1f0;color:#b42318;font-weight:900}
+.seat350-full-card h2{margin:16px 0 10px;color:#172554;font-size:1.35rem;line-height:1.4}
+.seat350-full-card p{margin:0;color:#344054;line-height:1.75}
+.seat350-full-card small{display:block;margin-top:12px;color:#667085;line-height:1.6}
+.seat350-full-card button{width:100%;min-height:54px;margin-top:20px;border:0;border-radius:14px;background:#172554;color:#fff;font:inherit;font-weight:900;cursor:pointer}
