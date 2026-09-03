@@ -2,7 +2,7 @@
 
 /**
  * 남양주시장애인복지관 20주년
- * 자동 기관 그룹 QR 접수 addon v1.0
+ * 자동 기관 그룹 QR 접수 addon v1.1
  *
  * 동작
  * - 대표자를 미리 지정하지 않음
@@ -524,10 +524,24 @@
       if (installCheckInWrapper() || tries > 40) clearInterval(installTimer);
     }, 250);
 
-    // 참가자 명단 자동 새로고침 후 후보 목록도 따라 갱신
-    setInterval(() => {
-      if (!document.hidden) renderPanel();
-    }, 3000);
+    // v1.1: 3초마다 참가자 전체를 다시 계산하던 반복작업 제거.
+    // 실제 데이터가 갱신되거나 참가자 메뉴를 열었을 때만 후보를 다시 계산합니다.
+    let renderTimer = null;
+    const requestRender = () => {
+      clearTimeout(renderTimer);
+      renderTimer = setTimeout(() => {
+        if (document.hidden) return;
+        renderPanel();
+      }, 120);
+    };
+
+    window.addEventListener('nyj20:participants-rendered', requestRender);
+    window.addEventListener('nyj20:data-updated', event => {
+      if (event?.detail?.view === 'participants') requestRender();
+    });
+    window.addEventListener('nyj20:view-changed', event => {
+      if (event?.detail?.view === 'participants') requestRender();
+    });
   }
 
   if (document.readyState === 'loading') {
