@@ -1,4 +1,458 @@
-.easy-invitation-ui{}:root{--easy-blue:#1d4ed8;--easy-green:#147a4b;--easy-purple:#6d3fc0;--easy-orange:#b45309;--easy-ink:#172033;--easy-line:#d7dee8}.easy-quick-guide{width:min(760px,100%);margin:auto;padding:30px 20px 18px;background:#fff}.easy-quick-guide h2{text-align:center;margin:0 0 16px;font-size:1.45rem}.easy-quick-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.easy-quick-card{min-height:120px;padding:16px 13px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px solid var(--easy-line);border-radius:18px;text-align:center}.easy-quick-card b{width:34px;height:34px;display:grid;place-items:center;border-radius:50%;color:#fff;margin-bottom:7px}.c1 b{background:var(--easy-blue)}.c2 b{background:var(--easy-green)}.c3 b{background:var(--easy-purple)}.easy-quick-card p{margin:5px 0 0;color:#374151;font-size:.92rem}.easy-quick-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}.easy-quick-actions button{min-height:56px;border:0;border-radius:14px;color:#fff;font-weight:900;font-size:1rem}.easy-quick-actions button:first-child{background:var(--easy-blue)}.easy-quick-actions button:last-child{background:var(--easy-green)}
-.easy-more{margin:10px 0;border:1px solid var(--easy-line);border-radius:14px;background:#fff;overflow:hidden}.easy-more summary{min-height:50px;padding:11px 14px;display:flex;align-items:center;gap:9px;list-style:none;cursor:pointer;color:#334155;font-weight:800}.easy-more summary::-webkit-details-marker{display:none}.easy-more summary span{width:26px;height:26px;display:grid;place-items:center;border-radius:50%;background:#eef2ff;color:#3730a3}.easy-more-body{padding:14px 16px;border-top:1px solid var(--easy-line);color:#475569;line-height:1.75}.easy-short-copy{display:block;font-size:1rem;color:#334155}.easy-video-details>summary{justify-content:center;min-height:56px;background:#eef4ff;color:#1e3a8a}.easy-video-details .easy-more-body{padding:0}
-.application-form input:not([type=checkbox]),.application-form select,.application-form textarea{min-height:54px!important;padding:14px 16px!important;border:2px solid #cbd5e1!important;border-radius:14px!important;font-size:16px!important}.personal-check-card{min-height:64px!important;padding:13px 14px!important;border:2px solid #d7dee8!important;border-radius:14px!important}.personal-check-card input{width:25px!important;height:25px!important}.binary-choice-buttons label span{min-height:54px!important;display:grid!important;place-items:center!important;padding:10px 14px!important;border:2px solid #cbd5e1!important;border-radius:14px!important;font-weight:900!important}.binary-choice-buttons input:checked+span{border-color:var(--easy-blue)!important;background:#e8efff!important;color:#163a88!important}.submit-button,.outline-button,.compact-button,.program-apply-button,.application-reveal-button,.venue-map-button,.venue-copy-button{min-height:56px!important;border-radius:14px!important;padding:14px 18px!important;font-size:1rem!important;font-weight:900!important}.easy-primary{background:var(--easy-blue)!important;color:#fff!important;border-color:var(--easy-blue)!important}.easy-check{background:var(--easy-purple)!important;color:#fff!important;border-color:var(--easy-purple)!important}.easy-map{background:var(--easy-green)!important;color:#fff!important;border-color:var(--easy-green)!important}.easy-add{background:#fff7ed!important;color:#8a3c00!important;border:2px solid #c76b16!important}.easy-secondary{background:#fff!important;color:#334155!important;border:2px solid #64748b!important}button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:4px solid #ffbf00!important;outline-offset:3px!important;box-shadow:0 0 0 2px #111!important}
-@media(max-width:650px){.easy-quick-grid,.easy-quick-actions{grid-template-columns:1fr}.easy-quick-card{min-height:86px;display:grid;grid-template-columns:40px 1fr;grid-template-rows:auto auto;column-gap:10px;justify-items:start;text-align:left}.easy-quick-card b{grid-row:1/3;margin:0;align-self:center}}@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+/*
+ * 남양주시장애인복지관 20주년
+ * 쉬운 초대장 UI v1.2
+ * 큰 버튼 + 큰 글자 + 간단 행사안내
+ */
+
+:root{
+  --easy-blue:#1d4ed8;
+  --easy-blue-dark:#173ea6;
+  --easy-green:#147a4b;
+  --easy-purple:#6d3fc0;
+  --easy-orange:#b45309;
+  --easy-ink:#172033;
+  --easy-line:#d7dee8;
+}
+
+/* 전체 글자 가독성 */
+body{
+  line-height:1.72;
+}
+.section-heading h2,
+.intro-section h2,
+.program-section h2{
+  line-height:1.35!important;
+  letter-spacing:-.035em;
+}
+
+/* 맨 위 행사 확인 버튼 - 가장 눈에 띄게 */
+#heroProgramButton{
+  width:min(560px,92%)!important;
+  min-height:78px!important;
+  margin:24px auto 0!important;
+  padding:18px 26px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  border-radius:20px!important;
+  background:var(--easy-blue)!important;
+  border:3px solid var(--easy-blue)!important;
+  color:#fff!important;
+  font-size:1.28rem!important;
+  font-weight:900!important;
+  line-height:1.25!important;
+  box-shadow:0 10px 24px rgba(29,78,216,.25)!important;
+}
+#heroProgramButton::before{
+  content:'행사 안내';
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:30px;
+  margin-right:12px;
+  padding:4px 9px;
+  border-radius:999px;
+  background:rgba(255,255,255,.18);
+  font-size:.76rem;
+  letter-spacing:.01em;
+}
+#heroProgramButton:hover{
+  background:var(--easy-blue-dark)!important;
+  transform:translateY(-1px);
+}
+
+/* 한눈에 보기 */
+.easy-quick-guide{
+  width:min(820px,100%);
+  margin:auto;
+  padding:34px 20px 22px;
+  background:#fff;
+}
+.easy-quick-guide h2{
+  text-align:center;
+  margin:0 0 18px;
+  font-size:1.65rem;
+  color:var(--easy-ink);
+}
+.easy-quick-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:12px;
+}
+.easy-quick-card{
+  min-height:132px;
+  padding:18px 14px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  border:2px solid var(--easy-line);
+  border-radius:20px;
+  text-align:center;
+}
+.easy-quick-card b{
+  width:38px;
+  height:38px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  color:#fff;
+  margin-bottom:8px;
+  font-size:1rem;
+}
+.c1 b{background:var(--easy-blue)}
+.c2 b{background:var(--easy-green)}
+.c3 b{background:var(--easy-purple)}
+.easy-quick-card strong{
+  font-size:1.06rem;
+}
+.easy-quick-card p{
+  margin:6px 0 0;
+  color:#374151;
+  font-size:1rem;
+  line-height:1.5;
+}
+.easy-quick-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  margin-top:16px;
+}
+.easy-quick-actions button{
+  min-height:68px;
+  border:0;
+  border-radius:17px;
+  color:#fff;
+  font-weight:900;
+  font-size:1.12rem;
+  cursor:pointer;
+}
+.easy-quick-actions button:first-child{background:var(--easy-blue)}
+.easy-quick-actions button:last-child{background:var(--easy-green)}
+
+/* 행사 순서 - 내용을 줄이고 글자는 키움 */
+#program{
+  max-width:880px;
+  margin-left:auto;
+  margin-right:auto;
+}
+#program .program-visual-head{
+  margin-bottom:20px!important;
+}
+#programTitleText{
+  font-size:clamp(1.65rem,3vw,2.25rem)!important;
+}
+#programIntroText{
+  max-width:620px;
+  font-size:1.06rem!important;
+  line-height:1.7!important;
+}
+#programTimeline{
+  display:grid!important;
+  gap:12px!important;
+}
+#programTimeline .easy-simple-program{
+  min-height:94px!important;
+  padding:18px 20px!important;
+  border-radius:18px!important;
+}
+#programTimeline .program-time{
+  font-size:1rem!important;
+  font-weight:900!important;
+  white-space:nowrap;
+}
+#programTimeline .program-copy h3{
+  margin:0!important;
+  font-size:1.18rem!important;
+  line-height:1.4!important;
+}
+#programTimeline .program-copy p{
+  margin:6px 0 0!important;
+  font-size:1rem!important;
+  line-height:1.55!important;
+}
+.program-change-note{
+  font-size:.9rem!important;
+}
+
+/* 자세히 보기 */
+.easy-more{
+  margin:10px 0;
+  border:1px solid var(--easy-line);
+  border-radius:14px;
+  background:#fff;
+  overflow:hidden;
+}
+.easy-more summary{
+  min-height:58px;
+  padding:13px 16px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  list-style:none;
+  cursor:pointer;
+  color:#334155;
+  font-weight:900;
+  font-size:1rem;
+}
+.easy-more summary::-webkit-details-marker{display:none}
+.easy-more summary span{
+  width:28px;
+  height:28px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:#eef2ff;
+  color:#3730a3;
+}
+.easy-more-body{
+  padding:15px 17px;
+  border-top:1px solid var(--easy-line);
+  color:#475569;
+  line-height:1.75;
+  font-size:1rem;
+}
+.easy-short-copy{
+  display:block;
+  font-size:1.04rem;
+  color:#334155;
+}
+.easy-video-details>summary{
+  justify-content:center;
+  min-height:64px;
+  background:#eef4ff;
+  color:#1e3a8a;
+}
+.easy-video-details .easy-more-body{padding:0}
+
+/* 입력란 */
+.application-form input:not([type=checkbox]),
+.application-form select,
+.application-form textarea{
+  min-height:60px!important;
+  padding:16px 17px!important;
+  border:2px solid #cbd5e1!important;
+  border-radius:15px!important;
+  font-size:17px!important;
+}
+.application-form label > span{
+  font-size:1.04rem!important;
+  font-weight:800!important;
+}
+.personal-check-card{
+  min-height:72px!important;
+  padding:15px!important;
+  border:2px solid #d7dee8!important;
+  border-radius:15px!important;
+}
+.personal-check-card input{
+  width:28px!important;
+  height:28px!important;
+}
+.binary-choice-buttons label span{
+  min-height:62px!important;
+  display:grid!important;
+  place-items:center!important;
+  padding:12px 15px!important;
+  border:2px solid #cbd5e1!important;
+  border-radius:15px!important;
+  font-weight:900!important;
+  font-size:1.04rem!important;
+}
+.binary-choice-buttons input:checked+span{
+  border-color:var(--easy-blue)!important;
+  background:#e8efff!important;
+  color:#163a88!important;
+}
+
+/* 모든 주요 버튼을 크게 */
+.submit-button,
+.outline-button,
+.compact-button,
+.program-apply-button,
+.application-reveal-button,
+.venue-map-button,
+.venue-copy-button,
+#privacyDetailsButton,
+.groupPrivacyDetailsButton,
+#addGroupMemberButton,
+#lookupButton,
+#showRememberedTicketButton,
+#additionalParticipantButton,
+#downloadTicketButton,
+#downloadQrButton{
+  min-height:66px!important;
+  border-radius:17px!important;
+  padding:16px 22px!important;
+  font-size:1.08rem!important;
+  font-weight:900!important;
+  line-height:1.35!important;
+}
+
+/* 신청 버튼은 더 크게 + 파란색 */
+#submitButton,
+#groupSubmitButton,
+#revealApplicationButton,
+#programApplyButton{
+  width:min(620px,100%)!important;
+  min-height:74px!important;
+  margin-left:auto!important;
+  margin-right:auto!important;
+  background:var(--easy-blue)!important;
+  border:3px solid var(--easy-blue)!important;
+  color:#fff!important;
+  font-size:1.18rem!important;
+  box-shadow:0 9px 20px rgba(29,78,216,.2)!important;
+}
+#programApplyButton{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:3px!important;
+}
+#programApplyButton span{
+  font-size:.88rem!important;
+  opacity:.9;
+}
+#programApplyButton strong{
+  font-size:1.18rem!important;
+}
+
+/* 버튼 색 구분 */
+.easy-primary{
+  background:var(--easy-blue)!important;
+  color:#fff!important;
+  border-color:var(--easy-blue)!important;
+}
+.easy-check{
+  background:var(--easy-purple)!important;
+  color:#fff!important;
+  border-color:var(--easy-purple)!important;
+}
+.easy-map{
+  background:var(--easy-green)!important;
+  color:#fff!important;
+  border-color:var(--easy-green)!important;
+}
+.easy-add{
+  background:#fff7ed!important;
+  color:#8a3c00!important;
+  border:2px solid #c76b16!important;
+}
+.easy-secondary{
+  background:#fff!important;
+  color:#334155!important;
+  border:2px solid #64748b!important;
+}
+
+/* 작은 텍스트 버튼도 터치 영역 확보 */
+.text-button,
+.privacy-modal-close,
+.group-member-remove{
+  min-height:48px!important;
+  padding:10px 14px!important;
+  font-size:1rem!important;
+}
+
+/* 키보드 포커스 */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible{
+  outline:4px solid #ffbf00!important;
+  outline-offset:3px!important;
+  box-shadow:0 0 0 2px #111!important;
+}
+
+/* 모바일에서도 확실히 크게 */
+@media(max-width:650px){
+  #heroProgramButton{
+    width:100%!important;
+    min-height:76px!important;
+    margin-top:20px!important;
+    border-radius:17px!important;
+    font-size:1.18rem!important;
+  }
+  #heroProgramButton::before{
+    font-size:.72rem;
+    margin-right:9px;
+  }
+
+  .easy-quick-grid,
+  .easy-quick-actions{
+    grid-template-columns:1fr;
+  }
+  .easy-quick-card{
+    min-height:94px;
+    display:grid;
+    grid-template-columns:44px 1fr;
+    grid-template-rows:auto auto;
+    column-gap:12px;
+    justify-items:start;
+    text-align:left;
+  }
+  .easy-quick-card b{
+    grid-row:1/3;
+    margin:0;
+    align-self:center;
+  }
+  .easy-quick-actions button{
+    min-height:68px;
+    font-size:1.08rem;
+  }
+
+  #programTimeline .easy-simple-program{
+    padding:17px 16px!important;
+  }
+  #programTimeline .program-time{
+    font-size:.94rem!important;
+  }
+  #programTimeline .program-copy h3{
+    font-size:1.1rem!important;
+  }
+  #programTimeline .program-copy p{
+    font-size:.96rem!important;
+  }
+
+  .submit-button,
+  .outline-button,
+  .compact-button,
+  .program-apply-button,
+  .application-reveal-button,
+  .venue-map-button,
+  .venue-copy-button,
+  #privacyDetailsButton,
+  .groupPrivacyDetailsButton,
+  #addGroupMemberButton,
+  #lookupButton,
+  #showRememberedTicketButton,
+  #additionalParticipantButton,
+  #downloadTicketButton,
+  #downloadQrButton{
+    width:100%!important;
+    min-height:66px!important;
+    font-size:1.06rem!important;
+  }
+
+  #submitButton,
+  #groupSubmitButton,
+  #revealApplicationButton,
+  #programApplyButton{
+    min-height:76px!important;
+    font-size:1.16rem!important;
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  *,
+  *::before,
+  *::after{
+    animation-duration:.01ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:.01ms!important;
+    scroll-behavior:auto!important;
+  }
+}

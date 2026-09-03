@@ -2,7 +2,7 @@
 
 /**
  * 남양주시장애인복지관 20주년
- * 쉬운 초대장 + public.js 자동복구 v1.1
+ * 쉬운 초대장 + 큰 버튼 + 간단 행사안내 v1.2
  *
  * 현재 public.js 맨 끝에 HTML <script> 태그가 잘못 들어가면
  * 브라우저가 public.js 전체를 실행하지 못해 '초대장 열기' 버튼도 동작하지 않습니다.
@@ -178,12 +178,90 @@
     });
   }
 
+
+  let simplifyingProgram = false;
+
+  function simplifyProgramTimeline() {
+    const list = $('#programTimeline');
+    if (!list || simplifyingProgram) return;
+
+    if (list.querySelector('[data-easy-simple-program="1"]')) return;
+
+    simplifyingProgram = true;
+    try {
+      set('#programTitleText', '행사는 이렇게 진행돼요');
+      set(
+        '#programIntroText',
+        '접수부터 공연, 런웨이, 기념식, 비전 선포 순으로 진행됩니다.'
+      );
+
+      list.innerHTML = `
+        <article class="program-timeline-item easy-simple-program" data-easy-simple-program="1">
+          <div class="program-time">13:00~14:00</div>
+          <div class="program-copy">
+            <h3>접수 · 식전공연</h3>
+            <p>QR 확인 후 공연과 함께 행사를 시작합니다.</p>
+          </div>
+        </article>
+        <article class="program-timeline-item easy-simple-program" data-easy-simple-program="1">
+          <div class="program-time">14:00~14:20</div>
+          <div class="program-copy">
+            <h3>인클루시브 런웨이</h3>
+            <p>Stage 1 · Bridge · Stage 2 · Finale</p>
+          </div>
+        </article>
+        <article class="program-timeline-item easy-simple-program" data-easy-simple-program="1">
+          <div class="program-time">14:20~14:55</div>
+          <div class="program-copy">
+            <h3>20주년 기념식</h3>
+            <p>환영사 · 내빈 소개 · 시상 · 축사</p>
+          </div>
+        </article>
+        <article class="program-timeline-item easy-simple-program" data-easy-simple-program="1">
+          <div class="program-time">14:55~15:15</div>
+          <div class="program-copy">
+            <h3>사례공유 · 비전 선포</h3>
+            <p>앞으로의 복지관과 새로운 약속을 함께 나눕니다.</p>
+          </div>
+        </article>
+        <article class="program-timeline-item easy-simple-program" data-easy-simple-program="1">
+          <div class="program-time">15:15~15:20</div>
+          <div class="program-copy">
+            <h3>기념촬영 · 마무리</h3>
+            <p>함께 사진을 찍고 행사를 마칩니다.</p>
+          </div>
+        </article>
+      `;
+    } finally {
+      simplifyingProgram = false;
+    }
+  }
+
+  function watchProgramTimeline() {
+    const list = $('#programTimeline');
+    if (!list || list.dataset.easyProgramWatching === '1') return;
+    list.dataset.easyProgramWatching = '1';
+
+    const observer = new MutationObserver(() => {
+      if (simplifyingProgram) return;
+      if (!list.querySelector('[data-easy-simple-program="1"]')) {
+        setTimeout(simplifyProgramTimeline, 0);
+      }
+    });
+    observer.observe(list, { childList: true, subtree: false });
+
+    simplifyProgramTimeline();
+    setTimeout(simplifyProgramTimeline, 800);
+    setTimeout(simplifyProgramTimeline, 1800);
+  }
+
   function applyEasyUi() {
     if (document.documentElement.dataset.easyInvitationV11 === '1') return;
     document.documentElement.dataset.easyInvitationV11 = '1';
 
     quickGuide();
-    set('#heroProgramButton', '행사 순서 보기');
+    watchProgramTimeline();
+    set('#heroProgramButton', '행사 확인하기');
 
     const badge = $('.application-personal-badge');
     if (badge) badge.textContent = '한 사람씩 QR을 받아요';
@@ -253,6 +331,17 @@
       set('#addGroupMemberButton', '＋ 사람 추가');
       set('#groupSubmitButton', '함께 신청하고 QR 받기');
     }
+
+    const programApply = $('#programApplyButton');
+    if (programApply) {
+      const span = programApply.querySelector('span');
+      const strong = programApply.querySelector('strong');
+      if (span) span.textContent = '행사 내용을 확인했어요';
+      if (strong) strong.textContent = '참가 신청하기';
+    }
+
+    const revealApply = $('#revealApplicationButton span');
+    if (revealApply) revealApply.textContent = '참가 신청하기';
 
     set('#lookup .section-heading h2', '내 신청 확인');
     const lp = $('#lookup .section-heading > p:last-child');
