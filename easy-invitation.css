@@ -456,3 +456,161 @@ summary:focus-visible{
     scroll-behavior:auto!important;
   }
 }
+
+
+/* v1.3 본행사 통합 표현 */
+#programTimeline .easy-main-program{
+  position:relative;
+  padding:22px!important;
+  border:2px solid rgba(29,78,216,.24)!important;
+  background:linear-gradient(180deg,#f7f9ff 0%,#ffffff 100%)!important;
+}
+#programTimeline .easy-main-program::before{
+  content:'';
+  position:absolute;
+  left:0;
+  top:18px;
+  bottom:18px;
+  width:5px;
+  border-radius:0 999px 999px 0;
+  background:var(--easy-blue);
+}
+.easy-main-program-head{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:9px;
+}
+.easy-main-program-head h3{
+  margin:0!important;
+  font-size:1.34rem!important;
+  color:#162b5c!important;
+}
+.easy-main-program-badge{
+  display:inline-flex;
+  align-items:center;
+  min-height:29px;
+  padding:4px 9px;
+  border-radius:999px;
+  background:#e8efff;
+  color:#1d4ed8;
+  font-size:.72rem;
+  font-weight:900;
+  letter-spacing:.04em;
+}
+.easy-main-program-summary{
+  margin:9px 0 14px!important;
+  font-size:1rem!important;
+  color:#475569!important;
+}
+.easy-main-program-flow{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:7px;
+  margin:0 0 14px;
+}
+.easy-main-program-flow span{
+  display:inline-flex;
+  align-items:center;
+  min-height:34px;
+  padding:6px 10px;
+  border-radius:10px;
+  background:#fff;
+  border:1px solid #dbe4f2;
+  color:#334155;
+  font-size:.88rem;
+  font-weight:800;
+}
+.easy-main-program-flow i{
+  color:#8ca0bd;
+  font-style:normal;
+  font-weight:900;
+}
+.easy-main-program-feature{
+  display:grid;
+  grid-template-columns:auto 1fr;
+  gap:14px;
+  align-items:center;
+  padding:15px 16px;
+  border-radius:15px;
+  background:#eef4ff;
+  border:1px solid #bfd0f5;
+}
+.easy-main-program-feature-time{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:38px;
+  padding:7px 10px;
+  border-radius:10px;
+  background:#fff;
+  color:#1d4ed8;
+  font-size:.84rem;
+  font-weight:900;
+  white-space:nowrap;
+}
+.easy-main-program-feature strong{
+  display:block;
+  color:#173a84;
+  font-size:1.08rem;
+  line-height:1.4;
+}
+.easy-main-program-feature p{
+  margin:4px 0 0!important;
+  color:#475569!important;
+  font-size:.94rem!important;
+  line-height:1.5!important;
+}
+#programTimeline .easy-runway-program{
+  border:1px solid rgba(109,63,192,.16)!important;
+}
+
+@media(max-width:650px){
+  #programTimeline .easy-main-program{
+    padding:19px 16px!important;
+  }
+  .easy-main-program-head{
+    align-items:flex-start;
+    flex-direction:column;
+    gap:7px;
+  }
+  .easy-main-program-head h3{
+    font-size:1.22rem!important;
+  }
+  .easy-main-program-flow{
+    gap:5px;
+  }
+  .easy-main-program-flow span{
+    font-size:.8rem;
+    min-height:31px;
+    padding:5px 8px;
+  }
+  .easy-main-program-feature{
+    grid-template-columns:1fr;
+    gap:8px;
+    padding:14px;
+  }
+  .easy-main-program-feature-time{
+    width:max-content;
+  }
+  .easy-main-program-feature strong{
+    font-size:1.04rem;
+  }
+}
+
+
+/* v1.4 사례공유 · 비전 선포 시간표시 제거 */
+.easy-main-program-feature-no-time{
+  grid-template-columns:1fr!important;
+  gap:0!important;
+  padding:16px 18px!important;
+}
+.easy-main-program-feature-no-time strong{
+  font-size:1.1rem!important;
+}
+@media(max-width:650px){
+  .easy-main-program-feature-no-time{
+    padding:14px!important;
+  }
+}
