@@ -339,7 +339,7 @@ window.NYJ20_CONFIG = {
   window.addEventListener('load', () => {
     if (document.querySelector('script[data-auto-org-group-addon]')) return;
     const script = document.createElement('script');
-    script.src = 'admin-auto-org-group.js?v=1.1';
+    script.src = 'admin-auto-org-group.js?v=2.0';
     script.defer = true;
     script.dataset.autoOrgGroupAddon = '1';
     document.body.appendChild(script);
@@ -361,7 +361,7 @@ window.NYJ20_CONFIG = {
   window.addEventListener('load', () => {
     if (document.querySelector('script[data-group-view-addon]')) return;
     const script = document.createElement('script');
-    script.src = 'admin-group-auto-view.js?v=2.0';
+    script.src = 'admin-group-auto-view.js?v=3.0';
     script.defer = true;
     script.dataset.groupViewAddon = '1';
     document.body.appendChild(script);

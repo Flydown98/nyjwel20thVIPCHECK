@@ -5,8 +5,8 @@
     const heading=document.querySelector('#view-seats .section-heading .small-text');
     if(heading){
       heading.innerHTML=
-        '<strong>V6.0 · 좌석 구역 엄격 적용</strong><br>'+
-        'A~C 주요 내빈 인사 · D~F 내빈 관련 인사 · 지정된 파란 좌석만 장애인·휠체어석 · G~Y 일반석';
+        '<strong>V6.2 · 좌석구역 엄격 재배치</strong><br>'+
+        'A~C 주요 내빈 인사 · D~F 내빈 관련 인사 · A~C 양끝 파란 구역은 휠체어·보호자 좌석 · G~Y 일반석';
     }
 
     const button=document.querySelector('#reassignAllSeatsButton');
@@ -15,7 +15,7 @@
     const note=document.querySelector('.seat-reset-note');
     if(note){
       note.textContent=
-        '내빈 지정좌석의 기존 배정자는 유지하고, 휠체어 이용자는 파란 지정석으로, 나머지는 G~Y 일반석으로 다시 배치합니다.';
+        '핵심 내빈 지정자만 보호하고, 휠체어 이용자와 같은 동반그룹 보호자는 파란 구역에 함께 배치하며, 나머지는 G~Y 일반석으로 강제 재배치합니다.';
     }
   }
 
@@ -30,15 +30,15 @@
     const wc=active.filter(p=>!p.arrived&&p.wheelchairUser).length;
 
     const ok=confirm(
-      `V6.0 좌석 구역 적용 + 전체 재배치를 실행할까요?\n\n`+
+      `V6.2 좌석 구역 엄격 재배치를 실행할까요?\n\n`+
       `구역\n`+
       `• A~C : 주요 내빈 인사\n`+
       `• D~F : 내빈 관련 인사\n`+
-      `• 장애인·휠체어석 : AL01~03, BL01~03, AR06~08, BR06~08, CR06~08\n`+
+      `• 장애인·휠체어/보호자 구역 : AL01~04, BL01~04, CL01~04, AR06~08, BR05~08, CR05~08\n`+
       `• G~Y : 일반석 304석\n\n`+
       `재배치\n`+
-      `• 새 내빈석에 이미 배정된 사람은 최대한 현재 자리 유지\n`+
-      `• 휠체어 이용자는 지정 장애인석으로 이동\n`+
+      `• AL07·08, AR01~05 또는 VIP 표식이 있는 사람만 내빈으로 보호\n`+
+      `• 휠체어 이용자 + 같은 동반그룹 보호자를 파란 블록에 함께 배치\n`+
       `• 나머지는 G~Y 일반석에만 배치\n`+
       `• 동반/같은 기관을 붙이되 그룹의 최초 신청번호 순으로 배치\n`+
       `• 이미 도착한 ${arrived}명은 이동하지 않음\n\n`+
@@ -62,7 +62,7 @@
 
       showToast(
         `재배치 완료 · ${r.movedCount}명 · 내빈보호 ${r.vipProtectedCount}명 · `+
-        `휠체어 ${r.wheelchairCount}/${r.wheelchairCapacity} · 일반 ${r.generalCount}명`+
+        `휠체어 ${r.wheelchairUserCount}명 · 파란구역 ${r.wheelchairZoneUsed}/${r.wheelchairCapacity}석 · 일반 ${r.generalCount}명`+
         (warn.length?` · ${warn.join(' / ')}`:''),
         11000
       );
