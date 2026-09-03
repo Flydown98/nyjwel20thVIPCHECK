@@ -1,309 +1,312 @@
 'use strict';
 
-/**
- * 현재 대표자 그룹 + 자동 기관 그룹 통합 표시 v1.0
- *
- * 기존 수동 대표자 그룹은 그대로 표시.
- * 같은 소속기관 2명 이상인 자동 그룹 후보도 오른쪽 "현재 대표자 그룹"에 함께 표시.
- * 자동 그룹은 대표자 미지정 상태이며 QR을 누가 찍든 그룹 확인창이 뜨는 구조.
- */
 (() => {
   const MASTER_RE = /\[REPQR:MASTER:([A-Z0-9_-]+)\]/i;
   const MEMBER_RE = /\[REPQR:MEMBER:([A-Z0-9_-]+)\]/i;
-
+  const LABEL_RE = /\[REPQR:LABEL:([^\]]+)\]/i;
   const INTERNAL_PATTERNS = [
-    '남양주시장애인복지관',
-    '사회서비스',
-    '활동지원사',
-    '활동지원팀',
-    '활동지원',
-    '이용인',
-    '낮활동팀',
-    '낮활동',
-    '주간활동팀',
-    '주간활동',
-    '직업재활팀',
-    '기획협력지원팀',
-    '지역융합서비스팀',
-    '운영지원팀',
-    '직원',
-    '복지관직원'
+    '남양주시장애인복지관','사회서비스','활동지원사','활동지원팀','활동지원',
+    '이용인','낮활동팀','낮활동','주간활동팀','주간활동','직업재활팀',
+    '기획협력지원팀','지역융합서비스팀','운영지원팀','직원','복지관직원'
   ];
 
-  const esc = v => String(v ?? '')
-    .replaceAll('&','&amp;')
-    .replaceAll('<','&lt;')
-    .replaceAll('>','&gt;')
-    .replaceAll('"','&quot;')
-    .replaceAll("'",'&#039;');
+  const esc=v=>String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;')
+    .replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
 
-  const normalizeOrg = value => String(value || '')
-    .trim()
-    .toLowerCase()
-    .replace(/[㈜]/g,'주식회사')
-    .replace(/\(주\)/g,'주식회사')
-    .replace(/\s+/g,'')
-    .replace(/[·ㆍ.,]/g,'');
+  const normalizeOrg=value=>String(value||'').trim().toLowerCase()
+    .replace(/[㈜]/g,'주식회사').replace(/\(주\)/g,'주식회사')
+    .replace(/\s+/g,'').replace(/[·ㆍ.,]/g,'');
 
-  const isInternalOrg = value => {
-    const normalized = normalizeOrg(value);
-    if (!normalized) return true;
-    return INTERNAL_PATTERNS.some(pattern =>
-      normalized.includes(normalizeOrg(pattern))
-    );
+  const isInternalOrg=value=>{
+    const n=normalizeOrg(value);
+    return !n || INTERNAL_PATTERNS.some(p=>n.includes(normalizeOrg(p)));
   };
 
-  function markerInfo(p) {
-    const note = String(p?.note || '');
-    let m = note.match(MASTER_RE);
-    if (m) return { role:'master', representativeId:m[1].toUpperCase() };
-    m = note.match(MEMBER_RE);
-    if (m) return { role:'member', representativeId:m[1].toUpperCase() };
+  function markerInfo(p){
+    const note=String(p?.note||'');
+    let m=note.match(MASTER_RE);
+    if(m)return{role:'master',representativeId:m[1].toUpperCase()};
+    m=note.match(MEMBER_RE);
+    if(m)return{role:'member',representativeId:m[1].toUpperCase()};
     return null;
   }
 
-  function participants() {
-    try {
-      return Array.isArray(state?.participants) ? state.participants : [];
-    } catch (_) {
-      return [];
-    }
+  function groupLabel(rep){
+    const m=String(rep?.note||'').match(LABEL_RE);
+    if(!m)return'';
+    try{return decodeURIComponent(m[1])}catch(_){return m[1]}
   }
 
-  function manualGroups() {
-    const rows = participants();
-    return rows
-      .filter(p => markerInfo(p)?.role === 'master')
-      .map(rep => {
-        const members = rows.filter(p =>
-          markerInfo(p)?.representativeId === String(rep.id).toUpperCase()
-        );
-        return { rep, members };
-      });
+  function rows(){
+    try{return Array.isArray(state?.participants)?state.participants:[]}catch(_){return[]}
   }
 
-  function autoGroups() {
-    const rows = participants();
-    const manualIds = new Set();
-
-    manualGroups().forEach(group => {
-      group.members.forEach(p => manualIds.add(String(p.id)));
+  function manualGroups(){
+    const all=rows();
+    return all.filter(p=>markerInfo(p)?.role==='master').map(rep=>{
+      const members=all.filter(p=>markerInfo(p)?.representativeId===String(rep.id).toUpperCase());
+      return{rep,members,label:groupLabel(rep)};
     });
+  }
 
-    const map = new Map();
+  function autoGroups(){
+    const all=rows(),manualIds=new Set();
+    manualGroups().forEach(g=>g.members.forEach(p=>manualIds.add(String(p.id))));
+    const map=new Map();
 
-    rows.forEach(p => {
-      if (!p || p.active === false) return;
-      if (String(p.participationStatus || '참여') === '미참여') return;
-      if (manualIds.has(String(p.id))) return;
-
-      const org = String(p.organization || '').trim();
-      if (!org || isInternalOrg(org)) return;
-
-      const key = normalizeOrg(org);
-      if (!key) return;
-
-      if (!map.has(key)) {
-        map.set(key, {
-          key,
-          organization: org,
-          members: []
-        });
-      }
+    all.forEach(p=>{
+      if(!p||p.active===false||String(p.participationStatus||'참여')==='미참여')return;
+      if(manualIds.has(String(p.id)))return;
+      const org=String(p.organization||'').trim();
+      if(!org||isInternalOrg(org))return;
+      const key=normalizeOrg(org);
+      if(!map.has(key))map.set(key,{key,organization:org,members:[]});
       map.get(key).members.push(p);
     });
 
-    return [...map.values()]
-      .filter(group => group.members.length >= 2)
-      .map(group => ({
-        ...group,
-        arrived: group.members.filter(p => p.arrived).length,
-        pending: group.members.filter(p => !p.arrived).length
-      }))
-      .sort((a,b) =>
-        b.members.length - a.members.length ||
-        a.organization.localeCompare(b.organization,'ko')
-      );
+    return[...map.values()].filter(g=>g.members.length>=2).map(g=>({
+      ...g,
+      arrived:g.members.filter(p=>p.arrived).length,
+      pending:g.members.filter(p=>!p.arrived).length
+    })).sort((a,b)=>b.members.length-a.members.length||a.organization.localeCompare(b.organization,'ko'));
   }
 
-  function ensureStyles() {
-    if (document.getElementById('gmAutoViewStyles')) return;
-    const style = document.createElement('style');
-    style.id = 'gmAutoViewStyles';
-    style.textContent = `
-      #gmGroupList .gm-auto-group-card{
-        border:1px solid #c9d8f2;
-        background:#f8fbff;
-      }
-      #gmGroupList .gm-auto-head{
-        display:flex;
-        justify-content:space-between;
-        align-items:flex-start;
-        gap:8px;
-      }
-      #gmGroupList .gm-auto-badge{
-        display:inline-flex;
-        align-items:center;
-        min-height:25px;
-        padding:3px 8px;
-        border-radius:999px;
-        background:#e8f0ff;
-        color:#1d4ed8;
-        font-size:.72rem;
-        font-weight:900;
-        white-space:nowrap;
-      }
-      #gmGroupList .gm-auto-note{
-        margin-top:7px;
-        color:#53657d;
-        font-size:.78rem;
-        line-height:1.45;
-      }
-      #gmGroupList .gm-list-divider{
-        display:flex;
-        align-items:center;
-        gap:8px;
-        margin:12px 0 7px;
-        color:#64748b;
-        font-size:.77rem;
-        font-weight:900;
-      }
-      #gmGroupList .gm-list-divider::before,
-      #gmGroupList .gm-list-divider::after{
-        content:'';
-        flex:1;
-        height:1px;
-        background:#dbe3ef;
-      }
-      #gmGroupList .gm-auto-count{
-        color:#1d4ed8;
-        font-weight:900;
-      }
+  function ensureStyles(){
+    if(document.getElementById('gmCompactV2Styles'))return;
+    const s=document.createElement('style');
+    s.id='gmCompactV2Styles';
+    s.textContent=`
+      #gmGroupList{display:grid;gap:7px}
+      .gmcv-divider{font-size:.76rem;font-weight:900;color:#64748b;margin:9px 2px 2px}
+      .gmcv-card{border:1px solid #d9e2ef;border-radius:12px;background:#fff;overflow:hidden}
+      .gmcv-head{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;
+        padding:11px 12px;border:0;background:transparent;text-align:left;cursor:pointer}
+      .gmcv-head:hover{background:#f8fafc}
+      .gmcv-title{min-width:0}
+      .gmcv-title strong{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#172554}
+      .gmcv-title small{display:block;margin-top:2px;color:#64748b}
+      .gmcv-side{display:flex;align-items:center;gap:7px;flex:none}
+      .gmcv-badge{padding:4px 7px;border-radius:999px;background:#eef4ff;color:#1d4ed8;font-size:.7rem;font-weight:900}
+      .gmcv-arrow{font-size:1rem;color:#64748b;transition:.15s}
+      .gmcv-card.open .gmcv-arrow{transform:rotate(180deg)}
+      .gmcv-body{display:none;padding:0 12px 12px;border-top:1px solid #eef2f7}
+      .gmcv-card.open .gmcv-body{display:block}
+      .gmcv-members{display:flex;flex-wrap:wrap;gap:6px;padding:10px 0}
+      .gmcv-members span{padding:4px 8px;border-radius:999px;background:#f1f5f9;font-size:.78rem}
+      .gmcv-actions{display:flex;gap:7px;flex-wrap:wrap}
+      .gmcv-note{font-size:.8rem;color:#64748b;line-height:1.5;margin:2px 0 9px}
+      .gmcv-auto{background:#fbfdff}
+      .gm-edit-grid{display:grid;gap:12px}
+      .gm-edit-members{display:flex;flex-wrap:wrap;gap:7px}
+      .gm-edit-chip{display:inline-flex;align-items:center;gap:5px;padding:6px 8px;border-radius:999px;background:#eef2f7}
+      .gm-edit-chip button{border:0;background:transparent;cursor:pointer;font-weight:900}
+      .gm-edit-search-results{display:grid;gap:6px;max-height:220px;overflow:auto}
+      .gm-edit-result{display:flex;justify-content:space-between;gap:10px;padding:9px 10px;border:1px solid #dbe3ef;
+        border-radius:10px;background:#fff;cursor:pointer;text-align:left}
+      @media(max-width:650px){.gmcv-head{padding:10px}.gmcv-side{gap:4px}.gmcv-badge{display:none}}
     `;
-    document.head.appendChild(style);
+    document.head.appendChild(s);
   }
 
-  function renderCombined() {
-    const host = document.querySelector('#gmGroupList');
-    if (!host) return;
-
+  function render(){
+    const host=document.querySelector('#gmGroupList');
+    if(!host)return;
     ensureStyles();
 
-    const manual = manualGroups();
-    const auto = autoGroups();
+    const manual=manualGroups(),auto=autoGroups();
+    const html=[];
 
-    const manualHtml = manual.map(g => `
-      <div class="gm-group-card">
-        <div>
-          <strong>👑 ${esc(g.rep.name)}</strong>
-          <small>${g.members.length}명 · ${esc(g.rep.id)}</small>
-        </div>
-        <div class="gm-members">
-          ${g.members.map(p =>
-            `<span>${esc(p.name)}${p.id===g.rep.id?' · 대표':''}</span>`
-          ).join('')}
-        </div>
-        <button
-          type="button"
-          class="button small secondary"
-          data-clear="${esc(g.rep.id)}"
-        >그룹 해제</button>
-      </div>
-    `).join('');
-
-    const autoHtml = auto.map(g => `
-      <div class="gm-group-card gm-auto-group-card">
-        <div class="gm-auto-head">
-          <div>
-            <strong>🏢 ${esc(g.organization)}</strong>
-            <small>
-              ${g.members.length}명 · 도착 ${g.arrived}명 · 미도착 ${g.pending}명
-            </small>
-          </div>
-          <span class="gm-auto-badge">대표자 미지정</span>
-        </div>
-
-        <div class="gm-members">
-          ${g.members.map(p =>
-            `<span>${esc(p.name)}${p.arrived?' · 도착':''}</span>`
-          ).join('')}
-        </div>
-
-        <div class="gm-auto-note">
-          이 그룹은 대표자를 미리 정하지 않습니다.
-          구성원 중 누구의 QR을 찍어도
-          <strong>‘이 사람만 / 같은 기관 함께 도착’</strong> 선택창이 표시됩니다.
-        </div>
-      </div>
-    `).join('');
-
-    if (!manual.length && !auto.length) {
-      host.innerHTML =
-        '<div class="empty-state compact">현재 묶을 수 있는 대표자·기관 그룹이 없습니다.</div>';
-      return;
+    if(manual.length){
+      html.push(`<div class="gmcv-divider">직접 지정 대표자 그룹 · ${manual.length}개</div>`);
+      manual.forEach(g=>{
+        const title=g.label||g.rep.organization||`${g.rep.name} 대표 그룹`;
+        html.push(`
+          <div class="gmcv-card" data-manual-card="${esc(g.rep.id)}">
+            <button class="gmcv-head" type="button" data-toggle-card="${esc(g.rep.id)}">
+              <div class="gmcv-title">
+                <strong>👑 ${esc(title)}</strong>
+                <small>${g.members.length}명 · 대표 ${esc(g.rep.name)}</small>
+              </div>
+              <div class="gmcv-side"><span class="gmcv-badge">직접 지정</span><span class="gmcv-arrow">⌄</span></div>
+            </button>
+            <div class="gmcv-body">
+              <div class="gmcv-members">${g.members.map(p=>`<span>${esc(p.name)}${p.id===g.rep.id?' · 대표':''}</span>`).join('')}</div>
+              <div class="gmcv-actions">
+                <button class="button small primary" type="button" data-edit-manual="${esc(g.rep.id)}">그룹 수정</button>
+                <button class="button small secondary" type="button" data-clear="${esc(g.rep.id)}">그룹 해제</button>
+              </div>
+            </div>
+          </div>`);
+      });
     }
 
-    host.innerHTML =
-      (manual.length
-        ? `<div class="gm-list-divider">직접 지정 대표자 그룹</div>${manualHtml}`
-        : '') +
-      (auto.length
-        ? `<div class="gm-list-divider">자동 기관 그룹 <span class="gm-auto-count">${auto.length}개</span></div>${autoHtml}`
-        : '');
-  }
-
-  function scheduleRender() {
-    clearTimeout(scheduleRender.timer);
-    scheduleRender.timer = setTimeout(renderCombined, 100);
-  }
-
-  function init() {
-    // 기존 admin-group.js가 먼저 패널을 생성할 시간을 아주 짧게 줍니다.
-    let tries = 0;
-    const timer = setInterval(() => {
-      tries += 1;
-      if (document.querySelector('#gmGroupList')) {
-        clearInterval(timer);
-        scheduleRender();
-      } else if (tries > 40) {
-        clearInterval(timer);
-      }
-    }, 100);
-
-    // 고속화 패치 이벤트에만 반응: 상시 3초 반복 없음.
-    window.addEventListener('nyj20:participants-rendered', scheduleRender);
-    window.addEventListener('nyj20:data-updated', event => {
-      if (event?.detail?.view === 'participants') scheduleRender();
-    });
-    window.addEventListener('nyj20:view-changed', event => {
-      if (event?.detail?.view === 'participants') scheduleRender();
-    });
-
-    // 수동 그룹 저장/해제 후 기존 코드가 gmGroupList를 덮어쓴 경우만 다시 합칩니다.
-    const observe = () => {
-      const host = document.querySelector('#gmGroupList');
-      if (!host || host.dataset.autoViewObserved === '1') return;
-      host.dataset.autoViewObserved = '1';
-
-      let internal = false;
-      const observer = new MutationObserver(() => {
-        if (internal) return;
-        clearTimeout(observer._timer);
-        observer._timer = setTimeout(() => {
-          internal = true;
-          try { renderCombined(); }
-          finally { setTimeout(() => { internal = false; }, 0); }
-        }, 80);
+    if(auto.length){
+      html.push(`<div class="gmcv-divider">자동 기관 그룹 · ${auto.length}개</div>`);
+      auto.forEach(g=>{
+        html.push(`
+          <div class="gmcv-card gmcv-auto">
+            <button class="gmcv-head" type="button" data-toggle-auto="${esc(g.key)}">
+              <div class="gmcv-title">
+                <strong>🏢 ${esc(g.organization)}</strong>
+                <small>${g.members.length}명 · 도착 ${g.arrived} · 미도착 ${g.pending}</small>
+              </div>
+              <div class="gmcv-side"><span class="gmcv-badge">대표자 미지정</span><span class="gmcv-arrow">⌄</span></div>
+            </button>
+            <div class="gmcv-body">
+              <div class="gmcv-members">${g.members.map(p=>`<span>${esc(p.name)}${p.arrived?' · 도착':''}</span>`).join('')}</div>
+              <p class="gmcv-note">이 기관은 자동 그룹입니다. 구성원 누구의 QR을 찍어도 ‘이 사람만 / 같은 기관 함께 도착’을 선택할 수 있습니다.</p>
+            </div>
+          </div>`);
       });
-      observer.observe(host, { childList:true });
+    }
+
+    host.innerHTML=html.length?html.join(''):'<div class="empty-state compact">현재 대표자·기관 그룹이 없습니다.</div>';
+  }
+
+  function findManual(repId){return manualGroups().find(g=>String(g.rep.id)===String(repId))}
+
+  function openEditor(repId){
+    const g=findManual(repId);
+    if(!g)return;
+    const selected=new Set(g.members.map(p=>String(p.id)));
+    let representativeId=String(g.rep.id);
+
+    const html=()=>`
+      <div class="gm-edit-grid">
+        <label>그룹 표시 이름
+          <input id="gmEditLabel" maxlength="80" value="${esc(g.label||g.rep.organization||'')}" placeholder="예: OO교회 / CWL">
+        </label>
+        <label>대표자
+          <select id="gmEditRepresentative">
+            ${[...selected].map(id=>{
+              const p=rows().find(x=>String(x.id)===id);
+              return p?`<option value="${esc(p.id)}" ${id===representativeId?'selected':''}>${esc(p.name)} · ${esc(p.phone||'')}</option>`:'';
+            }).join('')}
+          </select>
+        </label>
+        <div>
+          <strong>현재 구성원 · ${selected.size}명</strong>
+          <div id="gmEditMembers" class="gm-edit-members"></div>
+        </div>
+        <label>참가자 추가 검색
+          <input id="gmEditSearch" type="search" placeholder="이름 / 연락처 / 기관">
+        </label>
+        <div id="gmEditSearchResults" class="gm-edit-search-results"></div>
+        <div class="form-actions">
+          <button id="gmEditSave" class="button primary" type="button">수정 내용 저장</button>
+        </div>
+      </div>`;
+
+    openModal('대표자 그룹 수정',html());
+
+    const refreshMembers=()=>{
+      const people=[...selected].map(id=>rows().find(p=>String(p.id)===id)).filter(Boolean);
+      const memberHost=document.querySelector('#gmEditMembers');
+      memberHost.innerHTML=people.map(p=>`
+        <span class="gm-edit-chip">${esc(p.name)}${String(p.id)===representativeId?' · 대표':''}
+          <button type="button" data-remove-member="${esc(p.id)}" aria-label="${esc(p.name)} 제거">×</button>
+        </span>`).join('');
+      const select=document.querySelector('#gmEditRepresentative');
+      select.innerHTML=people.map(p=>`<option value="${esc(p.id)}" ${String(p.id)===representativeId?'selected':''}>${esc(p.name)} · ${esc(p.phone||'')}</option>`).join('');
     };
 
-    setTimeout(observe, 500);
+    const search=()=>{
+      const q=String(document.querySelector('#gmEditSearch')?.value||'').trim().toLowerCase();
+      const host=document.querySelector('#gmEditSearchResults');
+      if(!q){host.innerHTML='';return}
+      const items=rows().filter(p=>{
+        if(p.active===false||String(p.participationStatus||'참여')==='미참여')return false;
+        if(selected.has(String(p.id)))return false;
+        const mark=markerInfo(p);
+        if(mark && mark.representativeId!==repId)return false;
+        const hay=`${p.name||''} ${p.phone||''} ${p.organization||''}`.toLowerCase();
+        return hay.includes(q);
+      }).slice(0,30);
+
+      host.innerHTML=items.map(p=>`
+        <button class="gm-edit-result" type="button" data-add-member="${esc(p.id)}">
+          <span><strong>${esc(p.name)}</strong><br><small>${esc(p.organization||'소속 없음')} · ${esc(p.phone||'')}</small></span>
+          <b>+ 추가</b>
+        </button>`).join('')||'<div class="empty-state compact">검색 결과가 없습니다.</div>';
+    };
+
+    document.querySelector('#gmEditMembers')?.addEventListener('click',e=>{
+      const b=e.target.closest('[data-remove-member]');if(!b)return;
+      if(selected.size<=2){showToast('대표자 그룹은 2명 이상이어야 합니다.',4000);return}
+      const id=b.dataset.removeMember;
+      selected.delete(id);
+      if(id===representativeId)representativeId=[...selected][0]||'';
+      refreshMembers();
+    });
+
+    document.querySelector('#gmEditSearch')?.addEventListener('input',search);
+    document.querySelector('#gmEditSearchResults')?.addEventListener('click',e=>{
+      const b=e.target.closest('[data-add-member]');if(!b)return;
+      selected.add(b.dataset.addMember);
+      refreshMembers();
+      search();
+    });
+    document.querySelector('#gmEditRepresentative')?.addEventListener('change',e=>{
+      representativeId=e.target.value;
+      refreshMembers();
+    });
+
+    document.querySelector('#gmEditSave')?.addEventListener('click',async()=>{
+      const btn=document.querySelector('#gmEditSave');
+      btn.disabled=true;
+      try{
+        const result=await jsonpRequest('adminUpdateRepresentativeGroup',{
+          representativeId:repId,
+          newRepresentativeId:representativeId,
+          ids:[...selected],
+          label:String(document.querySelector('#gmEditLabel')?.value||'').trim()
+        });
+        closeModal();
+        await refreshFromServer({silent:true,full:false});
+        render();
+        showToast(`${result.label||result.representativeName} 그룹을 수정했습니다.`,5000);
+      }catch(err){
+        showToast(`그룹 수정 실패: ${err.message}`,7000);
+      }finally{btn.disabled=false}
+    });
+
+    refreshMembers();
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init, { once:true });
-  } else {
-    init();
+  function bind(){
+    const host=document.querySelector('#gmGroupList');
+    if(!host||host.dataset.compactV2Bound==='1')return;
+    host.dataset.compactV2Bound='1';
+    host.addEventListener('click',e=>{
+      const toggle=e.target.closest('[data-toggle-card],[data-toggle-auto]');
+      if(toggle){
+        toggle.closest('.gmcv-card')?.classList.toggle('open');
+        return;
+      }
+      const edit=e.target.closest('[data-edit-manual]');
+      if(edit){openEditor(edit.dataset.editManual);return}
+    });
   }
+
+  function schedule(){
+    clearTimeout(schedule.t);
+    schedule.t=setTimeout(()=>{render();bind()},90);
+  }
+
+  function init(){
+    let tries=0;
+    const timer=setInterval(()=>{
+      tries++;
+      if(document.querySelector('#gmGroupList')){
+        clearInterval(timer);schedule();
+      }else if(tries>50)clearInterval(timer);
+    },100);
+
+    window.addEventListener('nyj20:participants-rendered',schedule);
+    window.addEventListener('nyj20:data-updated',e=>{if(e?.detail?.view==='participants')schedule()});
+    window.addEventListener('nyj20:view-changed',e=>{if(e?.detail?.view==='participants')schedule()});
+  }
+
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
+  else init();
 })();

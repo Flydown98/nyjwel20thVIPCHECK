@@ -361,7 +361,7 @@ window.NYJ20_CONFIG = {
   window.addEventListener('load', () => {
     if (document.querySelector('script[data-group-view-addon]')) return;
     const script = document.createElement('script');
-    script.src = 'admin-group-auto-view.js?v=1.0';
+    script.src = 'admin-group-auto-view.js?v=2.0';
     script.defer = true;
     script.dataset.groupViewAddon = '1';
     document.body.appendChild(script);
