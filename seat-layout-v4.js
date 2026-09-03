@@ -5,17 +5,17 @@
     const heading=document.querySelector('#view-seats .section-heading .small-text');
     if(heading){
       heading.innerHTML=
-        '<strong>V6.2 · 좌석구역 엄격 재배치</strong><br>'+
+        '<strong>V6.4 · 현장 입장순 좌석배정</strong><br>'+
         'A~C 주요 내빈 인사 · D~F 내빈 관련 인사 · A~C 양끝 파란 구역은 휠체어·보호자 좌석 · G~Y 일반석';
     }
 
     const button=document.querySelector('#reassignAllSeatsButton');
-    if(button)button.textContent='좌석 구역 적용 · 전체 참가자 재배치';
+    if(button)button.textContent='일반 사전좌석 초기화 · 현장배정 준비';
 
     const note=document.querySelector('.seat-reset-note');
     if(note){
       note.textContent=
-        '핵심 내빈 지정자만 보호하고, 휠체어 이용자와 같은 동반그룹 보호자는 파란 구역에 함께 배치하며, 나머지는 G~Y 일반석으로 강제 재배치합니다.';
+        '내빈석·장애인석처럼 미리 지정한 좌석만 유지하고, 일반 참가자의 사전 좌석은 비웁니다. 일반석은 행사 당일 QR 입장 순서대로 G~Y에 배정됩니다.';
     }
   }
 
@@ -89,4 +89,43 @@
     setTimeout(updateUi,500);
     setTimeout(updateUi,1500);
   });
+})();
+
+/* v6.4 현장 입장순 좌석 준비 버튼 */
+(() => {
+  async function prepareArrivalSeatingV64(){
+    const button=document.querySelector('#reassignAllSeatsButton');
+    if(!confirm(
+      '일반 참가자의 현재 사전 좌석을 모두 비울까요?\n\n'+
+      '• 내빈으로 직접 지정된 좌석은 유지\n'+
+      '• 휠체어 이용자가 파란 장애인석에 지정된 경우 유지\n'+
+      '• 나머지 일반 참가자는 좌석 미배정으로 변경\n'+
+      '• 행사 당일 QR 입장 순서대로 G~Y 일반석 자동배정\n\n'+
+      '이미 도착 처리된 참가자는 변경하지 않습니다.'
+    ))return;
+
+    const old=button?.textContent||'';
+    if(button){button.disabled=true;button.textContent='현장배정 준비 중...';}
+
+    try{
+      const r=await jsonpRequest('adminReassignAllSeats',{mode:'arrival'});
+      await refreshFromServer({silent:true,full:true});
+      showToast(
+        `준비 완료 · 일반 사전좌석 ${r.clearedGeneral}명 초기화 · `+
+        `내빈 ${r.preservedVip}명 유지 · 장애인석 ${r.preservedWheelchair}명 유지`,
+        9000
+      );
+    }catch(e){
+      showToast(`현장배정 준비 실패: ${e.message||e}`,9000);
+    }finally{
+      if(button){button.disabled=false;button.textContent='일반 사전좌석 초기화 · 현장배정 준비';}
+    }
+  }
+
+  window.reassignAllSeatsV31=prepareArrivalSeatingV64;
+  window.reassignAllSeatsV4=prepareArrivalSeatingV64;
+  window.reassignAllSeatsV5=prepareArrivalSeatingV64;
+  window.reassignAllSeatsV6=prepareArrivalSeatingV64;
+  window.prepareArrivalSeatingV64=prepareArrivalSeatingV64;
+  try{reassignAllSeatsV31=prepareArrivalSeatingV64}catch(_){}
 })();

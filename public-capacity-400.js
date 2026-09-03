@@ -1,125 +1,119 @@
 'use strict';
 
 /**
- * 400석 온라인 신청 마감 안내 v1.1
- * - publicState가 window 속성이 아니어도 읽을 수 있게 수정
- * - 신청하기 / 행사프로그램 신청 / 쉬운UI 신청 버튼 모두 보호
+ * 온라인 사전접수 450명 + 현장 입장순 좌석배정 v1.0
+ *
+ * - 1~450번째: 온라인 접수 가능
+ * - 신청 단계에서는 일반 좌석번호를 미리 배정하지 않음
+ * - 행사 당일 QR 입장 순서대로 잔여 일반석 배정
+ * - 450명 이후: 스탠딩 안내
  */
 (() => {
-  const $ = s => document.querySelector(s);
+  const $=s=>document.querySelector(s);
+  const CAPACITY=450;
 
-  function stateSettings() {
-    try {
-      if (typeof publicState !== 'undefined' && publicState?.settings) {
-        return publicState.settings;
-      }
-    } catch (_) {}
-
-    return window.__NYJ20_PUBLIC_STATE__?.settings || {};
+  function settings(){
+    try{
+      if(typeof publicState!=='undefined'&&publicState?.settings)return publicState.settings;
+    }catch(_){}
+    return window.__NYJ20_PUBLIC_STATE__?.settings||{};
   }
 
-  function isFull() {
-    const s = stateSettings();
-
-    const remain = Number(s.remainingCount);
-    if (Number.isFinite(remain)) return remain <= 0;
-
-    const registered = Number(s.registeredCount);
-    const capacity = Number(s.registrationCapacity || 400);
-    return Number.isFinite(registered) && registered >= capacity;
+  function isFull(){
+    const s=settings();
+    const registered=Number(s.registeredCount);
+    const capacity=Number(s.registrationCapacity||CAPACITY);
+    return Number.isFinite(registered)&&registered>=capacity;
   }
 
-  function ensureModal() {
-    if ($('#seat400FullModal')) return;
+  function ensureNotice(){
+    if($('#arrivalSeatNotice'))return;
+    const target=$('#registrationStatus')?.parentElement||$('#registrationStatus');
+    if(!target)return;
 
-    const modal = document.createElement('div');
-    modal.id = 'seat400FullModal';
-    modal.className = 'seat350-full-modal hidden';
-    modal.setAttribute('aria-hidden', 'true');
-    modal.innerHTML = `
+    const box=document.createElement('div');
+    box.id='arrivalSeatNotice';
+    box.style.cssText=
+      'margin:12px 0;padding:14px 16px;border-radius:14px;'+
+      'background:#f5f8ff;border:1px solid #cfdcf5;color:#253858;line-height:1.65;font-weight:700';
+    box.innerHTML=
+      '<strong>좌석은 행사 당일 입장 순서대로 안내됩니다.</strong><br>'+
+      '온라인 신청 단계에서는 일반 좌석번호가 미리 지정되지 않습니다. '+
+      '행사 당일 QR 확인 후 잔여 좌석을 순서대로 안내해 드립니다.';
+    target.appendChild(box);
+  }
+
+  function ensureModal(){
+    if($('#seat450FullModal'))return;
+    const modal=document.createElement('div');
+    modal.id='seat450FullModal';
+    modal.className='seat350-full-modal hidden';
+    modal.setAttribute('aria-hidden','true');
+    modal.innerHTML=`
       <div class="seat350-full-backdrop" data-close="1"></div>
-      <section class="seat350-full-card" role="dialog" aria-modal="true" aria-labelledby="seat400FullTitle">
+      <section class="seat350-full-card" role="dialog" aria-modal="true" aria-labelledby="seat450FullTitle">
         <div class="seat350-full-icon" aria-hidden="true">안내</div>
-        <h2 id="seat400FullTitle">온라인 일반좌석 신청이 마감되었습니다</h2>
-        <p>추가 참여를 원하시는 경우<br><strong>행사 당일 현장접수 후 스탠딩석</strong>으로 안내드립니다.</p>
-        <small>행사 당일 현장 상황에 따라 입장이 제한될 수 있습니다.</small>
-        <button id="seat400FullClose" type="button">확인</button>
+        <h2 id="seat450FullTitle">온라인 사전접수가 마감되었습니다</h2>
+        <p>
+          이후 참석자분들은 <strong>스탠딩석</strong>으로 안내될 예정입니다.<br><br>
+          행사 당일 현장에 참석해 주시고,
+          <strong>잔여 좌석이 있는 경우 현장에서 좌석을 배정</strong>받아 주시기 바랍니다.
+        </p>
+        <small>현장 상황에 따라 좌석 배정이 어려울 수 있습니다.</small>
+        <button id="seat450FullClose" type="button">확인</button>
       </section>`;
     document.body.appendChild(modal);
-
-    modal.addEventListener('click', event => {
-      if (
-        event.target.closest('[data-close="1"]') ||
-        event.target.id === 'seat400FullClose'
-      ) {
-        closeModal();
-      }
+    modal.addEventListener('click',e=>{
+      if(e.target.closest('[data-close="1"]')||e.target.id==='seat450FullClose')close();
     });
   }
 
-  function openModal() {
+  function open(){
     ensureModal();
-    const m = $('#seat400FullModal');
-    if (!m) return;
-    m.classList.remove('hidden');
-    m.setAttribute('aria-hidden', 'false');
-    setTimeout(() => $('#seat400FullClose')?.focus(), 30);
+    const m=$('#seat450FullModal');
+    m?.classList.remove('hidden');
+    m?.setAttribute('aria-hidden','false');
   }
 
-  function closeModal() {
-    const m = $('#seat400FullModal');
-    if (!m) return;
-    m.classList.add('hidden');
-    m.setAttribute('aria-hidden', 'true');
+  function close(){
+    const m=$('#seat450FullModal');
+    m?.classList.add('hidden');
+    m?.setAttribute('aria-hidden','true');
   }
 
-  function guard(event) {
-    if (!isFull()) return;
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    openModal();
+  function guard(e){
+    if(!isFull())return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    open();
   }
 
-  function bind() {
+  function bind(){
+    ensureNotice();
     ensureModal();
 
-    [
-      '#revealApplicationButton',
-      '#programApplyButton',
-      '#easyGoApply'
-    ].forEach(selector => {
-      const button = $(selector);
-      if (button && !button.dataset.seat400Guard) {
-        button.dataset.seat400Guard = '1';
-        button.addEventListener('click', guard, true);
+    ['#revealApplicationButton','#programApplyButton','#easyGoApply'].forEach(sel=>{
+      const b=$(sel);
+      if(b&&!b.dataset.seat450Guard){
+        b.dataset.seat450Guard='1';
+        b.addEventListener('click',guard,true);
       }
     });
 
-    if (isFull()) {
-      const status = $('#registrationStatus');
-      if (status) {
-        status.className = 'registration-status closed';
-        status.textContent =
-          '온라인 좌석 마감 · 당일 현장접수 및 스탠딩석 안내';
+    const status=$('#registrationStatus');
+    if(status){
+      if(isFull()){
+        status.className='registration-status closed';
+        status.textContent='온라인 사전접수 마감 · 이후 참석자는 현장 스탠딩 안내';
+      }else{
+        status.textContent='온라인 참가 신청 가능 · 일반 좌석은 행사 당일 입장 순서대로 배정';
       }
     }
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      setTimeout(bind, 200);
-      setInterval(bind, 1500);
-    });
-  } else {
-    setTimeout(bind, 100);
-    setInterval(bind, 1500);
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',()=>{setTimeout(bind,200);setInterval(bind,1800)});
+  }else{
+    setTimeout(bind,100);setInterval(bind,1800);
   }
-
-  window.addEventListener('unhandledrejection', event => {
-    const msg = String(event.reason?.message || '');
-    if (/일반좌석 신청이 마감|자동 배정 가능한 좌석이 모두/.test(msg)) {
-      event.preventDefault();
-      openModal();
-    }
-  });
 })();

@@ -197,7 +197,10 @@
       const q=String($('#g83AutoSearch')?.value||'').trim().toLowerCase();
       if(!q){$('#g83AutoResults').innerHTML='';return}
       const found=rows().filter(p=>
-        !selected.has(String(p.id))&&
+        p &&
+        p.active !== false &&
+        String(p.participationStatus||'참여') !== '미참여' &&
+        !selected.has(String(p.id)) &&
         `${p.name||''} ${p.phone||''} ${p.organization||''}`.toLowerCase().includes(q)
       ).slice(0,30);
       $('#g83AutoResults').innerHTML=found.map(p=>`<button class="g83-result" data-add-auto="${esc(p.id)}"><span><strong>${esc(p.name)}</strong><br><small>${esc(p.organization||'소속 없음')}</small></span><b>+ 추가</b></button>`).join('');
@@ -215,11 +218,21 @@
     };
     $('#g83AutoSave').onclick=async()=>{
       try{
-        await window.NYJ20_AUTO_ORG.saveOverride(
+        const result=await window.NYJ20_AUTO_ORG.saveOverride(
           key,String($('#g83AutoLabel').value||'').trim(),[...selected]
         );
         closeModal();render();
-        showToast('자동 기관 그룹을 수정했습니다.',5000);
+
+        const skipped=Array.isArray(result?.skipped)?result.skipped:[];
+        if(skipped.length){
+          const names=skipped.slice(0,5).map(x=>x.name||x.id).join(', ');
+          showToast(
+            `기관 그룹 저장 완료 · ${result.count}명 · 미참여/비활성 ${skipped.length}명 자동 제외 (${names})`,
+            9000
+          );
+        }else{
+          showToast(`자동 기관 그룹을 수정했습니다. · ${result.count}명`,5000);
+        }
       }catch(e){showToast(`기관 그룹 수정 실패: ${e.message}`,7000)}
     };
     refresh();
