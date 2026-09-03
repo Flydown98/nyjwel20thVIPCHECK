@@ -345,3 +345,25 @@ window.NYJ20_CONFIG = {
     document.body.appendChild(script);
   }, { once: true });
 })();
+
+/*
+ * 현재 대표자 그룹 영역에 자동 기관 그룹도 함께 표시 v1.0
+ */
+(() => {
+  const path = String(location.pathname || '').toLowerCase();
+  const isAdmin =
+    path.endsWith('/admin.html') ||
+    path.endsWith('/admin') ||
+    path.includes('/admin.html');
+
+  if (!isAdmin) return;
+
+  window.addEventListener('load', () => {
+    if (document.querySelector('script[data-group-view-addon]')) return;
+    const script = document.createElement('script');
+    script.src = 'admin-group-auto-view.js?v=1.0';
+    script.defer = true;
+    script.dataset.groupViewAddon = '1';
+    document.body.appendChild(script);
+  }, { once: true });
+})();
