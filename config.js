@@ -339,7 +339,7 @@ window.NYJ20_CONFIG = {
   window.addEventListener('load', () => {
     if (document.querySelector('script[data-auto-org-group-addon]')) return;
     const script = document.createElement('script');
-    script.src = 'admin-auto-org-group.js?v=2.0';
+    script.src = 'admin-auto-org-group.js?v=2.1';
     script.defer = true;
     script.dataset.autoOrgGroupAddon = '1';
     document.body.appendChild(script);
@@ -361,9 +361,25 @@ window.NYJ20_CONFIG = {
   window.addEventListener('load', () => {
     if (document.querySelector('script[data-group-view-addon]')) return;
     const script = document.createElement('script');
-    script.src = 'admin-group-auto-view.js?v=3.0';
+    script.src = 'admin-group-auto-view.js?v=3.1';
     script.defer = true;
     script.dataset.groupViewAddon = '1';
     document.body.appendChild(script);
   }, { once: true });
+})();
+
+/* 대표자 그룹 전체 패널 접기 v1.0 */
+(() => {
+  const path=String(location.pathname||'').toLowerCase();
+  const isAdmin=path.endsWith('/admin.html')||path.endsWith('/admin')||path.includes('/admin.html');
+  if(!isAdmin)return;
+
+  window.addEventListener('load',()=>{
+    if(document.querySelector('script[data-group-panel-collapse]'))return;
+    const script=document.createElement('script');
+    script.src='admin-group-collapse.js?v=1.0';
+    script.defer=true;
+    script.dataset.groupPanelCollapse='1';
+    document.body.appendChild(script);
+  },{once:true});
 })();

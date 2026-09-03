@@ -105,6 +105,7 @@
             <div class="g83-actions">
               <button type="button" class="button small primary" data-edit-auto="${esc(g.key)}">기관 그룹 수정</button>
               ${g.override?`<button type="button" class="button small secondary" data-reset-auto="${esc(g.key)}">자동구성으로 되돌리기</button>`:''}
+              <button type="button" class="button small secondary" data-delete-auto="${esc(g.key)}" data-auto-label="${esc(g.organization)}">자동 그룹 삭제</button>
             </div>
           </div>
         </div>`);
@@ -240,6 +241,16 @@
         if(!confirm('수정한 기관 그룹을 원래 기관명 자동구성으로 되돌릴까요?'))return;
         await window.NYJ20_AUTO_ORG.resetOverride(reset.dataset.resetAuto);
         render();showToast('자동 구성으로 되돌렸습니다.');
+        return;
+      }
+
+      const del=e.target.closest('[data-delete-auto]');
+      if(del){
+        const label=del.dataset.autoLabel||'이 기관';
+        if(!confirm(`${label} 자동 그룹을 목록에서 삭제할까요?\n\n참가자 정보 자체는 삭제되지 않고, 자동 그룹 기능에서만 제외됩니다.`))return;
+        await window.NYJ20_AUTO_ORG.deleteGroup(del.dataset.deleteAuto,label);
+        render();
+        showToast(`${label} 자동 그룹을 삭제했습니다.`,5000);
       }
     });
   }

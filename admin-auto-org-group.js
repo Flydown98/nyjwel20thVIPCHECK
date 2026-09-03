@@ -56,6 +56,8 @@
 
     base.forEach((g,key)=>{
       const ov=overrides[key];
+      if(ov&&ov.hidden===true)return;
+
       let members=g.members;
       let label=g.organization;
 
@@ -82,6 +84,7 @@
 
     // override에 추가된 사람이 원래 기관명 그룹에 없어도 표시
     Object.entries(overrides).forEach(([key,ov])=>{
+      if(ov&&ov.hidden===true)return;
       if(result.some(g=>g.key===key))return;
       const members=(ov.ids||[]).map(id=>byId[id]).filter(Boolean);
       if(members.length<2)return;
@@ -129,6 +132,12 @@
 
   async function resetOverride(key){
     const r=await jsonpRequest('adminResetAutoOrgGroup',{key});
+    await reloadOverrides();
+    return r;
+  }
+
+  async function deleteGroup(key,label){
+    const r=await jsonpRequest('adminDeleteAutoOrgGroup',{key,label});
     await reloadOverrides();
     return r;
   }
@@ -232,7 +241,8 @@
     getGroups:buildCandidateGroups,
     reload:reloadOverrides,
     saveOverride,
-    resetOverride
+    resetOverride,
+    deleteGroup
   };
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
