@@ -129,3 +129,39 @@
   window.prepareArrivalSeatingV64=prepareArrivalSeatingV64;
   try{reassignAllSeatsV31=prepareArrivalSeatingV64}catch(_){}
 })();
+
+(() => {
+  function updateDeferredUi(){
+    const h=document.querySelector('#view-seats .section-heading .small-text');
+    if(h)h.innerHTML='<strong>V6.8 · 좌우 10석 구조 · 좌석 추후배정</strong><br>지금은 접수만 받고 일반 좌석은 비워둡니다. 좌석 확정 후 별도 일괄배치를 적용합니다.';
+    const b=document.querySelector('#reassignAllSeatsButton');
+    if(b)b.textContent='일반 사전좌석 초기화 · 추후배정 준비';
+  }
+  window.prepareDeferredSeatingV65=async function(){
+    if(!confirm('일반 참가자의 사전 좌석을 비우고 추후배정 상태로 둘까요?\n\n내빈/장애인처럼 명시적으로 지정한 좌석은 유지합니다.'))return;
+    const r=await jsonpRequest('adminReassignAllSeats',{mode:'deferred'});
+    await refreshFromServer({silent:true,full:true});
+    showToast(`추후배정 준비 완료 · 일반좌석 ${r.clearedGeneral}명 초기화 · 예약좌석 ${r.keptReserved}명 유지`,8000);
+  };
+  window.reassignAllSeatsV31=window.prepareDeferredSeatingV65;
+  window.reassignAllSeatsV4=window.prepareDeferredSeatingV65;
+  window.reassignAllSeatsV5=window.prepareDeferredSeatingV65;
+  window.reassignAllSeatsV6=window.prepareDeferredSeatingV65;
+  try{reassignAllSeatsV31=window.prepareDeferredSeatingV65}catch(_){}
+  document.addEventListener('DOMContentLoaded',()=>{updateDeferredUi();setTimeout(updateDeferredUi,600)});
+})();
+
+
+/* V6.8 좌석 구조 안내 */
+(() => {
+  function updateSeatInfoV68(){
+    const h=document.querySelector('#view-seats .section-heading .small-text');
+    if(h){
+      h.innerHTML=
+        '<strong>V6.8 · 좌우 10석 구조</strong><br>'+
+        'A~C는 런웨이 가까운 5자리씩 귀빈석, 바깥쪽 5자리씩 장애인·휠체어석입니다. '+
+        'D~F는 내빈 관련 인사석, G~Y는 일반석입니다. 지금은 좌석 추후배정 모드입니다.';
+    }
+  }
+  document.addEventListener('DOMContentLoaded',()=>{updateSeatInfoV68();setTimeout(updateSeatInfoV68,600)});
+})();
