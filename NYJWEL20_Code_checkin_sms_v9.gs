@@ -5030,36 +5030,30 @@ function checkInRepresentativeGroupV90_(payload, station) {
   });
 
   const remaining = members.filter(function(p){ return !p.arrived; });
-  if (!remaining.length) {
-    return {
-      representative: representative,
-      members: members,
-      total: members.length,
-      checkedInNow: 0,
-      arrivedTotal: members.length,
-      remaining: 0,
-      already: true
-    };
-  }
 
+  // arrivedCount는 실제 현장 도착 인원입니다.
+  // 사전 등록 인원보다 많이 와도 등록 인원까지만 좌석/체크인 처리하고
+  // 초과 인원은 스탠딩 안내 인원으로 기록합니다.
   const requested = Math.floor(Number(payload.arrivedCount));
-  const count = Number.isFinite(requested) && requested > 0
-    ? requested
-    : remaining.length;
-
-  if (count < 1 || count > remaining.length) {
-    throw new Error('이번 도착 인원은 1명부터 남은 ' + remaining.length + '명 사이로 입력해 주세요.');
+  if (!Number.isFinite(requested) || requested < 1) {
+    throw new Error('이번 현장 도착 인원은 1명 이상이어야 합니다.');
   }
+  if (requested > 100) {
+    throw new Error('한 번에 처리할 수 있는 현장 인원은 최대 100명입니다.');
+  }
+
+  const registeredToCheckIn = Math.min(requested, remaining.length);
+  const extraStanding = Math.max(0, requested - registeredToCheckIn);
 
   const ordered = remaining.slice().sort(function(a,b) {
     if (a.id === representativeId) return -1;
     if (b.id === representativeId) return 1;
     return Number(a.number || 0) - Number(b.number || 0);
   });
-  const selected = ordered.slice(0, count);
+  const selected = ordered.slice(0, registeredToCheckIn);
 
-  // 먼저 도착/기념품을 처리하고, 그 다음 좌석을 배정합니다.
-  // 단체는 가능하면 이번 도착 인원을 한 블록으로 붙여 배정합니다.
+  // 등록된 사람 중 이번에 온 사람만 도착/기념품/좌석 처리합니다.
+  // 추가 현장 인원은 참가자 레코드를 만들지 않고 스탠딩 인원으로만 기록합니다.
   const processedBeforeSeat = [];
   selected.forEach(function(p) {
     const r = checkInParticipantV90_(
@@ -5069,9 +5063,12 @@ function checkInRepresentativeGroupV90_(payload, station) {
     processedBeforeSeat.push(r.participant);
   });
 
-  autoAssignGroupSeatBlockV90_(processedBeforeSeat, station);
+  // 이번 등록 도착 인원만큼만 좌석을 배정합니다.
+  // 예: 등록 6명 / 실제 5명 -> 5석, 실제 8명 -> 최대 6석 + 2명 스탠딩.
+  if (processedBeforeSeat.length) {
+    autoAssignGroupSeatBlockV90_(processedBeforeSeat, station);
+  }
 
-  // 한 블록 배정이 불가능하거나 휠체어 이용인이 포함된 경우에는 개별 규칙으로 보완합니다.
   const processed = processedBeforeSeat.map(function(p) {
     let freshP = readParticipants_().find(function(x){ return x.id === p.id; }) || p;
     if (!freshP.seat && !hasNoSeatMarkerV90_(freshP)) {
@@ -5092,16 +5089,20 @@ function checkInRepresentativeGroupV90_(payload, station) {
   let smsId = '';
   const repPhone = normalizePhoneDigits_(freshRep.phone);
   if (repPhone.length >= 10 && repPhone.length <= 11) {
-    const msg = [
+    const lines = [
       '[남양주시장애인복지관]',
       String(freshRep.name || '') + '님 단체 현장 접수가 완료되었습니다.',
-      '이번 접수: ' + processed.length + '명',
-      '누적 도착: ' + arrived.length + '/' + freshMembers.length + '명',
-      '기념품: 이번 도착 ' + processed.length + '명 지급완료',
-      '좌석: ' + (seats.length ? seats.join(', ') : '현장 안내'),
-      '개관 20주년 기념행사에 함께해 주셔서 감사합니다.'
-    ].join('\n');
-    try { smsId = enqueueSms(repPhone, msg); } catch (error) {
+      '이번 현장 인원: ' + requested + '명',
+      '등록인원 접수: ' + processed.length + '명',
+      '누적 등록인원 도착: ' + arrived.length + '/' + freshMembers.length + '명',
+      '기념품: 이번 등록 도착 ' + processed.length + '명 지급완료',
+      '좌석: ' + (seats.length ? seats.join(', ') : '현장 안내')
+    ];
+    if (extraStanding > 0) {
+      lines.push('추가 인원: ' + extraStanding + '명 / 좌석 미배정 · 스탠딩 안내');
+    }
+    lines.push('개관 20주년 기념행사에 함께해 주셔서 감사합니다.');
+    try { smsId = enqueueSms(repPhone, lines.join('\n')); } catch (error) {
       console.error('단체 체크인 문자 대기열 등록 실패: ' + (error.message || error));
     }
   }
@@ -5110,24 +5111,28 @@ function checkInRepresentativeGroupV90_(payload, station) {
     '단체 QR 현장 접수',
     freshRep,
     station,
-    '총 ' + freshMembers.length + '명 / 이번 ' + processed.length +
-    '명 / 누적 ' + arrived.length + '명 / 기념품 자동지급'
+    '사전등록 ' + freshMembers.length + '명 / 실제 현장 ' + requested +
+    '명 / 이번 등록처리 ' + processed.length + '명 / 누적등록도착 ' + arrived.length +
+    '명 / 추가스탠딩 ' + extraStanding + '명 / 기념품 자동지급'
   );
 
   return {
     representative: freshRep,
-    members: freshMembers.map(function(p){ return withGiftStatusV32_(p); }),
+    members: freshMembers,
     total: freshMembers.length,
+    actualArrivedNow: requested,
     checkedInNow: processed.length,
     arrivedTotal: arrived.length,
     remaining: Math.max(0, freshMembers.length - arrived.length),
+    extraStanding: extraStanding,
+    seatCount: seats.length,
     seats: seats,
     giftCount: processed.length,
     smsQueued: Boolean(smsId),
-    smsId: smsId
+    smsId: smsId,
+    already: processed.length === 0 && extraStanding === 0
   };
 }
-
 function smsRelayStatusV90_() {
   const tokenReady = Boolean(getSmsRelayToken_());
   const sheet = smsSheet_();
